@@ -84,7 +84,7 @@
 
 **Files:**
 
-- Modify: `olt/scripts/src/mind/concurrency-cap.ts:50-100`
+- Modify: `olt/scripts/src/mind/concurrency/index.ts`, `olt/scripts/src/mind/concurrency/controller.ts`, `olt/scripts/src/mind/concurrency/types.ts` (path-integrity note 2026-09-07: `concurrency-cap.ts` no longer exists — it was split into this directory; `FleetConcurrencyStats` now exposes `activeCount`/`activeSupervisorCount`, not the `activeWorkers`/`activeSupervisors` names in the Produces line below)
 - Modify: `olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts:60-110`
 - Modify: `olt/scripts/src/mind/auditing/flavor/scorer.ts:60-90`
 - Test: `tests/mind/two-tier-concurrency-accounting.test.ts`
@@ -120,7 +120,7 @@
 **Files:**
 
 - Modify: `olt/agents/mind.yaml:65-115`
-- Modify: `olt/scripts/src/authority/supervisory/persona-reminder.ts:1-60`
+- Modify: `olt/scripts/src/authority/supervisory/persona-reminder.ts:1-60` (path-integrity note 2026-09-07: this file was never created and has no git history; the actual `SupervisoryPersonaReminder` type and formatter live in `olt/scripts/src/authority/supervisory/types.ts` and `formatter.ts`)
 - Modify: `olt/scripts/src/sentinel/profiles/tier0/mind.ts:1-50`
 - Test: `tests/sentinel/mind/mind-spectator-prohibition.test.ts`
 

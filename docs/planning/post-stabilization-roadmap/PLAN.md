@@ -52,9 +52,9 @@ Small, do first — nothing downstream can be trusted while the gate itself is b
 
 Highest value: in every case below, tests are green while the feature is either unreachable or a no-op. Green coverage is actively hiding these gaps, so they outrank purity/modularity cleanup.
 
-### 3.1 Epic 13 — Two-tier concurrency accounting (NOT STARTED)
+### 3.1 Epic 13 — Two-tier concurrency accounting (path-integrity note 2026-09-07: this item's premise is stale — `concurrency-cap.ts` no longer exists (split into `olt/scripts/src/mind/concurrency/{index,controller,types}.ts`) and `tests/mind/two-tier-concurrency-accounting.test.ts` now passes 10/10 with an `activeSupervisorCount`/`activeCount` split on `FleetConcurrencyStats`; re-verify this item is still NOT STARTED before working it)
 
-`olt/scripts/src/mind/concurrency-cap.ts` treats every tier identically: `isSaturated()` (`activeSeats.size >= this.maxCap`) and `getStats()` count all seats regardless of `tier`, and no `activeSupervisors` concept exists. Idle Tier 0-2 supervisors occupy seats and are counted toward saturation, so the fleet can falsely report itself saturated while Tier 3 workers sit idle. Add a tier-aware exemption so only Tier 3 execution seats count toward `isSaturated()`/capacity, and surface supervisory occupancy separately (e.g. `activeSupervisors` in `FleetConcurrencyStats`).
+`olt/scripts/src/mind/concurrency/index.ts` (formerly `concurrency-cap.ts`) treats every tier identically: `isSaturated()` (`activeSeats.size >= this.maxCap`) and `getStats()` count all seats regardless of `tier`, and no `activeSupervisors` concept exists. Idle Tier 0-2 supervisors occupy seats and are counted toward saturation, so the fleet can falsely report itself saturated while Tier 3 workers sit idle. Add a tier-aware exemption so only Tier 3 execution seats count toward `isSaturated()`/capacity, and surface supervisory occupancy separately (e.g. `activeSupervisors` in `FleetConcurrencyStats`).
 **DoD:** a unit test asserts `isSaturated()` stays `false` while N idle Tier 0-2 seats are held and zero Tier 3 seats are active, at `maxCap` capacity.
 
 ### 3.2 Epic 16 — Two-key validator gate never fires
@@ -77,7 +77,11 @@ Highest value: in every case below, tests are green while the feature is either 
 `olt/scripts/src/mind/defects/loop/regression-gen.ts`: the empty-suite fallback (around line 86) still emits `expect(true).toBe(true)`, and the three category branches (lines ~53-63) each build `assertion` from fields drawn from the same literal `defectMeta` object being asserted against (`expect(meta.category).toBe("boundary_violation")` where `meta.category` was just set to that literal) — a self-referential round-trip, not an empirical assertion. Regression tests need to assert against the defect's actual persisted record or an observable side effect, not a copy of the input literal. Additionally, generated output currently targets `tests/unit/mind/*.test.ts`; the mandated location is `tests/regressions/`.
 **DoD:** `generateRegressionTestSuite` output contains no `expect(true).toBe(true)` and no assertion whose both sides derive from the same input object; generated file path hints resolve under `tests/regressions/`.
 
-### 3.6 Duplicate `defect-audit` command directory
+### 3.6 Duplicate `defect-audit` command directory — RESOLVED (path-integrity audit, 2026-09-07)
+
+`olt/scripts/src/cli/commands/defect-audit/` no longer exists on disk (deleted in commit `548224387`); the live path `olt/scripts/src/cli/commands/defect-audit.ts` is the sole implementation. No further action needed on this item.
+
+<details><summary>Original finding</summary>
 
 `olt/scripts/src/cli/commands/defect-audit/` (9 files: `apca.ts`, `command.ts`, `discovery.ts`, `formatter.ts`, `index.ts`, `promotion.ts`, `summary.ts`, `test-gen.ts`, `types.ts`) has zero production importers. The live path is the legacy sibling `olt/scripts/src/cli/commands/defect-audit.ts`, wired via `olt/scripts/src/cli/registry/diagnostics.ts:1` (`import { defectAuditCommand } from "../commands/defect-audit.ts"`). Delete the orphaned directory.
 **DoD:** `grep -rn "commands/defect-audit/" olt/scripts/src` returns nothing outside the deleted directory itself; `typecheck` and `defect-audit`-related tests still pass.
@@ -97,7 +101,7 @@ There is a severity split that drives work order:
 - **Executable/structured fields (fix first).** `olt/agents/mind.yaml:63` has a structured `- command: "bun test tests/unit"` entry under `stability:` — a literal command the harness actually runs, which hard-fails in any non-Bun consumer repo. Sweep `olt/agents/*.yaml` for any other structured `command:` field carrying a literal runner.
 - **Prose fields (fix second).** Responsibilities/prohibitions text mentioning `bun test`, `npm test`, `vitest` is misleading and teaches agents the wrong invariant, but is not executed. Confirmed occurrences: `olt/agents/coordinator.yaml:56`; `olt/agents/implementer.yaml:36,44,164,167`; `olt/agents/orchestrator.yaml:83,163`; `olt/agents/mind.yaml:297`; `olt/agents/sub-implementer.yaml:40,120`.
 
-**Scope (verified):** 5 of 23 files in `olt/agents/*.yaml`, plus `olt/references/topology-exemplar.md`, `run-playbook.md`, `schema-examples.md`, `host-environment.md`, `cli-capabilities/domains/{critic,run,defect}.md`, `cli-capabilities/domains/plan/authoring.md`, `cli-capabilities/domains/task/ops.md`, `cli-capabilities/domains/diagnostics/audit.md`, plus `olt/AGENTS.md` and `olt/SKILL.md`.
+**Scope (verified):** 5 of 23 files in `olt/agents/*.yaml`, plus `olt/references/topology-exemplar.md`, `olt/references/run-playbook.md`, `olt/references/schema-examples.md`, `olt/references/host-environment.md`, `olt/references/cli-capabilities/domains/{critic,run,defect}.md`, `olt/references/cli-capabilities/domains/plan/authoring.md`, `olt/references/cli-capabilities/domains/task/ops.md`, `olt/references/cli-capabilities/domains/diagnostics/audit.md`, plus `olt/AGENTS.md` and `olt/SKILL.md`.
 
 **Build on the existing mechanism, do not invent a new one.** `olt/scripts/src/cli/commands/task-brief.ts` already derives recommended commands from policy via `isTestingEnabled` (`olt/scripts/src/policy/index.ts:172`) and `deriveRecommendedCommands` (`olt/scripts/src/cli/commands/task-brief-helpers.ts:15`). Manifests should route through that resolution path rather than a parallel one. Preserve the tri-state contract from `docs/planning/optional-unit-testing-and-policy-governance/PLAN.md`: when `test_runner` is disabled, manifests must render **no test command at all**, not a default.
 

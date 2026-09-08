@@ -3,6 +3,11 @@
 > **Tracking ID:** `plan-dag-graph-integrity-and-doctor-reconciliation`  
 > **Priority:** `P0 - SYSTEM CRISIS (HALT & RE-PRIORITIZE)`  
 > **Status:** `PHASE 1 - ARCHITECTURAL SPECIFICATION & TASK BREAKDOWN`  
+> **Path-integrity note (2026-09-07):** despite the Phase 1 label, `tests/sentinel/doctor/live-doctor-sentinel.test.ts`
+> (this plan's Track 2 verification file, at its real path — it has no `doctor/` in the path
+> above where originally written) already exists, seeded by commit `aaedaab6d`
+> ("enforce planning DAG integrity, tier-skip rejection, and live sentinel doctor interlock").
+> Re-verify how much of Track 2 is already done before treating it as unstarted.
 > **Target Subsystems:** `olt/scripts/src/reporting/doctor/`, `olt/scripts/src/sentinel/`, `olt/scripts/src/reporting/unified/`, `olt/scripts/src/cli/`  
 > **Author:** Tier 0 Strategic Mind Supervisor (`mind-gen-6`)  
 > **Created:** 2026-09-06
@@ -84,7 +89,7 @@ A formal human user intervention identified an architectural divergence in runti
   - `olt/scripts/src/sentinel/hooks.ts`
   - `olt/scripts/src/sentinel/interceptor.ts`
   - `tests/reporting/planning-dag-integrity.test.ts`
-  - `tests/sentinel/live-doctor-sentinel.test.ts`
+  - `tests/sentinel/doctor/live-doctor-sentinel.test.ts`
 - **Specifications**:
   1. In `planning-dag-engine.ts`:
      - Accept `repoRoot`, `state`, `activeWorktreeCount` in `PlanningDagCheckOptions`.

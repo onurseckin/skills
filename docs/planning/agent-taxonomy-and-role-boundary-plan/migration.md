@@ -2,6 +2,11 @@
 
 This document details the step-by-step migration roadmap to transition the repository from the current 33-manifest drift state to the clean, streamlined 20-manifest target architecture. In accordance with [AGENTS.md §36](file:///Users/onurseckinsenoglu/repos/skills/AGENTS.md#L136-L139), **zero backwards-compatibility shims, forwarding stubs, or legacy aliases will be retained**.
 
+> **Path-integrity audit (2026-09-07):** Phases 1, 2, 4, and 5 below are confirmed executed against
+> the current tree — every file this document says to delete is gone from `olt/agents/`, and
+> `publisher.yaml` exists. See the note atop `PLAN.md` for the full verification. Treat a "does not
+> exist" hit on a deletion target below as success, not staleness.
+
 ---
 
 ## 1. Migration Phase Overview
@@ -96,7 +101,7 @@ Introduce the dedicated release subagent to own wave landing and remote push:
    - Add `publisher` agent entry with full 4-host model mappings (`gemini-3.7-flash`, `claude-5-sonnet`, `gpt-5.6-terra`, `cursor-latest` at Medium Thinking).
 3. **Update Fleet Archetypes & Matrix**:
    - Add `publisher` to `TIER_3_EXECUTION_AGENTS` in [fleet/archetypes.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/agents/fleet/archetypes.ts).
-   - Add contract definition in `fleet/contracts-tier3-exec.ts`.
+   - Add contract definition in [olt/scripts/src/agents/fleet/contracts-tier3-exec.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/agents/fleet/contracts-tier3-exec.ts).
 
 ---
 

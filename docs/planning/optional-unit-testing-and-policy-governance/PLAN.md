@@ -176,7 +176,7 @@ Mind (Tier 0) maintains strict adherence to **The Three Hard Zeros**: Mind autho
 
 - **Assigned Subagent:** `implementer_policy` (supervised by `orchestrator_policy`)
 - **Deliverables:**
-  - Update `olt/scripts/src/policy/types/index.ts` and `schema/workflow-schema.ts`.
+  - Update `olt/scripts/src/policy/types/index.ts` and `olt/scripts/src/policy/schema/workflow-schema.ts`.
   - Add `isTestingEnabled` helper in `policy/index.ts`.
   - Update `toolchain-scanner.ts` and `validator.ts`.
   - Author comprehensive unit tests in `tests/policy/optional-testing.test.ts`.

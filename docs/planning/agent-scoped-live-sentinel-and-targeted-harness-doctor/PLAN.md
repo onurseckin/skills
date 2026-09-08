@@ -6,6 +6,11 @@
 > **Author:** Antigravity Pair Programming (Relayed to Tier 0 Mind Supervisor)  
 > **Created:** 2026-09-06
 
+> **Path-integrity audit (2026-09-07):** this doc set is still `PROPOSED STRATEGIC BLUEPRINT` —
+> unrealized paths in this file and in `host-parity.md`/`interlocks.md` (mailbox examples,
+> `src/engine/dag.ts`/`tests/foo.test.ts` illustrative examples, the Host Parity test matrix,
+> `.olt/sentinel-log.jsonl`) are intentional future/illustrative references, not stale ones.
+
 ---
 
 ## 1. Executive Summary & Problem Statement

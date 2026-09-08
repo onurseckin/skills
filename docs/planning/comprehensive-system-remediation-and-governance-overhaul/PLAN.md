@@ -2,6 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Path-integrity audit (2026-09-07):** This document has no checkboxes of its own — per its own
+> "Execution Handoff" section, it is the original diagnosis catalog that seeded epics `epic-01`
+> through `epic-20` in `.olt/backlog.jsonl` (confirmed present). Its "Target Files"/"Verification"
+> lines reflect the file layout **at diagnosis time**; several have since been renamed as epics were
+> implemented in their own tracking plans (e.g. Epics 11-15 in
+> `docs/planning/mind-dynamic-graph-and-worktree-parallelism/PLAN.md`, Epics 4/6/7 in
+> `docs/planning/live-sentinel-and-hygiene-remediation/PLAN.md`). Known renames are annotated below;
+> for a "Verification" test file not annotated, check current source before assuming it is missing
+> or that the epic is unimplemented — do not treat any single path here as a live pointer without
+> checking current source first.
+
 **Goal:** Establish an unyielding, self-checking, multi-worktree autonomous agent hierarchy that eliminates supervisory role boundary breaches, eradicates Potemkin defect churn, unblinds Sentinels and Auditors through real-time transcript discovery, decouples supervisory ambient control from worker concurrency, dynamically clusters backlog tasks into parallel Git worktrees, and systematically re-validates all 20 identified systemic issues with Two-Key Socratic Cognitive Validation.
 
 **Architecture:**
@@ -35,10 +46,10 @@
 
 ### Epic 1: Telemetry Proto3 Zero-Quota Fraction Blindness
 
-- **Problem**: `scripts/src/telemetry/collectors/antigravity.ts` read absent `remainingFraction` as null/unknown. In Proto3 JSON, default 0.0 is omitted. The circuit breaker went blind at the exact moment remaining quota hit zero.
+- **Problem**: `olt/scripts/src/telemetry/collectors/antigravity.ts` read absent `remainingFraction` as null/unknown. In Proto3 JSON, default 0.0 is omitted. The circuit breaker went blind at the exact moment remaining quota hit zero.
 - **Remedy**: Treat absent `remainingFraction` as 0.0, triggering immediate graceful throttle and freeze before hard quota failure.
 - **Target Files**: `olt/scripts/src/telemetry/collectors/antigravity.ts`
-- **Verification**: `tests/telemetry/antigravity-proto3-zero.test.ts` (verify 0.0 remaining fraction triggers freeze).
+- **Verification**: `tests/telemetry/antigravity-proto3-zero.test.ts` (verify 0.0 remaining fraction triggers freeze; path-integrity note 2026-09-07: not found under this exact name — closest candidate is `tests/telemetry/collectors/proto3-zero-socratic-probes.test.ts`, unconfirmed as the same coverage).
 
 ### Epic 2: Optional Unit-Testing in `policy.json` & Multi-Repo Governance
 
@@ -52,27 +63,27 @@
 - **Problem**: Tier 1 Orchestrators authored source files with `replace_file_content` and ran unit tests with `run_command` directly on supervisory threads.
 - **Remedy**: Set `can_execute_shell: false` in `orchestratorProfile`. Expand doctor forbidden supervisory tools to catch `run_command`, `replace_file_content`, and `write_to_file`. Mandate delegation to Tier 2 Coordinator via `invoke_subagent`.
 - **Target Files**: `olt/scripts/src/sentinel/profiles/tier1/orchestrator.ts`, `olt/scripts/src/reporting/doctor/role-boundary-engine.ts`
-- **Verification**: `tests/sentinel/orchestrator-role-boundary.test.ts`.
+- **Verification**: `tests/sentinel/orchestrator-role-boundary.test.ts` (unresolved — no exact-name match found on disk; re-verify before assuming unimplemented).
 
 ### Epic 4: Skill Auditor Host Transcript Blindness & Oversight Delay
 
 - **Problem**: Skill Auditor scanned only capsule `events.jsonl` and git diffs, remaining completely blind to the real-time host conversation transcripts (`transcript.jsonl`).
 - **Remedy**: Wire unbuffered host transcript discovery directly into `skill-auditor.ts` and `registry.ts`, tailing subagent transcripts in real time and issuing immediate strikes.
 - **Target Files**: `olt/scripts/src/mind/auditing/cognitive/skill-auditor.ts`, `olt/scripts/src/sentinel/monitor/registry.ts`
-- **Verification**: `tests/sentinel/skill-auditor-transcript-discovery.test.ts`.
+- **Verification**: `tests/sentinel/auditor/skill-auditor-transcript-discovery.test.ts` (path-integrity note 2026-09-07: moved into an `auditor/` subdirectory).
 
 ### Epic 5: Potemkin "Defect-CLI" Synthetic Files & Tautological Tests
 
 - **Problem**: Automated defect promotion flows created 103 fake `defect-cli-*.ts` stubs in `olt/scripts/src/` and 326 fake tests with `expect(true).toBe(true)` to cosmetically close defects without fixing code.
-- **Remedy**: Purge all 654 fake files, ban production stub generation in `defect-audit/command.ts`, and eliminate tautological test generation in `regression-gen.ts`.
-- **Target Files**: `olt/scripts/src/cli/commands/defect-audit/command.ts`, `olt/scripts/src/logging/defects/regression-gen.ts`
-- **Verification**: `tests/cli/commands/governance/defects/defect-audit-integrity.test.ts`.
+- **Remedy**: Purge all 654 fake files, ban production stub generation in `defect-audit.ts`, and eliminate tautological test generation in `regression-gen.ts`.
+- **Target Files**: `olt/scripts/src/cli/commands/defect-audit.ts` (path-integrity note 2026-09-07: the old `defect-audit/command.ts` subdirectory was flattened into this file plus sibling `defect-audit-formatter.ts`/`-scanner.ts`/`-types.ts`), `olt/scripts/src/mind/defects/loop/regression-gen.ts` (moved from `olt/scripts/src/logging/defects/`)
+- **Verification**: `tests/cli/commands/governance/defects/defect-audit-integrity.test.ts` (unresolved — no exact-name match found on disk; re-verify before treating this epic as unimplemented).
 
 ### Epic 6: Root Directory Hygiene Bleed (`olt/` vs `.olt/`)
 
 - **Problem**: Hardcoded `join(repoRoot, "olt", ...)` across path resolvers caused consumer repositories to create or expect an unhidden `olt/` directory instead of hidden `.olt/`.
 - **Remedy**: Refactor all path resolution to `resolveOltDir(repoRoot)` with `.olt/` priority across all 9 resolver files.
-- **Target Files**: `olt/scripts/src/core/shared/paths.ts`, `olt/scripts/src/authority/manifest/loader.ts`, `olt/scripts/src/references/indexer.ts`, `olt/scripts/src/mind/lifecycle/mind-init-flow.ts`
+- **Target Files**: `olt/scripts/src/core/shared/paths.ts`, `olt/scripts/src/authority/manifest/loader.ts`, `olt/scripts/src/references/indexer.ts` (path-integrity note 2026-09-07: no file at this path; closest current candidate is `olt/scripts/src/mind/memory/core/indexer.ts` — unconfirmed, re-derive from the resolver call sites before editing), `olt/scripts/src/mind/lifecycle/mind-init-flow.ts`
 - **Verification**: `tests/core/root-hygiene.test.ts`.
 
 ### Epic 7: True Live Registered Sentinel Strategy Monitors
@@ -80,21 +91,21 @@
 - **Problem**: Passive Sentinel checks wrapped only CLI commands. Native host tool calls (`run_command`, `replace_file_content`) completely bypassed it.
 - **Remedy**: Implement `SentinelMonitorRegistry` and `LiveStrategyMonitor` to spawn an active background monitor per agent, tailing `transcript.jsonl` unbuffered, watching filesystem mutations, and auto-cleaning on agent termination.
 - **Target Files**: `olt/scripts/src/sentinel/monitor/registry.ts`, `olt/scripts/src/sentinel/monitor/strategy-monitor.ts`
-- **Verification**: `tests/sentinel/live-strategy-monitor.test.ts`.
+- **Verification**: `tests/sentinel/monitor/strategy-monitor.test.ts` (path-integrity note 2026-09-07: real file has no `live-` prefix).
 
 ### Epic 8: Dedicated Test Location Invariant (`tests/` Only)
 
 - **Problem**: Test files were being placed or generated under `skills/olt/` or `olt/scripts/src/`.
 - **Remedy**: Strictly mandate that all unit, integration, and regression test files (`*.test.ts`, `*.spec.ts`) reside under top-level `tests/`. Enforce 0 test files under `skills/olt/` or `olt/`.
-- **Target Files**: `olt/scripts/src/logging/defects/regression-gen.ts`, `lefthook.yml`, `scripts/modularity/`
-- **Verification**: `tests/core/test-location-invariant.test.ts`.
+- **Target Files**: `olt/scripts/src/mind/defects/loop/regression-gen.ts` (moved from `olt/scripts/src/logging/defects/`), `lefthook.yml`, `scripts/modularity/`
+- **Verification**: `tests/core/test-location-invariant.test.ts` (unresolved — not found on disk; re-verify before assuming unimplemented).
 
 ### Epic 9: Never Stripping Host `enable_write_tools` / Skill-Internal RBAC Confinement
 
 - **Problem**: Attempting to confine agents by stripping host `enable_write_tools` cripples mailbox IPC (`.olt/mailboxes/`) and breaks agent autonomy.
 - **Remedy**: Keep `enable_write_tools` enabled. Enforce tool gating strictly within the skill: RBAC engine (`verifyCommandAuthorization` in `harness.ts shell`), Doctor diagnostics, and Live Sentinel monitors.
 - **Target Files**: `olt/scripts/src/cli/commands/shell.ts`, `olt/scripts/src/sentinel/profiles/`
-- **Verification**: `tests/sentinel/rbac-shell-confinement.test.ts`.
+- **Verification**: `tests/sentinel/rbac-shell-confinement.test.ts` (unresolved — no exact-name match found on disk; closest existing coverage is `tests/authority/rbac/supervisor-shell-confinement.test.ts`, unconfirmed as the same feature).
 
 ### Epic 10: Main-Thread Agent Scope Discipline (Zero Implementation on Main Thread)
 
@@ -115,14 +126,14 @@
 - **Problem**: Mind burned its reasoning turns repeatedly tailing child transcripts (`tail -n 25`) every 15 seconds instead of dynamically planning future waves.
 - **Remedy**: Establish Sentinel rule `MIND_LOG_TAILING_FORBIDDEN`. Mind must spend turns on backlog grooming, dynamic graph clustering, worktree provisioning, and future requirements authoring.
 - **Target Files**: `olt/agents/mind.yaml`, `olt/scripts/src/sentinel/profiles/tier0/mind.ts`
-- **Verification**: `tests/sentinel/mind-spectator-prohibition.test.ts`.
+- **Verification**: `tests/sentinel/mind/mind-spectator-prohibition.test.ts` (path-integrity note 2026-09-07: real file lives in a `mind/` subdirectory; confirmed passing, 14/14 in that directory).
 
 ### Epic 13: Conflation of Supervisory Ambient Mesh with Worker Concurrency
 
 - **Problem**: Telemetry and saturation metrics treated Tier 0–2 supervisory agents (Mind, Mind Auditor, Skill Auditor, Orchestrator, Coordinator) as "active workers", falsely reporting fleet saturation when 0 workers were running.
 - **Remedy**: Decouple two-tier accounting: Tiers 0–2 are ambient control plane, exempt from saturation caps. Only Tier 3 Workers (Implementers, Validators, Publishers) count toward execution concurrency ($P = \lceil W / S \rceil$).
-- **Target Files**: `olt/scripts/src/mind/concurrency-cap.ts`, `olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts`
-- **Verification**: `tests/mind/two-tier-concurrency-accounting.test.ts`.
+- **Target Files**: `olt/scripts/src/mind/concurrency/index.ts`, `olt/scripts/src/mind/concurrency/controller.ts`, `olt/scripts/src/mind/concurrency/types.ts` (path-integrity note 2026-09-07: `concurrency-cap.ts` was split into this directory), `olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts`
+- **Verification**: `tests/mind/two-tier-concurrency-accounting.test.ts` (confirmed passing, 10/10).
 
 ### Epic 14: Dynamic LLM-Driven Task Graph Clustering for Worktrees
 
@@ -135,22 +146,22 @@
 
 - **Problem**: Mind Auditor acted as a passive recorder of status rather than actively issuing Socratic provocations when disjoint backlog items sat idle.
 - **Remedy**: Upgrade Mind Auditor to actively compute worktree occupancy. If disjoint backlog clusters exist while worktree concurrency $\le 1$, Mind Auditor delivers an authoritative Socratic provocation forcing worktree expansion.
-- **Target Files**: `olt/agents/mind-auditor.yaml`, `olt/scripts/src/mind/auditing/anti-stagnation-engine.ts`
-- **Verification**: `tests/mind/auditor-parallelism-provocation.test.ts`.
+- **Target Files**: `olt/agents/mind-auditor.yaml`, `olt/scripts/src/mind/auditing/stagnation/anti-stagnation-engine.ts` (path-integrity note 2026-09-07: moved into a `stagnation/` subdirectory)
+- **Verification**: `tests/mind/auditor-parallelism-provocation.test.ts` (confirmed passing, 3/3).
 
 ### Epic 16: Two-Key Socratic Cognitive Validation Requirement
 
 - **Problem**: Previous tracks were marked completed without independent Tier 3 Cognitive Validators executing pure Socratic code reviews (0 commands) and without independent cryptographic receipts.
 - **Remedy**: Mandate 2-Key Validator Pairing for all tasks: an independent Implementer test receipt + an independent Cognitive Validator audit receipt with SHA-256 hashes before worktree landing.
-- **Target Files**: `olt/scripts/src/workflow/completion/`, `olt/scripts/src/reporting/socratic-validator.ts`
-- **Verification**: `tests/workflow/two-key-validator-pairing.test.ts`.
+- **Target Files**: `olt/scripts/src/workflow/completion/`, `olt/scripts/src/reporting/socratic-validator/` (path-integrity note 2026-09-07: `socratic-validator.ts` was split into this directory, facade at `index.ts`)
+- **Verification**: `tests/workflow/two-key-validator-pairing.test.ts` (unresolved — not found on disk; re-verify before assuming unimplemented).
 
 ### Epic 17: Soft Quota Drain, Handoff Preservation & Session Token Authentication (`quota:freeze`)
 
 - **Problem**: Quota check failed caller authentication in `quota:freeze`, and low quota caused hard abrupt halts instead of graceful task draining and handoff authoring.
 - **Remedy**: At $\le 10-15\%$ quota, throttle concurrency ($P \to 1$), halt admitting new tasks, author structured handoff documentation (`handoff.md`), stage all changes to reflog, and fix session token validation.
 - **Target Files**: `olt/scripts/src/mind/lifecycle/suspended-animation.ts`, `olt/scripts/src/cli/commands/mind-round.ts`
-- **Verification**: `tests/mind/quota-graceful-drain.test.ts`.
+- **Verification**: `tests/mind/quota-graceful-drain.test.ts` (unresolved — not found on disk; re-verify before assuming unimplemented).
 
 ### Epic 18: Modularity Ratchet Strict Line Budget & Directory Fanout Enforcement
 
@@ -164,14 +175,14 @@
 - **Problem**: Role boundary breaches and reasoning blunders recurred because resolution proofs were not automatically codified into regression tests.
 - **Remedy**: Blunders logged to `.olt/defects.jsonl` must be deduplicated, audited, and resolved only with empirical proofs (`commit_sha`, `test_assertion`), with automated regression tests generated under `tests/regressions/`.
 - **Target Files**: `olt/scripts/src/logging/defects/dedup.ts`, `olt/scripts/src/logging/defects/regression-gen.ts`
-- **Verification**: `tests/logging/defect-audit-dedup.test.ts`.
+- **Verification**: `tests/logging/defect-audit-dedup.test.ts` (unresolved — not found on disk; re-verify before assuming unimplemented).
 
 ### Epic 20: Non-Interrupting Asynchronous Backlog Intake (`queue:add`) over Direct Host Messaging
 
 - **Problem**: Direct host `send_message` interrupts into Mind's context trigger prompt disruptions and conversational chatter.
 - **Remedy**: All user feedback, architectural mandates, and defect escalations must flow through the canonical flock-locked queue (`.olt/backlog.jsonl`) via `bun harness.ts queue:add`. Mind ingests them naturally on pulse ticks without conversational disruption.
-- **Target Files**: `olt/scripts/src/cli/commands/todo-ops.ts`, `olt/scripts/src/mind/feedback/queue/`
-- **Verification**: `tests/cli/commands/queue/queue-add-intake.test.ts`.
+- **Target Files**: `olt/scripts/src/cli/commands/todo/` (path-integrity note 2026-09-07: `todo-ops.ts` was split into this directory, facade at `index.ts`), `olt/scripts/src/mind/feedback/queue/`
+- **Verification**: `tests/cli/commands/queue/queue-add-intake.test.ts` (unresolved — not found on disk; re-verify before assuming unimplemented).
 
 ---
 

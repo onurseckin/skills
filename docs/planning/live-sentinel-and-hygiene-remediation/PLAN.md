@@ -36,7 +36,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
        +---> Phase 1: Potemkin Defect-CLI Purge & Test Cleanup
        |     * Remove 103 fake `defect-cli-*.ts` files from `olt/scripts/src/`
        |     * Remove 326 fake `defect-cli-*.test.ts` files from `tests/`
-       |     * Clean directory facades and update `defect-audit/command.ts` generator
+       |     * Clean directory facades and update `defect-audit.ts` generator
        |
        +---> Phase 2: Root Directory Hygiene (.olt vs olt Boundary Enforcement)
        |     * Enforce resolveOltDir(repoRoot) -> `.olt` universally
@@ -56,7 +56,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
        |     * Enforce `enable_write_tools: false` on supervisory subagent dispatch definitions
        |
        +---> Phase 5: Two-Key Socratic Cognitive Validation & Clean Worktree Landing
-             * Author >= 20 Socratic adversarial probes in `tests/sentinel/strategy-monitor.test.ts`
+             * Author >= 20 Socratic adversarial probes in `tests/sentinel/monitor/strategy-monitor.test.ts` (path-integrity note 2026-09-07: real file lives in a `monitor/` subdirectory)
              * Verify all Lefthook hooks pass on merit (zero bypasses)
              * Land sequentially onto `main` via Tier 3 Publisher and push to `origin/main`
 ```
@@ -77,7 +77,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
   - Delete all 103 `olt/scripts/src/**/defect-cli-*.ts`.
   - Delete all 326 `tests/**/defect-cli-*.test.ts`.
 - **Generator Hardening**:
-  - In [`olt/scripts/src/cli/commands/defect-audit/command.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/defect-audit/command.ts), ensure `--generate-tests` can only output test suites to specified external test output paths (strictly bounded to `tests/`), and NEVER generates stub production source files inside `olt/scripts/src/`.
+  - In [`olt/scripts/src/cli/commands/defect-audit.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/defect-audit.ts) (path-integrity note 2026-09-07: the old `defect-audit/command.ts` subdirectory was flattened into this file), ensure `--generate-tests` can only output test suites to specified external test output paths (strictly bounded to `tests/`), and NEVER generates stub production source files inside `olt/scripts/src/`.
 - **Facade Re-Export Cleanup**:
   - Audit `olt/scripts/src/validation/index.ts` and ensure clean named exports with zero references to deleted defect-cli files.
 

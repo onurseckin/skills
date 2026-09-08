@@ -180,7 +180,7 @@ graph TD
 
 ### Wave 2: Scratch Root & Isolation Sandbox Modernization
 
-- Refactor `tests/support/scratch-root.ts` to use in-memory virtual paths instead of writing to physical disk (`coverage/scratch/`).
+- Refactor `tests/shared/fixtures/scratch-root.ts` (path-integrity note 2026-09-07: moved here from `tests/support/scratch-root.ts` when `tests/support/` was purged) to use in-memory virtual paths instead of writing to physical disk (`coverage/scratch/`).
 - Refactor `olt/scripts/src/testing/isolation.ts` to execute port allocations and state isolation in RAM without physical disk locks.
 
 ### Wave 3: Test Suite In-Memory Mocking & Integration Test Purge

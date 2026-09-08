@@ -105,9 +105,13 @@ Mind delegates all git commits, branch landings (`worktree:land`), pre-push test
 
 ### Step 4: Obsolete Manifest & Definition Cleanup
 
+> Path-integrity audit (2026-09-07): confirmed done — all 10 files below are gone from
+> `olt/agents/` (verified against the current tree and commit `41e25000a`). The second bullet's
+> `olt/hosts/` was a typo for `olt/agents/`; there is no `olt/hosts/` directory in this repo.
+
 - Purge 8 dead YAML manifests from `olt/agents/`:
   `worker.yaml`, `critic.yaml`, `repairer.yaml`, `mechanic-validator.yaml`, `ui-validator.yaml`, `ui-visual-reviewer.yaml`, `ui-mechanic-validator.yaml`, `ui-debugger.yaml`.
-- Purge 2 non-canonical host wrappers from `olt/hosts/`:
+- Purge 2 non-canonical host wrappers from `olt/agents/`:
   `generic.yaml`, `openai.yaml`.
 - Clean out any stale local agent definitions in `.agents/agents/`.
 

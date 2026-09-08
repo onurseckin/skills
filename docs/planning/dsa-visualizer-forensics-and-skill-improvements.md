@@ -5,6 +5,11 @@
 **Author**: Senior OLT Forensic Researcher & Multi-Agent Systems Architect  
 **Investigation Scope**: Multi-agent orchestration runs, conversation transcripts (`/Users/onurseckinsenoglu/.gemini/antigravity-cli/brain/`), git activity, and `.olt/` capsule execution telemetry from today's runs.
 
+> **Path-integrity note (2026-09-07):** every relative source path in this report (e.g.
+> `src/curriculum/learnCardsData.ts`, `mailbox/router.ts`) is relative to the **subject repository**
+> `/Users/onurseckinsenoglu/repos/dsa_visualizer`, not this `skills` repo — do not search for them
+> here.
+
 ---
 
 ## 1. Executive Summary

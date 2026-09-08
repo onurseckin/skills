@@ -7,6 +7,17 @@
 > **Author:** Antigravity AI Relay & System Architect  
 > **Created:** 2026-09-06
 
+> **Path-integrity note (2026-09-07):** `olt/scripts/src/worktree/` (including the `allocator.ts` /
+> `registry.ts` targets in Track 2 below) does not exist and this plan is still Phase 1, so that is
+> expected — but note there already IS a worktree lifecycle module at
+> `olt/scripts/src/workflow/worktree/` (manager.ts, orchestrator.ts, provision.ts, etc.). Decide
+> whether Track 2 extends that existing module or genuinely introduces a new sibling one before
+> creating files — don't create a parallel `worktree/` tree by default.
+> Separately: `tests/sentinel/profiles/tier-spawning-hierarchy.test.ts` (Track 1's verification
+> file, moved into a `profiles/` subdirectory) already exists, likely from commit `2e8393736`
+> ("semantic tier matching and anti-bottleneck violation") — re-verify how much of Track 1 is
+> already done before treating it as unstarted.
+
 ---
 
 ## 1. Executive Summary & Root Cause Analysis
@@ -112,7 +123,7 @@ Each Orchestrator worktree lands to `main` as an independent atomic unit upon co
 - **Files to Modify:**
   - [`olt/scripts/src/sentinel/profiles/tier0/mind.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/sentinel/profiles/tier0/mind.ts)
   - [`olt/scripts/src/sentinel/profiles/tier1/orchestrator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/sentinel/profiles/tier1/orchestrator.ts)
-  - `tests/sentinel/tier-spawning-hierarchy.test.ts`
+  - `tests/sentinel/profiles/tier-spawning-hierarchy.test.ts`
 - **Deliverables:**
   1. Replace `allowedMindSpawns = new Set(...)` with `roleToTier(childRole) === 1` check, allowing `orchestrator_*`.
   2. Replace `allowedOrchestratorSpawns = new Set(...)` with `roleToTier(childRole) === 2` check, allowing `coordinator_*`.
@@ -146,7 +157,7 @@ Each Orchestrator worktree lands to `main` as an independent atomic unit upon co
 
 | Gate / Requirement                     | Target File / Command                                     | Expected Proof                                                                |
 | :------------------------------------- | :-------------------------------------------------------- | :---------------------------------------------------------------------------- |
-| Semantic Orchestrator Spawning Allowed | `tests/sentinel/tier-spawning-hierarchy.test.ts`          | `roleToTier` passes `orchestrator_reporting` and `coordinator_wave1`          |
+| Semantic Orchestrator Spawning Allowed | `tests/sentinel/profiles/tier-spawning-hierarchy.test.ts` | `roleToTier` passes `orchestrator_reporting` and `coordinator_wave1`          |
 | Anti-Bottleneck Gate Active            | `mindProfile.evaluate`                                    | Fails if `cluster_count >= 2` and `orchestrator_count == 1`                   |
 | Orchestrator Worktree Allocation       | `bun harness.ts worktree:create --orchestrator reporting` | Worktree exists at `.olt/worktrees/orch-reporting` on branch `orch/reporting` |
 | Universal Doctor Clean                 | `bun harness.ts doctor`                                   | All orchestrator worktrees reconciled without orphan warnings                 |

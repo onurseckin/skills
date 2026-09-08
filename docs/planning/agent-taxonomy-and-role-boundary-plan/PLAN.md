@@ -1,5 +1,19 @@
 # Agent Taxonomy & Role Boundary Architecture Plan
 
+> **Path-Integrity Audit Note (2026-09-07):** Verified against the current tree — this plan's
+> Phases 1, 2, 4, and 5 (see `migration.md`) are **already executed**: `olt/agents/` now holds
+> exactly the target roster (the 8 Phase-1 deletions and 2 Phase-2 host-wrapper deletions are gone;
+> `publisher.yaml` from Phase 4 exists with `enable_write_tools: true`; `policy-discovery.yaml` from
+> Phase 5 is gone). Phase 3's write-tool revocation is also confirmed (`enable_write_tools: false`
+> in `mind.yaml`, `orchestrator.yaml`, `coordinator.yaml`; no `git commit`/`git push` in the
+> coordinator's `olt/policy.json` `allowed_commands`). Phase 6 (ecosystem test/SSoT alignment) is
+> **not** fully clean: `docs/planning/post-stabilization-roadmap/PLAN.md` records an open
+> string-reference sweep for the retired role names across ~79 test files. Where this document
+> below says a manifest "does not exist" or should be "deleted", that is the confirmed, intended
+> post-condition, not staleness — do not recreate it. `fleet/archetypes.ts` and
+> `fleet/contracts-tier3-exec.ts` mentioned in shorthand throughout this plan set live at
+> `olt/scripts/src/agents/fleet/`.
+
 ## Executive Summary
 
 The `@onurseckinsenoglu/skills` repository has evolved a sophisticated 4-tier autonomous agent ecosystem governed by [AGENTS.md](file:///Users/onurseckinsenoglu/repos/skills/AGENTS.md) and backed by [olt/policy.json](file:///Users/onurseckinsenoglu/repos/skills/olt/policy.json). However, an exhaustive forensic audit reveals critical architectural drift, role overlapping, and supervisory overloading across the 33 YAML definitions residing in [olt/agents/](file:///Users/onurseckinsenoglu/repos/skills/olt/agents):

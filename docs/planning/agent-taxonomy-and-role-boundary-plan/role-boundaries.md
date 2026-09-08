@@ -22,7 +22,7 @@ CURRENT OVERLOADED ARCHITECTURE:
 │    • git commit -m "feat(...)" (Conventional Commit generation)             │
 │    • Pre-push hook verification (modularity:staged, lint, typecheck)        │
 │    • git push origin main (Network I/O, remote credential checks)           │
-│    • bun scripts/sync-global.ts (Global ~/.agents/ skills synchronization)  │
+│    • bun scripts/sync/index.ts (Global ~/.agents/ skills synchronization)  │
 │                                                                             │
 │  ⚠️ DANGERS: Token burning on git diffs; context pollution; stalled loops    │
 │              on push conflicts; supervisors attempting inline code fixes!   │
@@ -72,7 +72,7 @@ To liberate Tier 1 and Tier 2 supervisors from git plumbing and ensure hermetic 
    - Reconciles worktree track: `bun harness.ts worktree:land --track <id> --target-branch main`
    - Authors Conventional Commit message synthesizing task IDs and summaries: `git commit`
    - Pushes to remote repository: `git push origin main`
-   - Executes global skill mirror: `bun scripts/sync-global.ts`
+   - Executes global skill mirror: `bun scripts/sync/index.ts` (`bun run sync`)
 5. **Receipt Emission**: Emits a cryptographic `ReleaseCertificate` back to Coordinator via mailbox IPC:
    `msg:send --to coordinator --body "RELEASE_COMPLETE: sha=4f9b2c..."`
 6. **Hard Reset**: Coordinator kills the publisher subagent (`manage_subagents kill`) upon wave close.
@@ -110,7 +110,7 @@ permissions:
     - "Stage modified files into Git index (git add -A) for reflog protection"
     - "Generate structured Conventional Commits (git commit)"
     - "Push verified commits to upstream remote (git push origin main)"
-    - "Synchronize global skill mirrors via bun scripts/sync-global.ts"
+    - "Synchronize global skill mirrors via bun scripts/sync/index.ts (bun run sync)"
   must_not:
     - "Modify application source code files directly (zero source code editing)"
     - "Claim implementation task leases or execute feature development"
