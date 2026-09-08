@@ -3,23 +3,18 @@
   "ecosystem": "bun",
   "package_manager": "bun",
   "skill_home_repo_root": "/Users/onurseckinsenoglu/repos/skills",
-  "defect_routing": {
-    "skill_home_repo_root": "/Users/onurseckinsenoglu/repos/skills",
-    "global_skill_dir": "~/.agents/skills/olt",
-    "dual_write_enabled": true
-  },
   "test_runner": {
+    "enabled": true,
     "default_command": "bun test",
     "targeted_pattern": "bun test <path>",
-    "full_suite_command": "bun test",
+    "full_suite_command": "bun test:all",
     "timeout_ms": 30000
   },
-  "typecheck_command": "bun run typecheck",
-  "lint_command": "bun run lint",
+  "typecheck_command": "bun typecheck",
+  "lint_command": "bun lint",
   "allowed_commands": [
     "bun test",
     "bun run",
-    "tsc",
     "git status",
     "git diff",
     "git log",
@@ -27,9 +22,17 @@
     "find",
     "grep",
     "cat",
-    "wc"
+    "wc",
+    "bun typecheck",
+    "bun lint",
+    "tsc"
   ],
-  "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
+  "forbidden_commands": [
+    "git commit",
+    "git push",
+    "git reset",
+    "rm -rf /"
+  ],
   "read_scope_neighborhood_depth": 2,
   "review_protocol": {
     "max_adversarial_pushes": 20,
@@ -45,15 +48,30 @@
     "reject_shallow_umbrella_compression": true
   },
   "agents": {
-    "mind_supervisor": {
+    "mind": {
       "tier": 0,
       "silent_daemon": true,
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": false,
-        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
-        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
-        "allowed_spawns": ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"]
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git log"
+        ],
+        "forbidden_patterns": [
+          "^bun\\s+test\\b",
+          "^npm\\s+test\\b",
+          "^git\\s+(commit|push|reset)"
+        ],
+        "allowed_spawns": [
+          "orchestrator",
+          "mind_auditor",
+          "skill_auditor",
+          "autonomic_watchdog",
+          "policy_discovery"
+        ]
       },
       "hosts": {
         "antigravity": {
@@ -107,8 +125,17 @@
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": false,
-        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
-        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git log"
+        ],
+        "forbidden_patterns": [
+          "^bun\\s+test\\b",
+          "^npm\\s+test\\b",
+          "^git\\s+(commit|push|reset)"
+        ],
         "allowed_spawns": [
           "coordinator",
           "implementer",
@@ -149,14 +176,23 @@
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": false,
-        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
-        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b"],
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git commit",
+          "git push",
+          "git log"
+        ],
+        "forbidden_patterns": [
+          "^bun\\s+test\\b",
+          "^npm\\s+test\\b"
+        ],
         "allowed_spawns": [
           "implementer",
           "validator_code_quality",
           "validator_ui_design",
-          "completeness_critic",
-          "publisher"
+          "completeness_critic"
         ]
       },
       "hosts": {
@@ -473,6 +509,74 @@
         }
       }
     },
+    "mind_auditor": {
+      "tier": 0,
+      "silent_daemon": true,
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": false
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "skill_auditor": {
+      "tier": 0,
+      "silent_daemon": true,
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": false
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
     "autonomic_watchdog": {
       "tier": 0,
       "silent_daemon": true,
@@ -523,6 +627,52 @@
         }
       }
     },
+    "policy_discovery": {
+      "tier": 0,
+      "silent_daemon": true,
+      "domain": "governance",
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": true,
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git log",
+          "ls",
+          "grep"
+        ],
+        "forbidden_patterns": [
+          "^git\\s+(commit|push|reset|checkout\\s+-b)"
+        ]
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
     "owner": {
       "tier": "independent",
       "rbac": {
@@ -563,50 +713,6 @@
           "max_tokens": 8192
         }
       }
-    },
-    "publisher": {
-      "tier": 3,
-      "rbac": {
-        "can_execute_shell": true,
-        "can_edit_code": true,
-        "allowed_commands": [
-          "worktree:land",
-          "worktree:clean",
-          "worktree:status",
-          "task:check",
-          "doctor",
-          "whoami",
-          "msg:send",
-          "msg:recv"
-        ],
-        "allowed_spawns": []
-      },
-      "hosts": {
-        "antigravity": {
-          "model": "gemini-3.7-flash",
-          "model_tier": "medium",
-          "thinking_effort": "medium",
-          "max_tokens": 8192
-        },
-        "claude_code": {
-          "model": "claude-5-sonnet",
-          "model_tier": "medium",
-          "thinking_effort": "medium",
-          "max_tokens": 8192
-        },
-        "codex": {
-          "model": "gpt-5.6-terra",
-          "model_tier": "medium",
-          "thinking_effort": "medium",
-          "max_tokens": 8192
-        },
-        "cursor": {
-          "model": "cursor-latest",
-          "model_tier": "medium",
-          "thinking_effort": "medium",
-          "max_tokens": 8192
-        }
-      }
     }
   },
   "docker_environment": {
@@ -616,7 +722,9 @@
       "web_app": {
         "container_name": "app-web-test",
         "image": "node:20-alpine",
-        "ports": ["3000:3000"],
+        "ports": [
+          "3000:3000"
+        ],
         "health_endpoint": "http://localhost:3000/api/health",
         "ready_timeout_ms": 30000,
         "env": {
@@ -632,7 +740,9 @@
         "password_env_var": "OLT_TEST_ADMIN_PASSWORD",
         "display_name": "Test Admin",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["*"],
+        "permissions": [
+          "*"
+        ],
         "mock_session_cookie": "olt_session_admin_mock_token_sec991823"
       },
       "standard_user": {
@@ -641,7 +751,10 @@
         "password_env_var": "OLT_TEST_USER_PASSWORD",
         "display_name": "Standard User",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["read", "write"],
+        "permissions": [
+          "read",
+          "write"
+        ],
         "mock_session_cookie": "olt_session_user_mock_token_usr102938"
       },
       "invited_member": {
@@ -650,7 +763,9 @@
         "password_env_var": "OLT_TEST_INVITED_PASSWORD",
         "display_name": "Invited Member",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["read"],
+        "permissions": [
+          "read"
+        ],
         "mock_session_cookie": "olt_session_invited_mock_token_inv482019"
       },
       "guest": {
@@ -659,7 +774,9 @@
         "password_env_var": "OLT_TEST_GUEST_PASSWORD",
         "display_name": "Guest Visitor",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["public_read"]
+        "permissions": [
+          "public_read"
+        ]
       }
     },
     "auth_paths": {
@@ -678,5 +795,10 @@
         "same_site": "Lax"
       }
     }
+  },
+  "hooks": {
+    "on_phase_completion": [
+      "bun ~/.agents/skills/olt/scripts/harness.ts notify:phase --phase '{phase_name}' --sha '{commit_sha}' --duration '{duration_formatted}' --tasks {task_count}"
+    ]
   }
 }
