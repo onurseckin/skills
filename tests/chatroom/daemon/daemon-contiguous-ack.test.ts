@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { doctorCommand } from "../../chatroom/scripts/src/cli/commands/doctor.ts";
-import { stepDaemonLoop } from "../../chatroom/scripts/src/daemon/loop.ts";
-import { appendMessage } from "../../chatroom/scripts/src/log/append.ts";
-import { addMember } from "../../chatroom/scripts/src/room/index.ts";
-import { loadCursor, leaseNext } from "../../chatroom/scripts/src/cursor/index.ts";
-import { readerCursorPath, roomLogDir } from "../../chatroom/scripts/src/core/paths.ts";
-import { cleanupVirtualChatroomFS, createTestRoom, setupVirtualChatroomFS } from "./helpers.ts";
+import { doctorCommand } from "../../../chatroom/scripts/src/cli/commands/doctor.ts";
+import { stepDaemonLoop } from "../../../chatroom/scripts/src/daemon/loop.ts";
+import { appendMessage } from "../../../chatroom/scripts/src/log/append.ts";
+import { addMember } from "../../../chatroom/scripts/src/room/index.ts";
+import { loadCursor, leaseNext } from "../../../chatroom/scripts/src/cursor/index.ts";
+import { readerCursorPath, roomLogDir } from "../../../chatroom/scripts/src/core/paths.ts";
+import { cleanupVirtualChatroomFS, createTestRoom, setupVirtualChatroomFS } from "../helpers.ts";
 
 beforeEach(() => {
   setupVirtualChatroomFS();
@@ -35,21 +35,21 @@ describe("daemon contiguous sequence ack and truthful quarantine reporting", () 
     const sender = { id: reader, role: "agent", host: "antigravity" };
     const env1 = appendMessage(room, {
       sender,
-      kind: "chat",
+      kind: "message",
       body: { schema: "text", data: { text: "msg-1-valid" } },
     });
     const env2 = appendMessage(
       room,
       {
         sender,
-        kind: "chat",
+        kind: "message",
         body: { schema: "text", data: { text: "msg-2-bad-sig" } },
       },
       "invalid-key-for-msg-2",
     );
     const env3 = appendMessage(room, {
       sender,
-      kind: "chat",
+      kind: "message",
       body: { schema: "text", data: { text: "msg-3-valid" } },
     });
 
@@ -134,14 +134,14 @@ describe("daemon contiguous sequence ack and truthful quarantine reporting", () 
       room,
       {
         sender,
-        kind: "chat",
+        kind: "message",
         body: { schema: "text", data: { text: "msg-1-bad-sig" } },
       },
       "invalid-key-for-msg-1",
     );
     appendMessage(room, {
       sender,
-      kind: "chat",
+      kind: "message",
       body: { schema: "text", data: { text: "msg-2-valid" } },
     });
 

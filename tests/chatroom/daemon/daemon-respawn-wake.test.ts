@@ -3,8 +3,8 @@ import { EventEmitter } from "node:events";
 import {
   createInitialHealthRecord,
   writeHealthRecord,
-} from "../../chatroom/scripts/src/daemon/health.ts";
-import { stepDaemonLoop } from "../../chatroom/scripts/src/daemon/loop.ts";
+} from "../../../chatroom/scripts/src/daemon/health.ts";
+import { stepDaemonLoop } from "../../../chatroom/scripts/src/daemon/loop.ts";
 import {
   dispatchDeliveryNotification,
   dispatchRespawnNotification,
@@ -12,23 +12,26 @@ import {
   type NotifyProcessStream,
   type NotifySpawner,
   type RespawnNotificationPayload,
-} from "../../chatroom/scripts/src/daemon/notify.ts";
-import { startDaemon, type SupervisorPorts } from "../../chatroom/scripts/src/daemon/supervisor.ts";
+} from "../../../chatroom/scripts/src/daemon/notify.ts";
+import {
+  startDaemon,
+  type SupervisorPorts,
+} from "../../../chatroom/scripts/src/daemon/supervisor.ts";
 import {
   daemonHealthPath,
   daemonOutSpoolPath,
   roomDir,
-} from "../../chatroom/scripts/src/core/paths.ts";
-import { appendMessage } from "../../chatroom/scripts/src/log/append.ts";
-import { addMember } from "../../chatroom/scripts/src/room/index.ts";
-import { resolvePolicy } from "../../chatroom/scripts/src/policy/resolve.ts";
-import { type VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+} from "../../../chatroom/scripts/src/core/paths.ts";
+import { appendMessage } from "../../../chatroom/scripts/src/log/append.ts";
+import { addMember } from "../../../chatroom/scripts/src/room/index.ts";
+import { resolvePolicy } from "../../../chatroom/scripts/src/policy/resolve.ts";
+import { type VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualChatroomFS,
   createTestRoom,
   getVirtualChatroomFS,
   setupVirtualChatroomFS,
-} from "./helpers.ts";
+} from "../helpers.ts";
 
 class MockProcess extends EventEmitter implements NotifyProcessChild {
   public stdinChunks: string[] = [];
@@ -235,7 +238,7 @@ describe("daemon respawn wake notification and pure projection", () => {
 
     const chatEnv = appendMessage(room, {
       sender: { id: reader, role: "agent", host: "antigravity" },
-      kind: "chat",
+      kind: "message",
       body: { schema: "text", data: { text: "normal chat message" } },
     });
 
@@ -271,7 +274,7 @@ describe("daemon respawn wake notification and pure projection", () => {
     expect(envelopes.length).toBe(1);
     const env = envelopes[0];
     expect(env).toBeDefined();
-    expect(env?.["kind"]).toBe("chat");
+    expect(env?.["kind"]).toBe("message");
     expect(env?.["seq"]).toBe(1);
     expect("reason" in (env ?? {})).toBe(false);
     expect(env?.["reason"]).toBeUndefined();

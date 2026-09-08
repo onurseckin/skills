@@ -1,18 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { startDaemon, type SupervisorPorts } from "../../chatroom/scripts/src/daemon/supervisor.ts";
-import { doctorCommand } from "../../chatroom/scripts/src/cli/commands/doctor.ts";
-import { addMember } from "../../chatroom/scripts/src/room/index.ts";
-import { daemonHealthPath } from "../../chatroom/scripts/src/core/paths.ts";
+import {
+  startDaemon,
+  type SupervisorPorts,
+} from "../../../chatroom/scripts/src/daemon/supervisor.ts";
+import { doctorCommand } from "../../../chatroom/scripts/src/cli/commands/doctor.ts";
+import { addMember } from "../../../chatroom/scripts/src/room/index.ts";
+import { daemonHealthPath } from "../../../chatroom/scripts/src/core/paths.ts";
 import {
   createInitialHealthRecord,
   writeHealthRecord,
-} from "../../chatroom/scripts/src/daemon/health.ts";
+} from "../../../chatroom/scripts/src/daemon/health.ts";
 import {
   cleanupVirtualChatroomFS,
   createTestRoom,
   getVirtualChatroomFS,
   setupVirtualChatroomFS,
-} from "./helpers.ts";
+} from "../helpers.ts";
 
 beforeEach(() => {
   setupVirtualChatroomFS();
