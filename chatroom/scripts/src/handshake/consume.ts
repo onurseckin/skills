@@ -3,7 +3,12 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { decodeBase32, parseInviteUri } from "./uri.ts";
-import { writeAtomic } from "../core/index.ts";
+import {
+  roomConsumedInvitePath,
+  roomConsumedInvitesDir,
+  roomInvitePath,
+  writeAtomic,
+} from "../core/index.ts";
 import {
   HandshakeError,
   isInviteRecord,
@@ -113,9 +118,12 @@ function verifyInviteOnDisk(uri: string, options?: HandshakeOptions): VerifiedIn
   if (!fs.existsSync(roomDir) || !fs.existsSync(roomJsonPath)) {
     throw new HandshakeError("UNKNOWN_ROOM", `Room '${roomId}' does not exist locally`);
   }
-  const consumedDir = path.join(roomDir, "handshake", "consumed");
-  const consumedPath = path.join(consumedDir, `${code}.json`);
-  const invitePath = path.join(roomDir, "handshake", "invites", `${code}.json`);
+  const consumedPath = options?.chatroomDir
+    ? path.join(roomDir, "handshake", "consumed", `${code}.json`)
+    : roomConsumedInvitePath(roomId, code);
+  const invitePath = options?.chatroomDir
+    ? path.join(roomDir, "handshake", "invites", `${code}.json`)
+    : roomInvitePath(roomId, code);
 
   if (fs.existsSync(consumedPath)) {
     throw new HandshakeError(
@@ -237,7 +245,9 @@ export function consumeInvite(
 
   return withAppendLock(lockPath, () => {
     const verified = verifyInviteOnDisk(uri, options);
-    const consumedDir = path.dirname(verified.consumedPath);
+    const consumedDir = options?.chatroomDir
+      ? path.dirname(verified.consumedPath)
+      : roomConsumedInvitesDir(verified.roomId);
     if (!fs.existsSync(consumedDir)) fs.mkdirSync(consumedDir, { recursive: true, mode: 0o700 });
     fs.renameSync(verified.invitePath, verified.consumedPath);
 

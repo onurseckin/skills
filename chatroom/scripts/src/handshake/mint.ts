@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { encodeBase32, formatInviteUri } from "./uri.ts";
-import { writeAtomic } from "../core/index.ts";
+import { roomInvitePath, writeAtomic } from "../core/index.ts";
 import {
   CHATROOM_PUBLIC_KEY,
   HandshakeError,
@@ -128,11 +128,11 @@ export function mintInvite(
     wrapped_key: wrappedKeyHex,
   };
 
-  writeAtomic(
-    path.join(roomDir, "handshake", "invites", `${code}.json`),
-    JSON.stringify(record, null, 2) + "\n",
-    { mode: 0o600 },
-  );
+  const invitePath = options?.chatroomDir
+    ? path.join(roomDir, "handshake", "invites", `${code}.json`)
+    : roomInvitePath(roomId, code);
+
+  writeAtomic(invitePath, JSON.stringify(record, null, 2) + "\n", { mode: 0o600 });
 
   return formatInviteUri(roomId, fingerprint, code);
 }
