@@ -1,46 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { daemonHealthPath } from "../../chatroom/scripts/src/core/index.ts";
+import { daemonHealthPath } from "../../../chatroom/scripts/src/core/index.ts";
 import {
   createInitialHealthRecord,
   writeHealthRecord,
-} from "../../chatroom/scripts/src/daemon/index.ts";
+} from "../../../chatroom/scripts/src/daemon/index.ts";
 import {
   verifyCronWiring,
   type WireCronOptions,
   type WireCronResult,
-} from "../../chatroom/scripts/src/provision/index.ts";
+} from "../../../chatroom/scripts/src/provision/index.ts";
+import {
+  cleanupVirtualChatroomFS,
+  setupVirtualChatroomFS,
+  VIRTUAL_CHATROOM_HOME,
+  type VirtualChatroomContext,
+} from "../helpers.ts";
 
 describe("verifyCronWiring", () => {
-  let tempDir: string | undefined;
-  let previousChatroomHome: string | undefined;
+  let context: VirtualChatroomContext;
+  let vfs: VirtualChatroomContext["vfs"];
+  const testVirtualDir = join(VIRTUAL_CHATROOM_HOME, "cron-verify");
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cron-verify-test-"));
-    previousChatroomHome = process.env["CHATROOM_HOME"];
-    process.env["CHATROOM_HOME"] = tempDir;
+    context = setupVirtualChatroomFS();
+    vfs = context.vfs;
+    vfs.mkdirSync(testVirtualDir, { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      if (tempDir && existsSync(tempDir)) {
-        rmSync(tempDir, { recursive: true, force: true });
-      }
-    } finally {
-      if (previousChatroomHome !== undefined) {
-        process.env["CHATROOM_HOME"] = previousChatroomHome;
-      } else {
-        delete process.env["CHATROOM_HOME"];
-      }
-    }
+    cleanupVirtualChatroomFS();
   });
 
   describe("schedule mechanism", () => {
     it("returns true when schedule file exists and contains daemon tick", () => {
-      const scheduleFile = join(tempDir ?? "", "schedule.json");
-      writeFileSync(scheduleFile, JSON.stringify({ command: "chat:daemon --tick" }), "utf8");
+      const scheduleFile = join(testVirtualDir, "schedule.json");
+      vfs.writeFileSync(scheduleFile, JSON.stringify({ command: "chat:daemon --tick" }), "utf8");
       const result: WireCronResult = {
         mechanism: "schedule",
         expression: ["*", "/5 * * * *"].join(""),
@@ -55,14 +50,14 @@ describe("verifyCronWiring", () => {
         mechanism: "schedule",
         expression: ["*", "/5 * * * *"].join(""),
         cadence_seconds: 300,
-        configPath: join(tempDir ?? "", "missing.json"),
+        configPath: join(testVirtualDir, "missing.json"),
       };
       expect(verifyCronWiring(result)).toBe(false);
     });
 
     it("returns false when schedule file does not contain daemon tick", () => {
-      const scheduleFile = join(tempDir ?? "", "unrelated.json");
-      writeFileSync(scheduleFile, JSON.stringify({ command: "other:command" }), "utf8");
+      const scheduleFile = join(testVirtualDir, "unrelated.json");
+      vfs.writeFileSync(scheduleFile, JSON.stringify({ command: "other:command" }), "utf8");
       const result: WireCronResult = {
         mechanism: "schedule",
         expression: ["*", "/5 * * * *"].join(""),
@@ -85,8 +80,8 @@ describe("verifyCronWiring", () => {
 
   describe("settings_hooks mechanism", () => {
     it("returns true when settings file exists and contains daemon tick", () => {
-      const settingsFile = join(tempDir ?? "", "settings.json");
-      writeFileSync(
+      const settingsFile = join(testVirtualDir, "settings.json");
+      vfs.writeFileSync(
         settingsFile,
         JSON.stringify({ hooks: { PostToolUse: ["chat:daemon --tick"] } }),
         "utf8",
@@ -105,12 +100,12 @@ describe("verifyCronWiring", () => {
         mechanism: "settings_hooks",
         expression: null,
         cadence_seconds: 900,
-        configPath: join(tempDir ?? "", "absent-settings.json"),
+        configPath: join(testVirtualDir, "absent-settings.json"),
       };
       expect(verifyCronWiring(missingResult)).toBe(false);
 
-      const emptySettingsFile = join(tempDir ?? "", "empty-settings.json");
-      writeFileSync(emptySettingsFile, "{}", "utf8");
+      const emptySettingsFile = join(testVirtualDir, "empty-settings.json");
+      vfs.writeFileSync(emptySettingsFile, "{}", "utf8");
       const emptyResult: WireCronResult = {
         mechanism: "settings_hooks",
         expression: null,
@@ -123,8 +118,8 @@ describe("verifyCronWiring", () => {
 
   describe("notify_hook mechanism", () => {
     it("returns true when config toml exists and contains daemon tick", () => {
-      const configFile = join(tempDir ?? "", "config.toml");
-      writeFileSync(configFile, 'notify_hook = "chat:daemon --tick"\n', "utf8");
+      const configFile = join(testVirtualDir, "config.toml");
+      vfs.writeFileSync(configFile, 'notify_hook = "chat:daemon --tick"\n', "utf8");
       const result: WireCronResult = {
         mechanism: "notify_hook",
         expression: null,
@@ -139,12 +134,12 @@ describe("verifyCronWiring", () => {
         mechanism: "notify_hook",
         expression: null,
         cadence_seconds: 900,
-        configPath: join(tempDir ?? "", "missing-config.toml"),
+        configPath: join(testVirtualDir, "missing-config.toml"),
       };
       expect(verifyCronWiring(missingResult)).toBe(false);
 
-      const unrelatedFile = join(tempDir ?? "", "unrelated.toml");
-      writeFileSync(unrelatedFile, 'notify_hook = "other:task"\n', "utf8");
+      const unrelatedFile = join(testVirtualDir, "unrelated.toml");
+      vfs.writeFileSync(unrelatedFile, 'notify_hook = "other:task"\n', "utf8");
       const unrelatedResult: WireCronResult = {
         mechanism: "notify_hook",
         expression: null,
@@ -182,7 +177,7 @@ describe("verifyCronWiring", () => {
       const reader = "test-reader";
       const deadPid = 99999999;
       const healthPath = daemonHealthPath(room, reader);
-      mkdirSync(dirname(healthPath), { recursive: true });
+      vfs.mkdirSync(dirname(healthPath), { recursive: true });
       const record = createInitialHealthRecord(
         room,
         reader,
@@ -203,7 +198,7 @@ describe("verifyCronWiring", () => {
       const room = "test-room-stopped";
       const reader = "test-reader";
       const healthPath = daemonHealthPath(room, reader);
-      mkdirSync(dirname(healthPath), { recursive: true });
+      vfs.mkdirSync(dirname(healthPath), { recursive: true });
       const staleTimestamp = new Date(Date.now() - 60000).toISOString();
       const record = {
         ...createInitialHealthRecord(room, reader, process.pid, staleTimestamp, "boot-stale"),
@@ -252,7 +247,7 @@ describe("verifyCronWiring", () => {
       const room = "test-room-live";
       const reader = "test-reader";
       const healthPath = daemonHealthPath(room, reader);
-      mkdirSync(dirname(healthPath), { recursive: true });
+      vfs.mkdirSync(dirname(healthPath), { recursive: true });
       const record = createInitialHealthRecord(
         room,
         reader,
@@ -273,7 +268,7 @@ describe("verifyCronWiring", () => {
       const room = "test-room-no-reader";
       const reader = "inferred-reader";
       const healthPath = daemonHealthPath(room, reader);
-      mkdirSync(dirname(healthPath), { recursive: true });
+      vfs.mkdirSync(dirname(healthPath), { recursive: true });
       const record = createInitialHealthRecord(
         room,
         reader,
