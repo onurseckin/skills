@@ -3,7 +3,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { encodeBase32, formatInviteUri } from "./uri.ts";
-import { roomInvitePath, writeAtomic } from "../core/index.ts";
+import {
+  roomDir,
+  roomInvitePath,
+  roomKeyPath,
+  roomManifestPath,
+  writeAtomic,
+} from "../core/index.ts";
 import {
   CHATROOM_PUBLIC_KEY,
   HandshakeError,
@@ -48,7 +54,6 @@ const toKeyBytes = (t: string): Uint8Array =>
 function resolveKeyBytes(
   chatroomDir: string,
   roomId: string,
-  roomDir: string,
   options?: HandshakeOptions,
 ): Uint8Array {
   if (options?.roomKey !== undefined) {
@@ -56,9 +61,9 @@ function resolveKeyBytes(
       ? toKeyBytes(options.roomKey.trim())
       : options.roomKey;
   }
-  const keyPath = path.join(chatroomDir, "keys", `${roomId}.key`);
+  const keyPath = roomKeyPath(roomId, chatroomDir);
   if (fs.existsSync(keyPath)) return toKeyBytes(fs.readFileSync(keyPath, "utf8").trim());
-  const roomJsonPath = path.join(roomDir, "room.json");
+  const roomJsonPath = roomManifestPath(roomId, chatroomDir);
   if (fs.existsSync(roomJsonPath)) {
     try {
       const parsed: unknown = JSON.parse(fs.readFileSync(roomJsonPath, "utf8"));
@@ -88,14 +93,14 @@ export function mintInvite(
     typeof room === "string" ? room.trim().toLowerCase() : room.id.trim().toLowerCase();
   const creatorId = typeof creator === "string" ? creator.trim() : creator.id.trim();
   const chatroomDir = resolveChatroomDir(options);
-  const roomDir = path.join(chatroomDir, "rooms", roomId);
+  const rDir = roomDir(roomId, chatroomDir);
 
-  if (!fs.existsSync(roomDir)) {
+  if (!fs.existsSync(rDir)) {
     throw new HandshakeError("UNKNOWN_ROOM", `Room '${roomId}' does not exist locally`);
   }
 
-  const roomKey = resolveKeyBytes(chatroomDir, roomId, roomDir, options);
-  const roomJsonPath = path.join(roomDir, "room.json");
+  const roomKey = resolveKeyBytes(chatroomDir, roomId, options);
+  const roomJsonPath = roomManifestPath(roomId, chatroomDir);
   let fingerprint = computeKeyFingerprint(roomKey);
   if (fs.existsSync(roomJsonPath)) {
     try {
@@ -128,9 +133,7 @@ export function mintInvite(
     wrapped_key: wrappedKeyHex,
   };
 
-  const invitePath = options?.chatroomDir
-    ? path.join(roomDir, "handshake", "invites", `${code}.json`)
-    : roomInvitePath(roomId, code);
+  const invitePath = roomInvitePath(roomId, code, options?.chatroomDir);
 
   writeAtomic(invitePath, JSON.stringify(record, null, 2) + "\n", { mode: 0o600 });
 

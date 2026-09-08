@@ -31,26 +31,26 @@ export function globalIdentityPath(): string {
   return join(chatroomHomeDir(), "identity.json");
 }
 
-export function keysDir(): string {
-  return join(chatroomHomeDir(), "keys");
+export function keysDir(baseDir?: string): string {
+  return baseDir ? join(resolve(baseDir), "keys") : join(chatroomHomeDir(), "keys");
 }
 
-export function roomKeyPath(roomId: string): string {
+export function roomKeyPath(roomId: string, baseDir?: string): string {
   assertValidRoomId(roomId);
-  return join(keysDir(), `${roomId}.key`);
+  return join(keysDir(baseDir), `${roomId}.key`);
 }
 
-export function roomsDir(): string {
-  return join(chatroomHomeDir(), "rooms");
+export function roomsDir(baseDir?: string): string {
+  return baseDir ? join(resolve(baseDir), "rooms") : join(chatroomHomeDir(), "rooms");
 }
 
-export function roomDir(roomId: string): string {
+export function roomDir(roomId: string, baseDir?: string): string {
   assertValidRoomId(roomId);
-  return join(roomsDir(), roomId);
+  return join(roomsDir(baseDir), roomId);
 }
 
-export function roomManifestPath(roomId: string): string {
-  return join(roomDir(roomId), "room.json");
+export function roomManifestPath(roomId: string, baseDir?: string): string {
+  return join(roomDir(roomId, baseDir), "room.json");
 }
 
 export function roomLogDir(roomId: string): string {
@@ -128,33 +128,38 @@ export function daemonReclaimPath(roomId: string, readerId: string): string {
   return join(roomDaemonDir(roomId), `${readerId}.reclaim.jsonl`);
 }
 
-export function roomHandshakeDir(roomId: string): string {
-  return join(roomDir(roomId), "handshake");
+export function roomHandshakeDir(roomId: string, baseDir?: string): string {
+  return join(roomDir(roomId, baseDir), "handshake");
 }
 
-export function roomInvitesDir(roomId: string): string {
-  return join(roomHandshakeDir(roomId), "invites");
+export function roomInvitesDir(roomId: string, baseDir?: string): string {
+  return join(roomHandshakeDir(roomId, baseDir), "invites");
 }
 
-export function roomInvitePath(roomId: string, code: string): string {
-  return join(roomInvitesDir(roomId), `${code}.json`);
+export function roomInvitePath(roomId: string, code: string, baseDir?: string): string {
+  return join(roomInvitesDir(roomId, baseDir), `${code}.json`);
 }
 
-export function roomConsumedInvitesDir(roomId: string): string {
-  return join(roomHandshakeDir(roomId), "consumed");
+export function roomConsumedInvitesDir(roomId: string, baseDir?: string): string {
+  return join(roomHandshakeDir(roomId, baseDir), "consumed");
 }
 
-export function roomConsumedInvitePath(roomId: string, code: string): string {
-  return join(roomConsumedInvitesDir(roomId), `${code}.json`);
+export function roomConsumedInvitePath(roomId: string, code: string, baseDir?: string): string {
+  return join(roomConsumedInvitesDir(roomId, baseDir), `${code}.json`);
 }
 
-export function roomProvisionDir(roomId: string): string {
-  return join(roomDir(roomId), "provision");
+export function roomProvisionDir(roomId: string, baseDir?: string): string {
+  return join(roomDir(roomId, baseDir), "provision");
 }
 
-export function roomProvisionReceiptPath(roomId: string, host: string, memberId: string): string {
+export function roomProvisionReceiptPath(
+  roomId: string,
+  host: string,
+  memberId: string,
+  baseDir?: string,
+): string {
   assertValidIdentity(memberId);
-  return join(roomProvisionDir(roomId), `${host}.${memberId}.json`);
+  return join(roomProvisionDir(roomId, baseDir), `${host}.${memberId}.json`);
 }
 
 export function roomQuarantineDir(roomId: string): string {
@@ -166,12 +171,12 @@ export function roomQuarantinePath(roomId: string, timestamp: string, seq: numbe
   return join(roomQuarantineDir(roomId), `${sanitizedTs}-${seq}.json`);
 }
 
-export function roomLocksDir(roomId: string): string {
-  return join(roomDir(roomId), "locks");
+export function roomLocksDir(roomId: string, baseDir?: string): string {
+  return join(roomDir(roomId, baseDir), "locks");
 }
 
-export function roomAppendLockPath(roomId: string): string {
-  return join(roomLocksDir(roomId), "append.lock");
+export function roomAppendLockPath(roomId: string, baseDir?: string): string {
+  return join(roomLocksDir(roomId, baseDir), "append.lock");
 }
 
 export function readerLockPath(roomId: string, readerId: string): string {

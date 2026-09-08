@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { chatroomHomeDir, roomProvisionReceiptPath } from "../core/index.ts";
+import { dirname } from "node:path";
+import { roomProvisionReceiptPath } from "../core/index.ts";
 import { ProvisionError, type SupportedHost } from "./detect.ts";
 import { verifyCronWiring } from "./cron.ts";
 
@@ -61,10 +61,7 @@ export function getProvisionReceiptPath(
   member: string,
   baseDir?: string,
 ): string {
-  if (!baseDir || baseDir === chatroomHomeDir()) {
-    return roomProvisionReceiptPath(room, host, member);
-  }
-  return join(baseDir, "rooms", room, "provision", `${host}.${member}.json`);
+  return roomProvisionReceiptPath(room, host, member, baseDir);
 }
 
 export function writeProvisionReceipt(receipt: ProvisionReceipt, baseDir?: string): string {

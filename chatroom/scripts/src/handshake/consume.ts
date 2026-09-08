@@ -1,12 +1,15 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
+import { dirname } from "node:path";
 import { decodeBase32, parseInviteUri } from "./uri.ts";
 import {
+  roomAppendLockPath,
   roomConsumedInvitePath,
   roomConsumedInvitesDir,
+  roomDir,
   roomInvitePath,
+  roomManifestPath,
+  roomsDir,
   writeAtomic,
 } from "../core/index.ts";
 import {
@@ -17,14 +20,6 @@ import {
   type HandshakeOptions,
   type InviteRecord,
 } from "./types.ts";
-
-function resolveChatroomDir(options?: HandshakeOptions): string {
-  return (
-    options?.chatroomDir ??
-    process.env.CHATROOM_HOME ??
-    path.join(os.homedir(), ".agents", "chatroom")
-  );
-}
 
 const deriveKeyStream = (codeBytes: Uint8Array, roomId: string, length: number): Uint8Array =>
   new Uint8Array(
@@ -42,7 +37,7 @@ const computeKeyFingerprint = (key: Uint8Array): string =>
   crypto.createHash("sha256").update(key).digest("hex").slice(0, 8);
 
 function withAppendLock<T>(lockPath: string, fn: () => T): T {
-  const dir = path.dirname(lockPath);
+  const dir = dirname(lockPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const start = Date.now();
   let fd: number | null = null;
@@ -79,11 +74,12 @@ function withAppendLock<T>(lockPath: string, fn: () => T): T {
   }
 }
 
-function findRoomByFingerprint(roomsBase: string, targetFp: string): string {
+function findRoomByFingerprint(targetFp: string, baseDir?: string): string {
   try {
+    const roomsBase = roomsDir(baseDir);
     for (const c of fs.readdirSync(roomsBase)) {
       try {
-        const p = path.join(roomsBase, c, "room.json");
+        const p = roomManifestPath(c, baseDir);
         if (fs.existsSync(p)) {
           const parsed: unknown = JSON.parse(fs.readFileSync(p, "utf8"));
           if (typeof parsed === "object" && parsed !== null && "key_fingerprint" in parsed) {
@@ -111,19 +107,14 @@ interface VerifiedInvite {
 function verifyInviteOnDisk(uri: string, options?: HandshakeOptions): VerifiedInvite {
   const parsedUri = parseInviteUri(uri);
   const { roomId, code } = parsedUri;
-  const chatroomDir = resolveChatroomDir(options);
-  const roomDir = path.join(chatroomDir, "rooms", roomId);
-  const roomJsonPath = path.join(roomDir, "room.json");
+  const rDir = roomDir(roomId, options?.chatroomDir);
+  const roomJsonPath = roomManifestPath(roomId, options?.chatroomDir);
 
-  if (!fs.existsSync(roomDir) || !fs.existsSync(roomJsonPath)) {
+  if (!fs.existsSync(rDir) || !fs.existsSync(roomJsonPath)) {
     throw new HandshakeError("UNKNOWN_ROOM", `Room '${roomId}' does not exist locally`);
   }
-  const consumedPath = options?.chatroomDir
-    ? path.join(roomDir, "handshake", "consumed", `${code}.json`)
-    : roomConsumedInvitePath(roomId, code);
-  const invitePath = options?.chatroomDir
-    ? path.join(roomDir, "handshake", "invites", `${code}.json`)
-    : roomInvitePath(roomId, code);
+  const consumedPath = roomConsumedInvitePath(roomId, code, options?.chatroomDir);
+  const invitePath = roomInvitePath(roomId, code, options?.chatroomDir);
 
   if (fs.existsSync(consumedPath)) {
     throw new HandshakeError(
@@ -199,10 +190,9 @@ function verifyInviteOnDisk(uri: string, options?: HandshakeOptions): VerifiedIn
       : "";
 
   if (rawFingerprint !== roomFingerprint && hexFingerprint !== roomFingerprint) {
-    const roomsBase = path.join(chatroomDir, "rooms");
-    let actualRoom = findRoomByFingerprint(roomsBase, rawFingerprint);
+    let actualRoom = findRoomByFingerprint(rawFingerprint, options?.chatroomDir);
     if (actualRoom === "unknown") {
-      actualRoom = findRoomByFingerprint(roomsBase, parsedUri.fingerprint);
+      actualRoom = findRoomByFingerprint(parsedUri.fingerprint, options?.chatroomDir);
     }
     const msg = `Key fingerprint mismatch: claimed room '${roomId}' has fingerprint '${roomFingerprint}', but key fingerprint '${rawFingerprint}' belongs to room '${actualRoom}'`;
     throw new HandshakeError("WRONG_ROOM", msg, {
@@ -239,15 +229,11 @@ export function consumeInvite(
 ): ConsumeInviteResult {
   const parsedUri = parseInviteUri(uri);
   const joinerId = typeof joiner === "string" ? joiner.trim() : joiner.id.trim();
-  const chatroomDir = resolveChatroomDir(options);
-  const roomDir = path.join(chatroomDir, "rooms", parsedUri.roomId);
-  const lockPath = path.join(roomDir, "locks", "append.lock");
+  const lockPath = roomAppendLockPath(parsedUri.roomId, options?.chatroomDir);
 
   return withAppendLock(lockPath, () => {
     const verified = verifyInviteOnDisk(uri, options);
-    const consumedDir = options?.chatroomDir
-      ? path.dirname(verified.consumedPath)
-      : roomConsumedInvitesDir(verified.roomId);
+    const consumedDir = roomConsumedInvitesDir(verified.roomId, options?.chatroomDir);
     if (!fs.existsSync(consumedDir)) fs.mkdirSync(consumedDir, { recursive: true, mode: 0o700 });
     fs.renameSync(verified.invitePath, verified.consumedPath);
 
