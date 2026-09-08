@@ -1,6 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { daemonHealthPath, roomDaemonDir } from "../core/index.ts";
+import { computeDaemonState, readHealthRecord } from "../daemon/index.ts";
 import type { SupportedHost } from "./detect.ts";
 
 export interface WireCronOptions {
@@ -8,6 +10,8 @@ export interface WireCronOptions {
   readonly room: string;
   readonly homeDir?: string;
   readonly repoRoot?: string;
+  readonly reader?: string | undefined;
+  readonly checkDaemon?: ((room: string, reader?: string) => boolean) | undefined;
 }
 
 export interface WireCronResult {
@@ -141,9 +145,49 @@ export function wireCron(options: WireCronOptions): WireCronResult {
   };
 }
 
-export function verifyCronWiring(result: WireCronResult, _options?: WireCronOptions): boolean {
+function checkFallbackDaemon(room?: string, reader?: string): boolean {
+  if (!room) {
+    return false;
+  }
+  try {
+    if (reader) {
+      const healthPath = daemonHealthPath(room, reader);
+      const record = readHealthRecord(healthPath);
+      if (!record) {
+        return false;
+      }
+      return computeDaemonState(record, Date.now()) !== "STOPPED";
+    }
+    const daemonDir = roomDaemonDir(room);
+    if (!existsSync(daemonDir)) {
+      return false;
+    }
+    const entries = readdirSync(daemonDir);
+    const healthFiles = entries.filter((name) => name.endsWith(".health.json"));
+    if (healthFiles.length === 0) {
+      return false;
+    }
+    for (const file of healthFiles) {
+      const record = readHealthRecord(join(daemonDir, file));
+      if (record && computeDaemonState(record, Date.now()) !== "STOPPED") {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export function verifyCronWiring(result: WireCronResult, options?: WireCronOptions): boolean {
   if (result.mechanism === "self_watchdog") {
-    return true;
+    if (!options || !options.room) {
+      return false;
+    }
+    if (options.checkDaemon) {
+      return options.checkDaemon(options.room, options.reader);
+    }
+    return checkFallbackDaemon(options.room, options.reader);
   }
   if (!result.configPath) {
     return false;
