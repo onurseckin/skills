@@ -55,6 +55,7 @@ own status in `exit_code`.
 | role | 3 | [cli-capabilities/domains/role.md](cli-capabilities/domains/role.md) |
 | hygiene | 2 | [cli-capabilities/domains/hygiene.md](cli-capabilities/domains/hygiene.md) |
 | defect | 3 | [cli-capabilities/domains/defect.md](cli-capabilities/domains/defect.md) |
+| optimize | 6 | [cli-capabilities/domains/optimize.md](cli-capabilities/domains/optimize.md) |
 
 ## Commands
 
@@ -208,6 +209,12 @@ own status in `exit_code`.
 | `msg:listen` | msg | Continuously listen for and drain incoming mailbox messages. |
 | `msg:list` | msg | List mailbox summaries and unread counts across agents. |
 | `msg:health` | msg | Check mailbox listener liveness and health status. |
+| `optimize:scan` | optimize | Scan codebase for architectural and quality violations across five pillars. |
+| `optimize:analyze` | optimize | Empirical decomposition analysis and public API surface locking for target file. |
+| `optimize:check-ast` | optimize | Verify AST public API invariants and prevent signature mutations or evasions. |
+| `optimize:check-tests` | optimize | Enforce assertion preservation gate and prohibit test deletions or evasion. |
+| `optimize:quarantine` | optimize | Isolate and quarantine failing optimization plans with atomic recovery. |
+| `optimize:check-drift` | optimize | Check for code-relevant drift against baseline to enforce quiescent standby. |
 | `worktree:create` | worktree | Create a hermetic track worktree with lock acquisition. |
 | `worktree:land` | worktree | Land a completed track worktree to main with immediate teardown. |
 | `worktree:list` | worktree | List all active track worktrees. |

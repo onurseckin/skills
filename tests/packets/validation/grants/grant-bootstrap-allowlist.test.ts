@@ -135,7 +135,7 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
     const commandNames = commandsWithNoRunFlag.map((candidate) => candidate.name);
     expect(
       commandsWithNoRunFlag.length,
-      `Expected 52 commands without --run/--run-id flag, found ${commandsWithNoRunFlag.length}: ${commandNames.join(", ")}`,
-    ).toBe(52);
+      `Expected 57 commands without --run/--run-id flag, found ${commandsWithNoRunFlag.length}: ${commandNames.join(", ")}`,
+    ).toBe(57);
   });
 });

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import ts from "typescript";
 import { HarnessError } from "../../../core/errors/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../../index.ts";
+import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../../index.ts";
 
 export interface PlannedSubmodule {
   readonly name: string;
@@ -362,6 +362,7 @@ export async function optimizeAnalyzeCommand(
   flags: Flags,
   context?: CommandContext,
 ): Promise<Record<string, unknown>> {
+  assertFlags(flags, ["target", "out", "dry-run", "json"]);
   const targetPath = textFlag(flags, "target", true)!,
     slug = getSlug(targetPath);
   const outPath = textFlag(flags, "out", false) ?? `docs/optimization/${slug}/ANALYSIS.md`,

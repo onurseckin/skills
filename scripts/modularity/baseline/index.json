@@ -139,7 +139,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/references/cli-capabilities/domains",
-      "observed": 25,
+      "observed": 26,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -8847,6 +8847,12 @@
     {
       "rule": "generated_catalog",
       "path": "olt/references/cli-capabilities/commands/msg",
+      "observed": "missing index.json",
+      "detail": "Generated CLI directory requires a catalog index."
+    },
+    {
+      "rule": "generated_catalog",
+      "path": "olt/references/cli-capabilities/commands/optimize",
       "observed": "missing index.json",
       "detail": "Generated CLI directory requires a catalog index."
     },

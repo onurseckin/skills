@@ -27,42 +27,56 @@ describe("Optimize CLI Registry & Router", () => {
   }[] = [
     {
       name: "optimize:scan",
-      aliases: ["opt:scan"],
+      aliases: [],
       expectedFlags: ["dir", "root", "strict", "json", "pillar", "limit"],
       requiredFlags: [],
       handler: optimizeScanCommand,
     },
     {
       name: "optimize:analyze",
-      aliases: ["opt:analyze"],
+      aliases: [],
       expectedFlags: ["target", "out", "dry-run", "json"],
       requiredFlags: ["target"],
       handler: optimizeAnalyzeCommand,
     },
     {
       name: "optimize:check-ast",
-      aliases: ["opt:check-ast"],
+      aliases: [],
       expectedFlags: ["pre", "post", "target", "strict", "json"],
       requiredFlags: [],
       handler: optimizeCheckAstCommand,
     },
     {
       name: "optimize:check-tests",
-      aliases: ["opt:check-tests"],
+      aliases: [],
       expectedFlags: ["target", "base", "diff", "json"],
       requiredFlags: [],
       handler: optimizeCheckTestsCommand,
     },
     {
       name: "optimize:quarantine",
-      aliases: ["opt:quarantine"],
-      expectedFlags: ["plan", "reason", "defect", "dry-run", "json", "failure-logs", "clean-all"],
+      aliases: [],
+      expectedFlags: [
+        "plan",
+        "reason",
+        "defect",
+        "failure-logs",
+        "logs",
+        "clean-all",
+        "clean-all-worktrees",
+        "dry-run",
+        "json",
+        "repo-root",
+        "repo",
+        "actor",
+        "run",
+      ],
       requiredFlags: ["plan"],
       handler: optimizeQuarantineCommand,
     },
     {
       name: "optimize:check-drift",
-      aliases: ["opt:check-drift", "opt:drift"],
+      aliases: [],
       expectedFlags: ["base", "target", "paths", "json", "strict"],
       requiredFlags: [],
       handler: optimizeCheckDriftCommand,
@@ -99,19 +113,14 @@ describe("Optimize CLI Registry & Router", () => {
     }
   });
 
-  test("findCommand resolves canonical names and aliases to the same command spec", () => {
+  test("findCommand resolves canonical names and verifies zero aliases", () => {
     for (const item of EXPECTED_COMMANDS) {
       const canonical = findCommand(item.name);
       expect(canonical).toBeDefined();
       expect(canonical?.name).toBe(item.name);
       expect(canonical?.handler).toBe(item.handler);
       expect(canonical?.domain).toBe("optimize");
-
-      for (const alias of item.aliases) {
-        const byAlias = findCommand(alias);
-        expect(byAlias).toBeDefined();
-        expect(byAlias).toBe(canonical);
-      }
+      expect(canonical?.aliases).toEqual([]);
     }
   });
 
@@ -167,7 +176,7 @@ describe("Optimize CLI Registry & Router", () => {
     expect(scanResult).toBeDefined();
     expect(scanResult["passed"]).toBe(true);
 
-    const driftSpec = findCommand("opt:drift");
+    const driftSpec = findCommand("optimize:check-drift");
     expect(driftSpec).toBeDefined();
     const driftResult = await driftSpec!.handler(
       { paths: "nonexistent/file.ts" },

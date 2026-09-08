@@ -96,6 +96,11 @@ export function resolveHandlerModule(
     const act = name.split(":")[1]!.replace("phase-cleanup", "cleanup");
     return { file: `watchdog-ops/${act}.ts`, fn: handlerName };
   }
+  if (name.startsWith("optimize:")) {
+    const sub = name.split(":")[1]!;
+    const f = sub === "check-drift" ? "drift.ts" : `${sub}.ts`;
+    return { file: `optimize/${f}`, fn: handlerName };
+  }
   if (SPECIFIC_HANDLERS[name]) return { file: SPECIFIC_HANDLERS[name]!, fn: handlerName };
   return undefined;
 }
