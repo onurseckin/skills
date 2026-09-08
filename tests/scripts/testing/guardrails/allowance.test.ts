@@ -111,18 +111,26 @@ describe("purity allowance - per rule isolation", () => {
 });
 
 describe("purity allowance - scope and strictness reachability", () => {
-  it("withholds the allowance from the whole-repository backlog gate", () => {
+  it("grants the allowance to the whole-repository audit so the runner can start", () => {
     const allowance = resolveAllowance(
       { scope: "repository", files: [BASELINED_FILE] },
       { all: true, allowance: FOURTEEN },
     );
-    expect(allowance.size).toBe(0);
+    expect(allowance.size).toBe(FOURTEEN.size);
   });
 
   it("withholds the allowance whenever a caller asks for strict zero tolerance", () => {
     const allowance = resolveAllowance(
       { scope: "explicit", files: [BASELINED_FILE] },
       { files: [BASELINED_FILE], strict: true, allowance: FOURTEEN },
+    );
+    expect(allowance.size).toBe(0);
+  });
+
+  it("withholds the allowance from the whole-repository audit when strict is enabled", () => {
+    const allowance = resolveAllowance(
+      { scope: "repository", files: [BASELINED_FILE] },
+      { all: true, strict: true, allowance: FOURTEEN },
     );
     expect(allowance.size).toBe(0);
   });
