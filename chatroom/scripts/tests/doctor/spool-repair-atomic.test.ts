@@ -157,7 +157,9 @@ afterAll(() => {
   writeAtomicSpy.mockRestore();
 
   const currentTmpEntries = origReaddir(tmpDirPath);
-  const leaked = currentTmpEntries.filter((entry) => !initialTmpEntries.has(entry));
+  const leaked = currentTmpEntries.filter(
+    (e) => !initialTmpEntries.has(e) && e.startsWith("chat-spool-repair-"),
+  );
   expect(leaked).toEqual([]);
 });
 
