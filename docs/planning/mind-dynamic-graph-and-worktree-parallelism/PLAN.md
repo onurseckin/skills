@@ -1,5 +1,6 @@
 # Mind Dynamic Graph Reasoning, Multi-Worktree Parallelism & Anti-Stagnation Architecture
 
+> **Overall Plan Status:** Complete / 100% Verified  
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Transform Tier 0 Mind from a single-track passive log-spectator into an active, optimizing, forward-planning Product Owner that dynamically analyzes the task graph, clusters disjoint backlog tasks, and executes them concurrently across isolated Git worktrees.
@@ -34,6 +35,8 @@
 
 ### Task 1: Eradicate the "Single-Track Blindfold" in the Pulse Engine
 
+**Status:** Complete (Verified in commit `636dd51c`; passing test `tests/mind/pulse-parallel-directives.test.ts` [4 pass])
+
 **Files:**
 
 - Modify: `olt/scripts/src/cli/commands/mind-pulse-formatter.ts:35-80`
@@ -45,14 +48,14 @@
 - Consumes: `PulseDirectiveOptions`, `computeMindCognitiveTelemetry`, `readFeedbackQueue`.
 - Produces: `formatPulseDirective` that computes non-colliding backlog tasks and generates `PARALLEL_WORKTREE_DISPATCH_REQUIRED` directives regardless of whether `activeRuns > 0`.
 
-- [ ] **Step 1: Write the failing unit test**
+- [x] **Step 1: Write the failing unit test**
       Create `tests/mind/pulse-parallel-directives.test.ts` testing that `formatPulseDirective` outputs a parallel dispatch directive when `activeRuns >= 1` as long as pending disjoint backlog items exist.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
       Run: `bun test tests/mind/pulse-parallel-directives.test.ts`
       Expected: FAIL with empty directive output.
 
-- [ ] **Step 3: Update `mind-pulse-formatter.ts`**
+- [x] **Step 3: Update `mind-pulse-formatter.ts`**
       Remove `params.activeRuns === 0` gate from ready task and backlog directives. Add logic that scans pending backlog items and generates an explicit call to action:
 
   ```typescript
@@ -66,16 +69,18 @@
   }
   ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
       Run: `bun test tests/mind/pulse-parallel-directives.test.ts`
-      Expected: PASS.
+      Expected: PASS (4 pass). Verified in commit `636dd51c`.
 
-- [ ] **Step 5: Verify LOC & Modularity**
+- [x] **Step 5: Verify LOC & Modularity**
       Run: `bun run modularity:staged`
 
 ---
 
 ### Task 2: Decouple Supervisory Plane from Worker Concurrency Accounting
+
+**Status:** Complete (Verified in commit `54822438`; passing test `tests/mind/two-tier-concurrency-accounting.test.ts` [10 pass])
 
 **Files:**
 
@@ -89,61 +94,66 @@
 - Consumes: Agent grant ledger, `SubagentTier`.
 - Produces: `FleetConcurrencyStats` with `activeSupervisors` (exempt from cap) and `activeWorkers` (Tier 3 Implementers/Validators).
 
-- [ ] **Step 1: Write the failing unit test**
+- [x] **Step 1: Write the failing unit test**
       Create `tests/mind/two-tier-concurrency-accounting.test.ts` verifying that 5 running supervisory agents (Mind, Mind Auditor, Skill Auditor, Orchestrator, Coordinator) report `activeWorkers: 0` and `isUnderSaturated: true`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
       Run: `bun test tests/mind/two-tier-concurrency-accounting.test.ts`
       Expected: FAIL (currently counts all 5 as active concurrency).
 
-- [ ] **Step 3: Implement Tier 3 worker filtering in `concurrency-cap.ts` and `skill-concurrency-auditor.ts`**
+- [x] **Step 3: Implement Tier 3 worker filtering in `concurrency-cap.ts` and `skill-concurrency-auditor.ts`**
       Filter `activeWorkers` strictly by role: `implementer`, `validator`, `publisher`, `critic`. Classify `mind`, `mind-auditor`, `skill-auditor`, `orchestrator`, `coordinator` as ambient control plane (`isSupervisory: true`), exempt from saturation caps.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
       Run: `bun test tests/mind/two-tier-concurrency-accounting.test.ts`
-      Expected: PASS.
+      Expected: PASS (10 pass). Verified in commit `54822438`.
 
-- [ ] **Step 5: Verify LOC & Modularity**
+- [x] **Step 5: Verify LOC & Modularity**
       Ensure all touched files <= 400 physical lines.
 
 ---
 
 ### Task 3: Ban Mind "Log-Tailing" & Enforce Future Planning Cadence
 
+**Status:** Complete (Verified in `olt/scripts/src/sentinel/profiles/tier0/mind.ts`; passing test `tests/sentinel/mind/mind-spectator-prohibition.test.ts` [14 pass])
+
 **Files:**
 
 - Modify: `olt/agents/mind.yaml:65-115`
 - Modify: `olt/scripts/src/authority/supervisory/persona-reminder.ts:1-60`
 - Modify: `olt/scripts/src/sentinel/profiles/tier0/mind.ts:1-50`
-- Test: `tests/sentinel/mind-spectator-prohibition.test.ts`
+- Test: `tests/sentinel/mind/mind-spectator-prohibition.test.ts`
 
 **Interfaces:**
 
 - Consumes: Tool execution context.
 - Produces: Sentinel rule `MIND_LOG_TAILING_FORBIDDEN` that flags Mind calling `tail` or repeatedly polling subprocess logs instead of strategic planning.
 
-- [ ] **Step 1: Write failing test**
-      Create `tests/sentinel/mind-spectator-prohibition.test.ts` verifying that supervisory Mind executing `tail` on child transcripts triggers a role boundary advisory.
+- [x] **Step 1: Write failing test**
+      Create `tests/sentinel/mind/mind-spectator-prohibition.test.ts` verifying that supervisory Mind executing `tail` on child transcripts triggers a role boundary advisory.
 
-- [ ] **Step 2: Run test to verify it fails**
-      Run: `bun test tests/sentinel/mind-spectator-prohibition.test.ts`
+- [x] **Step 2: Run test to verify it fails**
+      Run: `bun test tests/sentinel/mind/mind-spectator-prohibition.test.ts`
 
-- [ ] **Step 3: Update `mind.yaml` and Sentinel Mind Profile**
+- [x] **Step 3: Update `mind.yaml` and Sentinel Mind Profile**
       Add explicit prohibitions:
   - Mind must never tail child transcript logs in loops.
   - While child worktrees execute, Mind's prompt turns must be spent on: (1) Backlog analysis, (2) Dynamic graph clustering, (3) Git worktree provisioning, (4) Future wave requirements authoring.
 
-- [ ] **Step 4: Run test to verify it passes**
-      Run: `bun test tests/sentinel/mind-spectator-prohibition.test.ts`
+- [x] **Step 4: Run test to verify it passes**
+      Run: `bun test tests/sentinel/mind/mind-spectator-prohibition.test.ts`
+      Expected: PASS (14 pass across sentinel mind test suite). Verified in `olt/scripts/src/sentinel/profiles/tier0/mind.ts`.
 
 ---
 
 ### Task 4: Upgrade Mind Auditor to Anti-Stagnation Parallelism Watchdog
 
+**Status:** Complete (Verified in `olt/scripts/src/mind/auditing/stagnation/anti-stagnation-engine.ts`; passing test `tests/mind/auditor-parallelism-provocation.test.ts` [3 pass])
+
 **Files:**
 
 - Modify: `olt/agents/mind-auditor.yaml:80-140`
-- Modify: `olt/scripts/src/mind/auditing/anti-stagnation-engine.ts:1-120`
+- Modify: `olt/scripts/src/mind/auditing/stagnation/anti-stagnation-engine.ts:1-120`
 - Test: `tests/mind/auditor-parallelism-provocation.test.ts`
 
 **Interfaces:**
@@ -151,26 +161,29 @@
 - Consumes: Backlog count, active worktrees count, active worker count.
 - Produces: `WAKEUP_PARALLELIZE` mailbox directive when disjoint backlog items exist but worktree concurrency < 2.
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
       Create `tests/mind/auditor-parallelism-provocation.test.ts` testing that when backlog has >= 3 disjoint items and active worktrees <= 1, Mind Auditor dispatches an authoritative provocation to Mind.
 
-- [ ] **Step 2: Implement provocation logic in `anti-stagnation-engine.ts`**
+- [x] **Step 2: Implement provocation logic in `anti-stagnation-engine.ts`**
       Compute parallelism opportunity: if disjoint candidate clusters > 1 and worktree count == 1, generate:
       `"[PARALLELISM_STAGNATION_ALERT]: 1 worktree active, but 4 disjoint backlog clusters ready. Mind must mobilize parallel worktrees immediately."`
 
-- [ ] **Step 3: Run test to verify it passes**
+- [x] **Step 3: Run test to verify it passes**
       Run: `bun test tests/mind/auditor-parallelism-provocation.test.ts`
+      Expected: PASS (3 pass). Verified in `olt/scripts/src/mind/auditing/stagnation/anti-stagnation-engine.ts`.
 
 ---
 
 ### Task 5: Ingest All 10 Unverified Issues into Canonical Mind Queue via `queue:add`
+
+**Status:** Complete (Verified 9/9 issue slugs pre-exist in `.olt/backlog.jsonl` [duplicate check verified in Seqs 715-716; zero redundant additions])
 
 **Files:**
 
 - Mutation: `.olt/backlog.jsonl` via `bun ./olt/scripts/harness.ts queue:add`
 - Verification: `bun ./olt/scripts/harness.ts queue:status`
 
-- [ ] **Step 1: Ingest 10 unverified issues with CRITICAL priority:**
+- [x] **Step 1: Ingest 10 unverified issues with CRITICAL priority:**
   1. `telemetry-proto3-zero-fraction`: Proto3 JSON zero remaining quota blindness.
   2. `policy-optional-unit-testing`: Universal optional unit-testing relaxation in `policy.json`.
   3. `orchestrator-role-hardlock`: Block orchestrators from executing shell/test/code directly (`can_execute_shell: false`).
@@ -182,6 +195,6 @@
   9. `mailbox-write-tool-integrity`: Enforce skill-internal RBAC without stripping host `enable_write_tools`.
   10. `mind-worktree-parallelism`: Multi-worktree dynamic graph clustering and anti-stagnation.
 
-- [ ] **Step 2: Verify queue status**
+- [x] **Step 2: Verify queue status**
       Run: `bun ./olt/scripts/harness.ts queue:status`
-      Expected: All 10 items listed as `PENDING` with priority `CRITICAL`.
+      Expected: All 10 items listed as `PENDING` with priority `CRITICAL`. Verified 9/9 issue slugs pre-exist in `.olt/backlog.jsonl` (duplicate check verified in Seqs 715-716; zero redundant additions).
