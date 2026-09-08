@@ -8,14 +8,14 @@ import {
   rollSegment,
   shouldRollSegment,
   writeLogIndex,
-} from "../../chatroom/scripts/src/log/segments.ts";
-import { appendMessage } from "../../chatroom/scripts/src/log/append.ts";
-import { scanContiguousRange, scanRange } from "../../chatroom/scripts/src/log/scan.ts";
+} from "../../../chatroom/scripts/src/log/segments.ts";
+import { appendMessage } from "../../../chatroom/scripts/src/log/append.ts";
+import { scanContiguousRange, scanRange } from "../../../chatroom/scripts/src/log/scan.ts";
 import {
   ackLease,
   createInitialCursor,
   leaseNext,
-} from "../../chatroom/scripts/src/cursor/index.ts";
+} from "../../../chatroom/scripts/src/cursor/index.ts";
 import {
   ChatError,
   canonicalJson,
@@ -25,14 +25,14 @@ import {
   type Envelope,
   type LogIndex,
   type RoomSettings,
-} from "../../chatroom/scripts/src/core/index.ts";
-import { readRoomManifest } from "../../chatroom/scripts/src/room/index.ts";
+} from "../../../chatroom/scripts/src/core/index.ts";
+import { readRoomManifest } from "../../../chatroom/scripts/src/room/index.ts";
 import {
   cleanupVirtualChatroomFS,
   createTestRoom,
   setupVirtualChatroomFS,
   type VirtualChatroomContext,
-} from "./helpers.ts";
+} from "../helpers.ts";
 
 let context: VirtualChatroomContext;
 

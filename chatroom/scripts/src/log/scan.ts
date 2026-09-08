@@ -1,9 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import {
   canonicalJson,
   ChatError,
   isEnvelope,
   roomLogSegmentPath,
+  roomQuarantineDir,
   roomQuarantinePath,
   safeJsonParse,
   writeAtomic,
@@ -50,9 +52,38 @@ export function quarantineCorruptLine(
   seq?: number,
   reason?: string,
 ): string {
+  const qDir = roomQuarantineDir(roomId);
+  if (existsSync(qDir)) {
+    const entries = readdirSync(qDir);
+    for (const entry of entries) {
+      if (entry.endsWith(".json") && !entry.startsWith(".")) {
+        const filePath = join(qDir, entry);
+        try {
+          const content = safeJsonParse(readFileSync(filePath, "utf8"));
+          if (
+            typeof content === "object" &&
+            content !== null &&
+            "raw" in content &&
+            (content as { readonly raw: unknown }).raw === line
+          ) {
+            return filePath;
+          }
+        } catch {}
+      }
+    }
+  }
+
   const now = new Date().toISOString();
   const sequenceNumber = seq ?? 0;
-  const targetPath = roomQuarantinePath(roomId, now, sequenceNumber);
+  let targetPath = roomQuarantinePath(roomId, now, sequenceNumber);
+  if (existsSync(targetPath)) {
+    let suffix = 1;
+    while (existsSync(targetPath)) {
+      const sanitizedTs = now.replace(/[:.]/g, "-");
+      targetPath = join(qDir, `${sanitizedTs}-${sequenceNumber}-${suffix}.json`);
+      suffix++;
+    }
+  }
 
   const record = {
     ts: now,
@@ -65,7 +96,10 @@ export function quarantineCorruptLine(
   return targetPath;
 }
 
-export function readSegmentEnvelopes(segmentPath: string): {
+export function readSegmentEnvelopes(
+  segmentPath: string,
+  options?: { readonly roomId?: string },
+): {
   readonly envelopes: readonly Envelope[];
   readonly tornLines: readonly string[];
 } {
@@ -77,6 +111,9 @@ export function readSegmentEnvelopes(segmentPath: string): {
   if (content.length === 0) {
     return { envelopes: [], tornLines: [] };
   }
+
+  const roomMatch = segmentPath.match(/(?:^|[\\/])rooms[\\/]([^\\/]+)[\\/]log[\\/]/);
+  const roomId = options?.roomId ?? roomMatch?.[1];
 
   const lines = content.split("\n");
   const envelopes: Envelope[] = [];
@@ -96,6 +133,9 @@ export function readSegmentEnvelopes(segmentPath: string): {
     if (result.success) {
       envelopes.push(result.envelope);
     } else {
+      if (roomId !== undefined && roomId.length > 0) {
+        quarantineCorruptLine(roomId, trimmed, undefined, result.error);
+      }
       tornLines.push(trimmed);
     }
   }
@@ -119,7 +159,7 @@ export function scanRange(roomId: string, fromSeq: number, limit = 50): readonly
 
   for (const segment of index.segments) {
     const segmentPath = roomLogSegmentPath(roomId, segment);
-    const { envelopes } = readSegmentEnvelopes(segmentPath);
+    const { envelopes } = readSegmentEnvelopes(segmentPath, { roomId });
 
     for (const envelope of envelopes) {
       if (envelope.seq >= fromSeq) {
@@ -149,7 +189,7 @@ export function scanContiguousRange(
 
   for (const segment of index.segments) {
     const segmentPath = roomLogSegmentPath(roomId, segment);
-    const { envelopes } = readSegmentEnvelopes(segmentPath);
+    const { envelopes } = readSegmentEnvelopes(segmentPath, { roomId });
 
     for (const envelope of envelopes) {
       if (envelope.seq < expectedSeq) {
