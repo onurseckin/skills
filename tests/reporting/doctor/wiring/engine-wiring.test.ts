@@ -47,12 +47,10 @@ describe(engineWiringSuiteName, () => {
     expect(report.invokedEngines).not.toContain("checkEpistemicConfidence");
   });
 
-  test("checkDualChannelUi is reported as invoked but unable to fail", () => {
+  test("checkDualChannelUi is invoked and not reported as a wiring defect", () => {
     const defect = report.defects.find((entry) => entry.engine === "checkDualChannelUi");
-    expect(defect).toBeDefined();
-    expect(defect?.condition).toBe("invoked-but-cannot-fail");
-    expect(defect?.evidence).toMatch(/diagnostic-collector\.ts:\d+/u);
-    expect(defect?.evidence).toContain("zero arguments");
+    expect(defect).toBeUndefined();
+    expect(report.invokedEngines).toContain("checkDualChannelUi");
   });
 
   test("checkCliRegistryTaxonomy is invoked with zero arguments yet is not a defect", () => {
@@ -86,40 +84,15 @@ describe(engineWiringSuiteName, () => {
     expect(report.resolved).toEqual([]);
   });
 
-  test("the rendered report names both known instances", () => {
+  test("the rendered report names accepted defect instances", () => {
     const rendered = formatEngineWiringReport(report);
     expect(rendered).toContain("checkEpistemicConfidence [exported-but-never-invoked]");
-    expect(rendered).toContain("checkDualChannelUi [invoked-but-cannot-fail]");
+    expect(rendered).not.toContain("checkDualChannelUi");
     expect(rendered).toContain("Status: passed");
   });
 });
 
 describe(`${engineWiringSuiteName} - laundering resistance on live source`, () => {
-  test("a cosmetic empty literal at the checkDualChannelUi call site does not clear its entry", () => {
-    const laundered = auditEngineWiring(
-      withCollectorEdit((text) =>
-        text.replace("checkDualChannelUi()", "checkDualChannelUi({ themeElements: [] })"),
-      ),
-    );
-    expect(laundered.resolved).toEqual([]);
-    expect(laundered.defects.map(defectKey)).toContain(
-      "checkDualChannelUi|invoked-but-cannot-fail",
-    );
-    const defect = laundered.defects.find((entry) => entry.engine === "checkDualChannelUi");
-    expect(defect?.evidence).toContain("empty literal argument 'themeElements: []'");
-  });
-
-  test("supplying real theme pairs at that same call site does clear its entry", () => {
-    const repaired = auditEngineWiring(
-      withCollectorEdit((text) =>
-        text.replace("checkDualChannelUi()", "checkDualChannelUi({ themeElements: collected })"),
-      ),
-    );
-    expect(repaired.resolved).toEqual(["checkDualChannelUi|invoked-but-cannot-fail"]);
-    expect(repaired.defects.map(defectKey)).not.toContain(
-      "checkDualChannelUi|invoked-but-cannot-fail",
-    );
-  });
 
   test("wiring checkEpistemicConfidence with an option it never reads fails the guard", () => {
     const laundered = auditEngineWiring(
