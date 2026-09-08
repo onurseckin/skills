@@ -25,6 +25,7 @@ export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
   "src/platform/capture/index.ts",
   "src/reporting/doctor/quota-health-engine.ts",
   "src/server/docker",
+  "src/server/index.ts",
   "src/telemetry/collectors/host-detection-rules.ts",
   "src/telemetry/collectors/host-detection.ts",
   "src/telemetry/engine.ts",
