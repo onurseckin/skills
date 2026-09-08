@@ -1,6 +1,7 @@
 import { spyOn } from "bun:test";
 import * as fs from "node:fs";
 import { resolve } from "node:path";
+import * as flockFfi from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   appendGateProof,
@@ -194,6 +195,8 @@ export function installPlanAuditFsSpies(): void {
       }
       orm(p, { recursive: true, force: true });
     }),
+    spyOn(flockFfi, "tryExclusiveFlock").mockReturnValue(true),
+    spyOn(flockFfi, "releaseFlock").mockReturnValue(undefined),
   );
 }
 
@@ -235,9 +238,7 @@ export function fixtureRepo(_roots?: string[]): string {
   return "/virtual/repo/plan-audit-fixture";
 }
 
-export function cleanupFixtureRoots(_roots?: readonly string[]): void {
-  // Zero-disk implementation
-}
+export function cleanupFixtureRoots(_roots?: readonly string[]): void {}
 
 export function gateProof(
   overrides: Partial<GateProofRecord> &
