@@ -16,7 +16,13 @@ export { doctorCommand } from "./doctor.ts";
 export { readCommand } from "./read.ts";
 export { sayCommand } from "./say.ts";
 export { watchCommand } from "./watch.ts";
-export { initCommand, inviteCommand, joinCommand, roomsCommand } from "./lifecycle/index.ts";
+export {
+  initCommand,
+  inviteCommand,
+  joinCommand,
+  roomsCommand,
+  type InitOptions,
+} from "./lifecycle/index.ts";
 export { inspectCommand } from "./inspect.ts";
 export { onCommand } from "./on.ts";
 export { offCommand } from "./off.ts";

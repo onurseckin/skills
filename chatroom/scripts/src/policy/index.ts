@@ -16,4 +16,5 @@ export {
   type PersistPolicyOptions,
   type PersistPolicyResult,
   type PolicyPorts,
+  type ResolvePolicyPathOptions,
 } from "./persist.ts";

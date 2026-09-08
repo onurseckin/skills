@@ -9,13 +9,16 @@ export interface PolicyPorts {
   readonly mkdirSync?: (path: string, options?: { readonly recursive?: boolean }) => void;
 }
 
-export interface PersistPolicyOptions {
+export interface ResolvePolicyPathOptions {
   readonly policyPath?: string;
   readonly repoRoot?: string;
   readonly userPolicyPath?: string;
+  readonly cwd?: string;
   readonly env?: Record<string, string | undefined>;
   readonly ports?: PolicyPorts;
 }
+
+export interface PersistPolicyOptions extends ResolvePolicyPathOptions {}
 
 export interface PersistPolicyResult {
   readonly targetPath: string;
@@ -23,7 +26,7 @@ export interface PersistPolicyResult {
   readonly policy: Record<string, unknown>;
 }
 
-export function resolveTargetPolicyPath(options: PersistPolicyOptions = {}): string {
+export function resolveTargetPolicyPath(options: ResolvePolicyPathOptions = {}): string {
   if (options.policyPath && options.policyPath.trim().length > 0) {
     return options.policyPath.trim();
   }
@@ -38,10 +41,11 @@ export function resolveTargetPolicyPath(options: PersistPolicyOptions = {}): str
     }
   }
 
-  const cwdCandidate = repoPolicyPath(process.cwd());
-  const cwdDirCandidate = repoChatroomDir(process.cwd());
-  if (exists(cwdCandidate) || exists(cwdDirCandidate)) {
-    return cwdCandidate;
+  const defaultRoot = options.cwd ?? process.cwd();
+  const candidate = repoPolicyPath(defaultRoot);
+  const dirCandidate = repoChatroomDir(defaultRoot);
+  if (exists(candidate) || exists(dirCandidate)) {
+    return candidate;
   }
 
   if (options.userPolicyPath && options.userPolicyPath.trim().length > 0) {

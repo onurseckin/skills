@@ -16,7 +16,7 @@ __pycache__/
 
 # build / run capsules scratch
 .olt/
-/.chatroom/
+**/.chatroom/
 .locks/
 /scratch/
 /.scratch/

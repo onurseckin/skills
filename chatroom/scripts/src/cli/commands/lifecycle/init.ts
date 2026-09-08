@@ -38,6 +38,42 @@ import {
 } from "../../../provision/index.ts";
 import { resolvePolicy } from "../../../policy/index.ts";
 
+export interface InitOptions {
+  readonly room?: string;
+  readonly title?: string;
+  readonly as?: string;
+  readonly host?: string;
+  readonly public?: boolean;
+  readonly invite?: string;
+  readonly repo?: string;
+  readonly cwd?: string;
+  readonly noBind?: boolean;
+  readonly noAgent?: boolean;
+  readonly noDaemon?: boolean;
+  readonly printInvite?: boolean;
+  readonly rotateKey?: boolean;
+  readonly json?: boolean;
+  readonly writeFile?: (filePath: string, content: string) => void;
+}
+
+function findNearestRepoRoot(startDir: string): string {
+  let current = path.resolve(startDir);
+  while (true) {
+    if (
+      fs.existsSync(path.join(current, ".git")) ||
+      fs.existsSync(path.join(current, ".chatroom", "binding.json"))
+    ) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  return path.resolve(startDir);
+}
+
 export const initCommand: CommandHandler = async (
   flags: Flags,
   _context: CommandContext,
@@ -51,8 +87,11 @@ export const initCommand: CommandHandler = async (
     "public",
     "invite",
     "repo",
+    "cwd",
     "no-agent",
     "no-daemon",
+    "no-bind",
+    "noBind",
     "print-invite",
     "rotate-key",
     "json",
@@ -66,6 +105,12 @@ export const initCommand: CommandHandler = async (
   const publicFlag = boolFlag(flags, "public");
   const inviteFlag = textFlag(flags, "invite", false);
   const repoFlag = textFlag(flags, "repo", false);
+  const cwdFlag = textFlag(flags, "cwd", false);
+  const rawFlags = flags as Record<string, unknown>;
+  const noBindFlag =
+    rawFlags["no-bind"] === true ||
+    rawFlags["noBind"] === true ||
+    (rawFlags["no-bind"] !== false && boolFlag(flags, "no-bind"));
   const noAgentFlag = boolFlag(flags, "no-agent");
   const noDaemonFlag = boolFlag(flags, "no-daemon");
   const printInviteFlag = boolFlag(flags, "print-invite");
@@ -85,7 +130,8 @@ export const initCommand: CommandHandler = async (
     throw new ChatError("INVALID_ARGUMENT", "--room or --invite is required");
   }
 
-  const repoRoot = repoFlag !== undefined ? path.resolve(repoFlag) : process.cwd();
+  const baseDir = cwdFlag ?? process.cwd();
+  const repoRoot = repoFlag !== undefined ? path.resolve(repoFlag) : findNearestRepoRoot(baseDir);
   const detectedHost: SupportedHost =
     hostFlag !== undefined && hostFlag !== "auto"
       ? (hostFlag as SupportedHost)
@@ -175,11 +221,13 @@ export const initCommand: CommandHandler = async (
     );
   }
 
-  writeRepoBinding(repoRoot, {
-    member_id: identity.id,
-    room_id: targetRoom,
-    host: detectedHost,
-  });
+  if (!noBindFlag && process.env.CHATROOM_SANDBOX !== "true") {
+    writeRepoBinding(repoRoot, {
+      member_id: identity.id,
+      room_id: targetRoom,
+      host: detectedHost,
+    });
+  }
 
   let agentName = "";
   let agentArtifact = "";

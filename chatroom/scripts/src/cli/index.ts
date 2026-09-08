@@ -74,4 +74,5 @@ export {
   taskCommand,
   topicCommand,
   watchCommand,
+  type InitOptions,
 } from "./commands/index.ts";

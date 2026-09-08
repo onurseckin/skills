@@ -45,6 +45,8 @@ export const initSpec: CommandSpec = {
     optionalFlag("public", "bool", "create a public room"),
     optionalFlag("invite", "string", "join via a chatroom:// URI instead of creating"),
     optionalFlag("repo", "string", "repository root to bind (default: cwd)"),
+    optionalFlag("cwd", "string", "working directory for repository binding and policy resolution"),
+    optionalFlag("no-bind", "bool", "do not write repository binding into .chatroom"),
     optionalFlag("no-agent", "bool", "skip communicator agent generation"),
     optionalFlag("no-daemon", "bool", "skip daemon start"),
     optionalFlag("print-invite", "bool", "mint and print a first invite immediately"),
