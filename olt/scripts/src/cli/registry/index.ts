@@ -26,7 +26,7 @@ import { RUN_COMMANDS } from "./run.ts";
 import { SCHED_COMMANDS } from "./sched.ts";
 import { SHELL_COMMANDS } from "./shell.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
-import { TASK_COMMANDS } from "./task.ts";
+import { TASK_COMMANDS } from "./task/index.ts";
 import { SENTINEL_COMMANDS } from "./sentinel.ts";
 import { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 import {
@@ -108,7 +108,7 @@ export { RUN_COMMANDS } from "./run.ts";
 export { SCHED_COMMANDS } from "./sched.ts";
 export { SHELL_COMMANDS } from "./shell.ts";
 export { SUMMARY_COMMANDS } from "./summary.ts";
-export { TASK_COMMANDS } from "./task.ts";
+export { TASK_COMMANDS } from "./task/index.ts";
 export { SENTINEL_COMMANDS } from "./sentinel.ts";
 export { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 

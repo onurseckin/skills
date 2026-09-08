@@ -54,6 +54,7 @@ export function resolveRegistryFile(commandName: string, domain: string): string
   if (commandName === "doctor:certify" || commandName === "health") return "diagnostics.ts";
   if (domain === "mind")
     return commandName.startsWith("mind:round-") ? "mind/cmds2.ts" : "mind/cmds1.ts";
+  if (domain === "task") return "task/index.ts";
   return domain === "worktree" ? "workflow.ts" : `${domain}.ts`;
 }
 
