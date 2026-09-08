@@ -4,223 +4,37 @@
   "domain": "task",
   "summary": "Enqueue a task in the task queue.",
   "flags": [
-    {
-      "name": "task",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "task-id",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "id",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "title",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "name",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "description",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "desc",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "priority",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "gate",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "write-scope",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "scope",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "charter-goals",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "goals",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "acceptance-criteria",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "criteria",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "dependencies",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "deps",
-      "type": "string",
-      "required": false,
-      "repeatable": true,
-      "default": null
-    },
-    {
-      "name": "source-type",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "status",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "assigned-tier",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "tier",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "assigned-role",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "role",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "max-retries",
-      "type": "int",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "queue-path",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "path",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "run",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "trace-id",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "span-id",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "parent-span-id",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "trace-sampled",
-      "type": "bool",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    }
+    { "name": "task", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "task-id", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "id", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "title", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "name", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "description", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "desc", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "priority", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "gate", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "write-scope", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "scope", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "charter-goals", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "goals", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "acceptance-criteria", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "criteria", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "dependencies", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "deps", "type": "string", "required": false, "repeatable": true, "default": null },
+    { "name": "source-type", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "status", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "assigned-tier", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "tier", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "assigned-role", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "role", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "max-retries", "type": "int", "required": false, "repeatable": false, "default": null },
+    { "name": "queue-path", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "path", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "run", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "trace-id", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "span-id", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "parent-span-id", "type": "string", "required": false, "repeatable": false, "default": null },
+    { "name": "trace-sampled", "type": "bool", "required": false, "repeatable": false, "default": null }
   ],
   "reads_stdin": false,
   "takes_remainder": false

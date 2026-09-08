@@ -63,8 +63,29 @@ export function renderCommandIndexJsonl(): string {
   return `${manifest.commands.map((command) => JSON.stringify(indexRecord(command))).join("\n")}\n`;
 }
 
+function formatCompactFlag(flag: FlagManifest): string {
+  return `    { "name": ${JSON.stringify(flag.name)}, "type": ${JSON.stringify(flag.type)}, "required": ${flag.required}, "repeatable": ${flag.repeatable}, "default": ${JSON.stringify(flag.default)} }`;
+}
+
 export function renderCommandDetailJson(command: CommandManifest): string {
-  return `${JSON.stringify(command, null, 2)}\n`;
+  const full = `${JSON.stringify(command, null, 2)}\n`;
+  if (full.split("\n").length <= 200) {
+    return full;
+  }
+  const flagLines = command.flags.map(formatCompactFlag).join(",\n");
+  const base = {
+    name: command.name,
+    aliases: command.aliases,
+    domain: command.domain,
+    summary: command.summary,
+  };
+  const tail = {
+    reads_stdin: command.reads_stdin,
+    takes_remainder: command.takes_remainder,
+  };
+  const baseLines = JSON.stringify(base, null, 2).slice(0, -2);
+  const tailLines = JSON.stringify(tail, null, 2).slice(2);
+  return `${baseLines},\n  "flags": [\n${flagLines}\n  ],\n${tailLines}\n`;
 }
 
 export interface CommandDetailFile {
