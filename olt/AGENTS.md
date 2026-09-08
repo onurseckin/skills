@@ -1,3 +1,7 @@
+Rules live in `.agents/rules/`. That directory is the single source of truth.
+Anything below duplicating a rule in `.agents/rules/` is being migrated and may be stale.
+Where this file and `.agents/rules/` disagree, `.agents/rules/` wins.
+
 # Canonical Agent Operating Directives (AGENTS.md)
 
 This document establishes the canonical operational rules, prompt directives, role boundaries, zero-fallback invariants, 2-key validator pairing contracts, 1-hop micro-cycles, zero-exploration exact-anchor briefings, deep behavioral forensics (Meta-Auditor), fast incremental verification (`task:check`), and anti-blunder guidelines for all AI agents, subagents, orchestrators, and contributors operating within the **`@onurseckin/skills`** monorepo.

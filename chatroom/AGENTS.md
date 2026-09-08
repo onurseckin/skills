@@ -1,3 +1,7 @@
+Rules live in `.agents/rules/`. That directory is the single source of truth.
+Anything below duplicating a rule in `.agents/rules/` is being migrated and may be stale.
+Where this file and `.agents/rules/` disagree, `.agents/rules/` wins.
+
 # Chatroom Agent Operating Directives (AGENTS.md)
 
 This document establishes the canonical operational directives, prompt contracts, role boundaries, and anti-defect rules for all AI agents and processes interacting with the **`chatroom`** messaging skill.

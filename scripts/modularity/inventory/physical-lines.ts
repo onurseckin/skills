@@ -1,7 +1,7 @@
 import { classifyPath, type Violation } from "../core/index.ts";
 import type { IndexedBlob } from "./git-index.ts";
 
-const LINE_LIMIT = 400;
+export const LINE_LIMIT = 400;
 
 export function countPhysicalLines(bytes: Uint8Array): number {
   if (bytes.length === 0) return 0;
