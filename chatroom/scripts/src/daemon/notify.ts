@@ -126,6 +126,25 @@ export function executeNotifyCommand(
   });
 }
 
+export interface RespawnNotificationPayload {
+  readonly reason: "respawn";
+  readonly room: string;
+  readonly reader: string;
+  readonly ts: string;
+  readonly message: string;
+}
+
+export async function dispatchRespawnNotification(
+  command: string | undefined | null,
+  payload: RespawnNotificationPayload,
+  options?: ExecuteNotifyOptions,
+): Promise<NotifyResult | null> {
+  if (!command) {
+    return null;
+  }
+  return executeNotifyCommand(command, [payload], options);
+}
+
 export function recordConsumerReceipt(
   healthPath: string,
   nowIso: string,

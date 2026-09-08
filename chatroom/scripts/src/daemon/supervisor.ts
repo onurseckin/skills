@@ -23,6 +23,7 @@ import {
 } from "../core/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import { readHealthRecord, writeHealthRecord } from "./health.ts";
+import { dispatchRespawnNotification, type ExecuteNotifyOptions } from "./notify.ts";
 
 export interface SupervisorPorts {
   readonly now?: () => number;
@@ -61,6 +62,9 @@ export interface SupervisorOptions {
   readonly watchPid?: number;
   readonly gracePeriodMs?: number;
   readonly verifyAlive?: boolean;
+  readonly notifyCommand?: string | undefined;
+  readonly isRespawn?: boolean;
+  readonly notifyOptions?: ExecuteNotifyOptions;
 }
 
 export interface SupervisorResult {
@@ -152,15 +156,17 @@ export function reclaimStaleLock(
   ports: SupervisorPorts = {},
 ): void {
   const reclaimed_at = new Date(ports.now?.() ?? Date.now()).toISOString();
-  const data = {
-    reclaimed_at,
-    prior_pid: prior.pid,
-    prior_start_time: prior.start_time,
-    prior_boot_id: prior.boot_id,
-    reason,
-    evidence,
-  };
-  appendAtomic(daemonReclaimPath(roomId, readerId), JSON.stringify(data) + "\n");
+  appendAtomic(
+    daemonReclaimPath(roomId, readerId),
+    JSON.stringify({
+      reclaimed_at,
+      prior_pid: prior.pid,
+      prior_start_time: prior.start_time,
+      prior_boot_id: prior.boot_id,
+      reason,
+      evidence,
+    }) + "\n",
+  );
   releaseDaemonLock(roomId, readerId, null);
 }
 
@@ -310,6 +316,24 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
   }
 
   recordRespawn(room, reader, ports);
+  const isRespawn =
+    options.isRespawn ??
+    (existingHealth !== null &&
+      (!checkAlive(existingHealth.pid) || existingHealth.state === "STOPPED"));
+  const notifyCmd = options.notifyCommand ?? resolved.notify_command;
+  if (isRespawn && notifyCmd) {
+    dispatchRespawnNotification(
+      notifyCmd,
+      {
+        reason: "respawn",
+        room,
+        reader,
+        ts: new Date(ports.now?.() ?? Date.now()).toISOString(),
+        message: "daemon respawned, run chat mine to recover context",
+      },
+      options.notifyOptions,
+    ).catch(() => {});
+  }
   const command = resolved.runtime_command;
   const baseArgs =
     `${resolved.harness_path} daemon --room ${room} --as ${reader} --foreground`.split(" ");
@@ -326,7 +350,8 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
         return child.pid ?? null;
       })();
 
-  if (pid === null) return { status: "failed", reason: "spawn_failed" };
+  const fail = (reason: string): SupervisorResult => ({ status: "failed", pid, reason });
+  if (pid === null) return fail("spawn_failed");
 
   const graceMs = options.gracePeriodMs ?? 2000;
   const nowFn = ports.now ?? Date.now;
@@ -334,9 +359,7 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
 
   let heartbeatExists = false;
   while (nowFn() <= deadline) {
-    if (!checkAlive(pid)) {
-      return { status: "failed", pid, reason: `daemon process ${pid} exited prematurely` };
-    }
+    if (!checkAlive(pid)) return fail(`daemon process ${pid} exited prematurely`);
     if (existsSync(healthPath)) {
       heartbeatExists = true;
       break;
@@ -344,14 +367,10 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
   }
 
-  if (!checkAlive(pid)) {
-    return { status: "failed", pid, reason: `daemon process ${pid} exited prematurely` };
-  }
+  if (!checkAlive(pid)) return fail(`daemon process ${pid} exited prematurely`);
 
   const requireHeartbeat = options.verifyAlive ?? !ports.spawnDetached;
-  if (!heartbeatExists && requireHeartbeat) {
-    return { status: "failed", pid, reason: `daemon process ${pid} wrote no heartbeat` };
-  }
+  if (!heartbeatExists && requireHeartbeat) return fail(`daemon process ${pid} wrote no heartbeat`);
 
   return { status: "started", pid };
 }
