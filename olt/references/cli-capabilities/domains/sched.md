@@ -32,8 +32,6 @@ Computes anti-idle sleep and rollover intervals based on work status, rate limit
 | `--is-rate-limited` | bool | no | no | - | Alias for rate-limited. |
 | `--previous-interval` | int | no | no | - | Previous interval in milliseconds. |
 | `--previous-interval-ms` | int | no | no | - | Alias for previous-interval. |
-| `--jitter` | bool | no | no | - | Apply random jitter. |
-| `--apply-jitter` | bool | no | no | - | Alias for jitter. |
 | `--jitter-ratio` | string | no | no | - | Jitter ratio fraction. |
 | `--multiplier` | string | no | no | - | Exponential backoff multiplier. |
 | `--no-jitter` | bool | no | no | - | Disable jitter for deterministic evaluation. |

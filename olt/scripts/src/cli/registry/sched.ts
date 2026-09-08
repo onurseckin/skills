@@ -31,8 +31,6 @@ export const SCHED_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("is-rate-limited", "bool", "Alias for rate-limited."),
       optionalFlag("previous-interval", "int", "Previous interval in milliseconds."),
       optionalFlag("previous-interval-ms", "int", "Alias for previous-interval."),
-      optionalFlag("jitter", "bool", "Apply random jitter."),
-      optionalFlag("apply-jitter", "bool", "Alias for jitter."),
       optionalFlag("jitter-ratio", "string", "Jitter ratio fraction."),
       optionalFlag("multiplier", "string", "Exponential backoff multiplier."),
       optionalFlag("no-jitter", "bool", "Disable jitter for deterministic evaluation."),

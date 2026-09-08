@@ -30,11 +30,11 @@ describe("Scheduling CLI commands", () => {
       streak: 3,
       "base-interval": 1000,
       "max-interval": 30000,
-      jitter: false,
+      "no-jitter": true,
     });
     expect(res.isImmediate).toBe(false);
     expect(typeof res.intervalMs).toBe("number");
-    expect(res.intervalMs as number).toBeGreaterThanOrEqual(1000);
+    expect(res.intervalMs).toBe(3375);
   });
 
   test("sched:backoff calculates various backoff strategies", () => {
@@ -102,6 +102,20 @@ describe("Scheduling CLI commands", () => {
 
     const jitterRes = await execute(["sched:jitter", "--interval", "5000", "--seed", "42"]);
     expect(typeof jitterRes.intervalMs).toBe("number");
+
+    const noJitterRes = await execute([
+      "sched:eval",
+      "--streak",
+      "3",
+      "--base-interval",
+      "1000",
+      "--max-interval",
+      "30000",
+      "--no-jitter",
+    ]);
+    expect(noJitterRes.intervalMs).toBe(3375);
+
+    await expect(execute(["sched:eval", "--jitter"])).rejects.toThrow("unknown option: --jitter");
   });
 
   test("executeSchedEval and executeSchedBackoff runner functions exit cleanly and format JSON", async () => {

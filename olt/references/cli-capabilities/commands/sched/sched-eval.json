@@ -124,20 +124,6 @@
       "default": null
     },
     {
-      "name": "jitter",
-      "type": "bool",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "apply-jitter",
-      "type": "bool",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
       "name": "jitter-ratio",
       "type": "string",
       "required": false,

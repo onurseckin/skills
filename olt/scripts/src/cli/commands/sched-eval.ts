@@ -28,8 +28,6 @@ const ALLOWED_SCHED_EVAL_FLAGS: readonly string[] = [
   "is-rate-limited",
   "previous-interval",
   "previous-interval-ms",
-  "jitter",
-  "apply-jitter",
   "no-jitter",
   "jitter-ratio",
   "multiplier",
@@ -62,10 +60,7 @@ export function schedEvalCommand(flags: Flags, _context?: CommandContext): Recor
     boolFlag(flags, "is-rate-limited");
   const previousIntervalMs =
     integerFlag(flags, "previous-interval") ?? integerFlag(flags, "previous-interval-ms");
-  const applyJitter =
-    boolFlag(flags, "no-jitter") || flags["jitter"] === "false" || flags["apply-jitter"] === "false"
-      ? false
-      : true;
+  const applyJitter = !boolFlag(flags, "no-jitter");
   const jitterRatioStr = textFlag(flags, "jitter-ratio", false);
   const jitterRatio = jitterRatioStr !== undefined ? Number(jitterRatioStr) : undefined;
   const multiplierStr = textFlag(flags, "multiplier", false);
