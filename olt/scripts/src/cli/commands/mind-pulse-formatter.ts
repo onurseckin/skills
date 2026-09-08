@@ -19,7 +19,6 @@ export interface PulseDirectiveOptions {
 }
 
 export function formatPulseDirective(params: PulseDirectiveOptions): string {
-  // 1. Stagnation Directive
   if (
     params.isStagnating ||
     (typeof params.stagnationStreak === "number" && params.stagnationStreak >= 2)
@@ -34,7 +33,6 @@ export function formatPulseDirective(params: PulseDirectiveOptions): string {
     return lines.join("\n");
   }
 
-  // 2. Mode A Autonomous Creative Product Expansion
   if (params.activeRuns === 0 && params.pendingBacklog === 0) {
     const proposals = MindAutonomousDiscoveryEngine.generateProposals({
       backlogCount: params.pendingBacklog,
@@ -62,12 +60,15 @@ export function formatPulseDirective(params: PulseDirectiveOptions): string {
     return lines.join("\n");
   }
 
-  // 3. Ready Task Dispatch Directive
-  if (
-    typeof params.readyTasksCount === "number" &&
-    params.readyTasksCount > 0 &&
-    params.activeRuns === 0
-  ) {
+  if (typeof params.readyTasksCount === "number" && params.readyTasksCount > 0) {
+    if (params.activeRuns > 0) {
+      return [
+        `### ⚡ PARALLEL WORKTREE DISPATCH REQUIRED (${params.activeRuns} Active, ${params.readyTasksCount} Ready)`,
+        `- **Backlog Capacity**: ${params.pendingBacklog} total items pending; ${params.readyTasksCount} ready for immediate dispatch.`,
+        `- **Action**: Dynamic LLM Graph Partitioning: identify disjoint write scopes and provision parallel Git worktrees via worktree:create.`,
+        `- **Role Invariant**: Do NOT tail logs or wait for active runs. Mobilize parallel lanes now.`,
+      ].join("\n");
+    }
     return [
       "### ⚡ READY TASK DISPATCH REQUIRED",
       `- **Ready Queue**: ${params.readyTasksCount} tasks waiting in ready state.`,
