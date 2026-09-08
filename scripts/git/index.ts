@@ -10,7 +10,6 @@ export {
   formatViolationReport,
   main,
   runCommitMsgGuard,
-  stripGitCommentary,
 } from "./commit-msg-guard.ts";
 export {
   FAIL_CLOSED_ERROR_MESSAGE,

@@ -10,7 +10,6 @@ import {
   formatViolationReport,
   main,
   runCommitMsgGuard,
-  stripGitCommentary,
 } from "../../../scripts/git/index.ts";
 
 const MESSAGE_PATH = "/virtual/repo/.git/COMMIT_EDITMSG";
@@ -30,6 +29,15 @@ const FORBIDDEN_MESSAGES: ReadonlyArray<readonly [string, string]> = [
   ["robot emoji generated with", "fix: thing\n\n\u{1F916} Generated with [Some Tool](https://x)"],
   ["assisted-by vendor", "fix: thing\n\nAssisted-By: Claude Code"],
   ["co-created-with vendor", "fix: thing\n\nCo-Created-With: Gemini 3 Pro"],
+  [
+    "hash-commented co-authored-by claude",
+    "feat: thing\n\n# Co-Authored-By: Claude <noreply@anthropic.com>",
+  ],
+  ["hash-commented generated with claude", "feat: thing\n\n# Generated with Claude Code"],
+  [
+    "hash-commented claude-session",
+    "feat: thing\n\n# Claude-Session: https://claude.ai/code/session_01",
+  ],
 ];
 
 const LEGAL_MESSAGES: ReadonlyArray<readonly [string, string]> = [
@@ -45,13 +53,14 @@ const LEGAL_MESSAGES: ReadonlyArray<readonly [string, string]> = [
   ["whitespace-only message", "\n\n   \n"],
   ["human co-author", "feat: thing\n\nCo-Authored-By: Jane Doe <jane@example.com>"],
   ["prose about a cursor position", "fix: keep the cursor position stable while gpt tokens stream"],
+  ["commented human co-author", "feat: thing\n\n# Co-Authored-By: Jane Doe <jane@example.com>"],
   [
-    "commented template guidance",
-    "feat: thing\n\n# Co-Authored-By: Claude <noreply@anthropic.com>",
+    "git commentary lines",
+    "feat: thing\n\n# Please enter the commit message for your changes.\n# Lines starting with '#' will be ignored.",
   ],
   [
-    "verbose diff below the scissors line",
-    "feat: thing\n\n# ------------------------ >8 ------------------------\n+Co-Authored-By: Claude <noreply@anthropic.com>",
+    "verbose diff below the scissors line with genuine git preamble",
+    "feat: thing\n\n# ------------------------ >8 ------------------------\n# Do not modify or remove the line above.\n# Everything below it will be ignored.\ndiff --git a/f.txt b/f.txt\n+Co-Authored-By: Claude <noreply@anthropic.com>",
   ],
 ];
 
@@ -129,11 +138,6 @@ describe("commit message attribution guard (in-memory virtual)", () => {
     ]);
   });
 
-  test("stripGitCommentary blanks comments and truncates at the scissors marker", () => {
-    const lines = stripGitCommentary("subject\n# comment\nbody\n# ------ >8 ------\ntrailing");
-    expect(lines).toEqual(["subject", "", "body"]);
-  });
-
   test("fails closed when the message path is missing or unreadable", () => {
     expect(runCommitMsgGuard([])).toBe(1);
     expect(runCommitMsgGuard(["--flag-only"])).toBe(1);
@@ -149,5 +153,51 @@ describe("commit message attribution guard (in-memory virtual)", () => {
     expect(computeIsMain(false, "/repo/scripts/git/commit-msg-guard.ts")).toBe(true);
     expect(computeIsMain(false, "/repo/scripts/git/commit-msg-guard")).toBe(true);
     expect(computeIsMain(false, "/repo/scripts/testing/test-runner.ts")).toBe(false);
+  });
+
+  test("rejects various commented ai trailers and banners with exact line numbers", () => {
+    const audit = auditCommitMessage(
+      [
+        "feat: clean subject",
+        "",
+        "# normal comment line",
+        "## Co-Authored-By: Claude <noreply@anthropic.com>",
+        "# # Assisted-By: GitHub Copilot <c@github.com>",
+        "# \u{1F916} Generated with [Claude Code](https://claude.com)",
+        "# Co-Created-With: Gemini 3 Pro",
+      ].join("\n"),
+    );
+    expect(audit.passed).toBe(false);
+    expect(audit.violations).toHaveLength(4);
+    expect(audit.violations[0]?.line).toBe(4);
+    expect(audit.violations[0]?.rule).toBe("ai-attribution-trailer");
+    expect(audit.violations[1]?.line).toBe(5);
+    expect(audit.violations[1]?.rule).toBe("ai-attribution-trailer");
+    expect(audit.violations[2]?.line).toBe(6);
+    expect(audit.violations[2]?.rule).toBe("generated-with-phrase");
+    expect(audit.violations[3]?.line).toBe(7);
+    expect(audit.violations[3]?.rule).toBe("ai-attribution-trailer");
+  });
+
+  test("rejects attribution smuggled after a bare fake scissors line without git preamble", () => {
+    const message =
+      "feat: legitimate subject\n\n# ------------------------ >8 ------------------------\nCo-Authored-By: Claude <noreply@anthropic.com>";
+    const audit = auditCommitMessage(message);
+    expect(audit.passed).toBe(false);
+    expect(audit.violations.length).toBeGreaterThan(0);
+  });
+
+  test("excludes scissors line variants with genuine git preamble and any content following them", () => {
+    const cutLineVariants = [
+      "# ------------------------ >8 ------------------------",
+      "# ------------------------ 8< ------------------------",
+      "# ------ >8 ------",
+    ];
+    for (const cutLine of cutLineVariants) {
+      const message = `feat: clean\n\n${cutLine}\n# Do not modify or remove the line above.\n# Everything below it will be ignored.\ndiff --git a/f.txt b/f.txt\n+Co-Authored-By: Claude <noreply@anthropic.com>`;
+      const audit = auditCommitMessage(message);
+      expect(audit.passed).toBe(true);
+      expect(audit.violations).toEqual([]);
+    }
   });
 });

@@ -49,18 +49,24 @@ const PHRASE_RULES: readonly PhraseRule[] = [
   },
 ];
 
-const TRAILER_PATTERN = /^\s*([A-Za-z][A-Za-z0-9-]*)[ \t]*:[ \t]*(.*)$/;
+export const TRAILER_PATTERN = /^\s*(?:#+[\s#]*)?([A-Za-z][A-Za-z0-9-]*)[ \t]*:[ \t]*(.*)$/;
 
-const SCISSORS_PATTERN = /^\s*#\s*-{2,}\s*>8\s*-{2,}/;
+export const SCISSORS_PATTERN = /^\s*#\s*-{2,}\s*(?:>8|8<)\s*-{2,}/;
 
-export function stripGitCommentary(message: string): readonly string[] {
+export const GIT_SCISSORS_PREAMBLE_LINE1 = "# Do not modify or remove the line above.";
+export const GIT_SCISSORS_PREAMBLE_LINE2 = "# Everything below it will be ignored.";
+
+export function extractPreScissorsLines(message: string): readonly string[] {
   const lines = message.split("\n");
   const kept: string[] = [];
-  for (const line of lines) {
-    if (SCISSORS_PATTERN.test(line)) break;
-    if (/^\s*#/.test(line)) {
-      kept.push("");
-      continue;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    if (SCISSORS_PATTERN.test(line)) {
+      const next1 = lines[i + 1]?.trim();
+      const next2 = lines[i + 2]?.trim();
+      if (next1 === GIT_SCISSORS_PREAMBLE_LINE1 && next2 === GIT_SCISSORS_PREAMBLE_LINE2) {
+        break;
+      }
     }
     kept.push(line);
   }
@@ -104,7 +110,7 @@ function inspectPhrases(line: string): { rule: AttributionRule; detail: string }
 
 export function auditCommitMessage(message: string): CommitMessageAudit {
   const violations: AttributionViolation[] = [];
-  const lines = stripGitCommentary(message);
+  const lines = extractPreScissorsLines(message);
 
   for (const [index, line] of lines.entries()) {
     if (line.trim().length === 0) continue;

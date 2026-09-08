@@ -4,6 +4,12 @@ import { join } from "node:path";
 export const FAIL_CLOSED_ERROR_MESSAGE =
   "Can't find lefthook in PATH. Verification runner is required; refusing to proceed.";
 
+export const LEFTHOOK_BYPASS_WARNING_MESSAGE =
+  "[commit-msg-guard] WARNING: LEFTHOOK=0 bypass detected; commit integrity checks skipped.";
+
+export const FAIL_CLOSED_BYPASS_ERROR_MESSAGE =
+  "[commit-msg-guard] ERROR: LEFTHOOK=0 bypass is disabled; commit integrity checks cannot be skipped.";
+
 export const STANDARD_HOOK_NAMES: readonly string[] = [
   "pre-commit",
   "commit-msg",
@@ -11,16 +17,35 @@ export const STANDARD_HOOK_NAMES: readonly string[] = [
   "prepare-commit-msg",
 ];
 
-export function buildGitHookTemplate(hookName: string): string {
+export interface HookHardeningOptions {
+  readonly failClosedOnBypass?: boolean;
+  readonly failClosedCommitMsg?: boolean;
+  readonly hookName?: string;
+}
+
+export interface HookTemplateOptions {
+  readonly failClosedOnBypass?: boolean;
+}
+
+export function buildGitHookTemplate(hookName: string, options?: HookTemplateOptions): string {
+  const failClosed = options?.failClosedOnBypass === true;
+  const bypassBlock = failClosed
+    ? `if [ "$LEFTHOOK" = "0" ]; then
+  echo "${FAIL_CLOSED_BYPASS_ERROR_MESSAGE}" >&2
+  exit 1
+fi`
+    : `if [ "$LEFTHOOK" = "0" ]; then
+  echo "${LEFTHOOK_BYPASS_WARNING_MESSAGE}" >&2
+  exit 0
+fi`;
+
   return `#!/bin/sh
 
 if [ "$LEFTHOOK_VERBOSE" = "1" -o "$LEFTHOOK_VERBOSE" = "true" ]; then
   set -x
 fi
 
-if [ "$LEFTHOOK" = "0" ]; then
-  exit 0
-fi
+${bypassBlock}
 
 call_lefthook()
 {
@@ -84,41 +109,117 @@ call_lefthook run "${hookName}" "$@"
 `;
 }
 
-export function isHookFailingClosed(content: string): boolean {
-  if (!content.includes("Can't find lefthook in PATH")) {
+const MISSING_RUNNER_FAIL_OPEN_PATTERN =
+  /echo\s+["']Can't find lefthook in PATH[^"']*["'](?!\s*(?:>&2)?\s*(?:#[^\n]*)?\n\s*(?:exit|return)\s+[1-9])/;
+
+const LEFTHOOK_BYPASS_ONE_LINER_PATTERN =
+  /(?:\[\s*"?\$LEFTHOOK"?\s*=\s*"?0"?[^\]]*\]|test\s+"?\$LEFTHOOK"?\s*=\s*"?0"?)\s*&&\s*exit\s+0/;
+
+export function isHookFailingClosed(content: string, options?: HookHardeningOptions): boolean {
+  const hasLefthookRef =
+    content.includes("lefthook") ||
+    content.includes("LEFTHOOK") ||
+    content.includes("Can't find lefthook in PATH");
+
+  if (!hasLefthookRef) {
     return true;
   }
-  return content.includes("exit 1") || content.includes("return 1");
+
+  if (MISSING_RUNNER_FAIL_OPEN_PATTERN.test(content)) {
+    return false;
+  }
+
+  if (LEFTHOOK_BYPASS_ONE_LINER_PATTERN.test(content)) {
+    return false;
+  }
+
+  const globalBypassPattern =
+    /if\s+(?:\[\s*"?\$LEFTHOOK"?\s*=\s*"?0"?[^\]]*\]|test\s+"?\$LEFTHOOK"?\s*=\s*"?0"?)\s*;\s*then([\s\S]*?)\bfi\b/g;
+  let match: RegExpExecArray | null = null;
+  while ((match = globalBypassPattern.exec(content)) !== null) {
+    const ifBody = match[1] ?? "";
+    const shouldFailClosed =
+      options?.failClosedOnBypass === true ||
+      (options?.failClosedCommitMsg === true && options?.hookName === "commit-msg");
+
+    if (shouldFailClosed) {
+      if (/\bexit\s+0\b/.test(ifBody)) {
+        return false;
+      }
+      if (!/\b(?:exit|return)\s+[1-9]/.test(ifBody)) {
+        return false;
+      }
+    } else {
+      if (/\bexit\s+0\b/.test(ifBody)) {
+        const hasWarning =
+          ifBody.includes(LEFTHOOK_BYPASS_WARNING_MESSAGE) ||
+          ifBody.includes("WARNING: LEFTHOOK=0 bypass detected");
+        if (!hasWarning) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
-export function hardenHookScript(content: string): string {
-  if (isHookFailingClosed(content)) {
+export function hardenHookScript(content: string, options?: HookHardeningOptions): string {
+  if (isHookFailingClosed(content, options)) {
     return content;
   }
+
+  let result = content;
+
   const failOpenPattern = /(echo\s+["']Can't find lefthook in PATH["']\s*(?:>&2)?\s*)\n(\s*fi)/g;
-  if (failOpenPattern.test(content)) {
-    return content.replace(
+  if (failOpenPattern.test(result)) {
+    result = result.replace(
       failOpenPattern,
       `echo "${FAIL_CLOSED_ERROR_MESSAGE}" >&2\n      exit 1\n$2`,
     );
   }
   const genericEchoPattern =
     /(echo\s+["']Can't find lefthook in PATH[^"']*["'])(?!\s*>&2\s*\n\s*exit\s+1)/g;
-  if (genericEchoPattern.test(content)) {
-    return content.replace(
+  if (genericEchoPattern.test(result)) {
+    result = result.replace(
       genericEchoPattern,
       `echo "${FAIL_CLOSED_ERROR_MESSAGE}" >&2\n      exit 1`,
     );
   }
-  return content;
+
+  const shouldFailClosed =
+    options?.failClosedOnBypass === true ||
+    (options?.failClosedCommitMsg === true && options?.hookName === "commit-msg");
+
+  const replacementBypassBlock = shouldFailClosed
+    ? `if [ "$LEFTHOOK" = "0" ]; then\n  echo "${FAIL_CLOSED_BYPASS_ERROR_MESSAGE}" >&2\n  exit 1\nfi`
+    : `if [ "$LEFTHOOK" = "0" ]; then\n  echo "${LEFTHOOK_BYPASS_WARNING_MESSAGE}" >&2\n  exit 0\nfi`;
+
+  const lefthookIfBlockPattern =
+    /if\s+(?:\[\s*"?\$LEFTHOOK"?\s*=\s*"?0"?[^\]]*\]|test\s+"?\$LEFTHOOK"?\s*=\s*"?0"?)\s*;\s*then[\s\S]*?\bfi\b/g;
+  if (lefthookIfBlockPattern.test(result)) {
+    result = result.replace(lefthookIfBlockPattern, replacementBypassBlock);
+  }
+
+  const lefthookOneLinerPattern =
+    /(?:\[\s*"?\$LEFTHOOK"?\s*=\s*"?0"?[^\]]*\]|test\s+"?\$LEFTHOOK"?\s*=\s*"?0"?)\s*&&\s*exit\s+0/g;
+  if (lefthookOneLinerPattern.test(result)) {
+    result = result.replace(lefthookOneLinerPattern, replacementBypassBlock);
+  }
+
+  return result;
 }
 
-export function hardenHookFile(filePath: string): boolean {
+export function hardenHookFile(filePath: string, options?: HookHardeningOptions): boolean {
   if (!existsSync(filePath)) {
     return false;
   }
+  const hookName = options?.hookName ?? filePath.split("/").pop();
   const original = readFileSync(filePath, "utf-8");
-  const hardened = hardenHookScript(original);
+  const hardened = hardenHookScript(original, {
+    ...options,
+    ...(hookName !== undefined ? { hookName } : {}),
+  });
   if (hardened === original) {
     return false;
   }
@@ -126,14 +227,21 @@ export function hardenHookFile(filePath: string): boolean {
   return true;
 }
 
-export function installGitHook(hooksDir: string, hookName: string): string {
+export function installGitHook(
+  hooksDir: string,
+  hookName: string,
+  options?: HookTemplateOptions,
+): string {
   const targetPath = join(hooksDir, hookName);
-  const content = buildGitHookTemplate(hookName);
+  const content = buildGitHookTemplate(hookName, options);
   writeFileSync(targetPath, content, { mode: 0o755 });
   return targetPath;
 }
 
-export function hardenGitHooksDirectory(hooksDir: string): readonly string[] {
+export function hardenGitHooksDirectory(
+  hooksDir: string,
+  options?: HookHardeningOptions,
+): readonly string[] {
   if (!existsSync(hooksDir)) {
     return [];
   }
@@ -142,7 +250,7 @@ export function hardenGitHooksDirectory(hooksDir: string): readonly string[] {
   for (const entry of entries) {
     if (!entry.isFile()) continue;
     const fullPath = join(hooksDir, entry.name);
-    if (hardenHookFile(fullPath)) {
+    if (hardenHookFile(fullPath, { ...options, hookName: entry.name })) {
       hardened.push(fullPath);
     }
   }
@@ -155,9 +263,30 @@ export function computeIsHookTemplateMain(isDirectMain: boolean, entryPath?: str
   return entryPath.endsWith("/hook-template.ts") || entryPath.endsWith("/hook-template");
 }
 
-export function runHookHardener(args: readonly string[] = process.argv.slice(2)): number {
-  const targetDir = args[0] ?? join(process.cwd(), ".git", "hooks");
-  hardenGitHooksDirectory(targetDir);
+export function runHookHardener(
+  args: readonly string[] = process.argv.slice(2),
+  options?: HookHardeningOptions,
+): number {
+  let failClosedOnBypass = options?.failClosedOnBypass ?? false;
+  let failClosedCommitMsg = options?.failClosedCommitMsg ?? false;
+  let targetDir: string | undefined;
+
+  for (const arg of args) {
+    if (arg === "--fail-closed" || arg === "--fail-closed=all") {
+      failClosedOnBypass = true;
+    } else if (arg === "--fail-closed-commit-msg" || arg === "--fail-closed=commit-msg") {
+      failClosedCommitMsg = true;
+    } else if (!arg.startsWith("-") && targetDir === undefined) {
+      targetDir = arg;
+    }
+  }
+
+  const resolvedDir = targetDir ?? join(process.cwd(), ".git", "hooks");
+  hardenGitHooksDirectory(resolvedDir, {
+    ...options,
+    failClosedOnBypass,
+    failClosedCommitMsg,
+  });
   return 0;
 }
 
