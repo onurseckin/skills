@@ -46,7 +46,10 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
           maxSimultaneous = activeExecutions.length;
         }
 
-        await new Promise<void>((resolve) => setTimeout(resolve, 80));
+        for (let i = 0; i < 30 && activeExecutions.length < 3; i++) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 10));
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, 50));
 
         const index = activeExecutions.indexOf(input.spec.id);
         if (index !== -1) {
@@ -80,16 +83,13 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
       { id: "capsule-lane-c", repoPath: testDir, writeScope: ["src/lane-c/"] },
     ];
 
-    const start = Date.now();
     const summary = await orchestrator.orchestrate(specs);
-    const totalElapsed = Date.now() - start;
 
     expect(summary.totalCapsules).toBe(3);
     expect(summary.convergedCount).toBe(3);
     expect(summary.failedCount).toBe(0);
     expect(summary.overallStatus).toBe("converged");
-    expect(maxSimultaneous).toBeGreaterThanOrEqual(2);
-    expect(totalElapsed).toBeLessThan(220);
+    expect(maxSimultaneous).toBe(3);
 
     expect(summary.results["capsule-lane-a"]?.status).toBe("converged");
     expect(summary.results["capsule-lane-b"]?.status).toBe("converged");
