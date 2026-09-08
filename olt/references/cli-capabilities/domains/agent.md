@@ -50,6 +50,8 @@ Spawning happens host-side; this is how the run learns a subagent exists, who de
 | `--model-tier` | string | no | no | - | Tier as the caller relays it: xs, s, m, l or unknown (agent_reported unless unknown). |
 | `--thinking-level` | string | no | no | - | Level as the caller relays it: low, medium, high or unknown (agent_reported unless unknown). |
 | `--context-window` | int | no | no | - | Context window in tokens, as the caller relays it (agent_reported). |
+| `--pid` | int | no | no | - | Explicit process ID for process ancestry binding. |
+| `--ppid` | int | no | no | - | Explicit parent process ID for process ancestry binding. |
 | `--tool` | string | no | yes | - | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
 | `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
 
@@ -139,6 +141,8 @@ Assembles the 100% complete, uncompressed 1-Shot Landing Prompt for a subagent.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--role` | string | yes | no | - | The role of the agent to brief. |
 | `--format` | string | no | no | - | Output format. |
+| `--host` | string | no | no | - | Host runtime for the agent. |
+| `--run` | string | no | no | - | Capsule run root. |
 
 ```bash
 bun harness.ts agent:brief --role implementer

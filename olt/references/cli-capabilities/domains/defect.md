@@ -22,6 +22,10 @@ Parses structured defect JSONL streams, performs windowed deduplication, and ser
 | `--jsonl` | string | no | no | - | Alias for content. |
 | `--window-ms` | int | no | no | - | Deduplication window in milliseconds. |
 | `--dedup-window` | int | no | no | - | Alias for window-ms. |
+| `--limit` | int | no | no | - | Maximum entries to return. |
+| `--max-entries` | int | no | no | - | Alias for --limit. |
+| `--max-occurrences` | int | no | no | - | Maximum occurrences threshold. |
+| `--strategy` | string | no | no | - | Deduplication strategy (exact_dedup, windowed, sliding_window_hash, aggregate_synchronous). |
 
 ```bash
 bun harness.ts defect:record --content '{"observation":"Bug"}'
@@ -42,6 +46,7 @@ Applies empirical resolution proof including task ID and test assertions to tran
 | `--defect` | string | no | no | - | Defect JSON string to resolve. |
 | `--defect-json` | string | no | no | - | Alias for defect. |
 | `--file` | string | no | no | - | Path to file containing defect record. |
+| `--path` | string | no | no | - | Alias for file. |
 | `--task-id` | string | no | no | - | Task ID that resolved the defect. |
 | `--task` | string | no | no | - | Alias for task-id. |
 | `--test-assertion` | string | no | no | - | Test assertion proving defect resolution. |
@@ -76,6 +81,12 @@ Parses and filters defect entries from a JSONL log file or direct stream.
 | `--jsonl` | string | no | no | - | Alias for content. |
 | `--capsule-root` | string | no | no | - | Capsule run root path. |
 | `--run` | string | no | no | - | Alias for capsule-root. |
+| `--status` | string | no | no | - | Filter by status. |
+| `--filter-status` | string | no | no | - | Alias for --status. |
+| `--category` | string | no | no | - | Filter by category. |
+| `--filter-category` | string | no | no | - | Alias for --category. |
+| `--limit` | int | no | no | - | Maximum entries to return. |
+| `--max-entries` | int | no | no | - | Alias for --limit. |
 
 ```bash
 bun harness.ts defect:list --file .olt/defects.jsonl

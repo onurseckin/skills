@@ -26,6 +26,20 @@
       "default": null
     },
     {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "ecosystem",
       "type": "string",
       "required": false,
@@ -48,6 +62,27 @@
     },
     {
       "name": "auto-discover",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "awaken",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "first-responder",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "test-commands",
       "type": "bool",
       "required": false,
       "repeatable": false,

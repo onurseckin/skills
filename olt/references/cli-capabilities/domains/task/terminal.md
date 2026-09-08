@@ -36,8 +36,8 @@ Records task completion, unblocks downstream dependents, and optionally archives
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--task` | string | no | no | - | Task ID to complete. |
-| `--task-id` | string | no | no | - | Alias of task ID. |
+| `--task` | string | no | no | - | Task ID. |
+| `--task-id` | string | no | no | - | Alias for task ID. |
 | `--agent-id` | string | no | no | - | Agent ID completing the task. |
 | `--lease-token` | string | no | no | - | Active lease token. |
 | `--token` | string | no | no | - | Alias of lease token. |
@@ -50,6 +50,11 @@ Records task completion, unblocks downstream dependents, and optionally archives
 | `--archive-path` | string | no | no | - | Alias of completed tasks archive path. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
+| `--run` | string | no | no | - | Capsule run root or custom queue path. |
+| `--trace-id` | string | no | no | - | Trace correlation ID. |
+| `--span-id` | string | no | no | - | Span ID. |
+| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
+| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
 
 ```bash
 bun harness.ts task:complete --task task-1 --proof-summary "All tests pass"
@@ -67,11 +72,13 @@ Transitions task to failed or increments retry count if retries remain.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--task` | string | no | no | - | Task ID to fail. |
-| `--task-id` | string | no | no | - | Alias of task ID. |
+| `--task` | string | no | no | - | Task ID. |
+| `--task-id` | string | no | no | - | Alias for task ID. |
+| `--id` | string | no | no | - | Alias of task ID. |
 | `--message` | string | no | no | - | Failure error message. |
 | `--error` | string | no | no | - | Alias of error message. |
 | `--reason` | string | no | no | - | Alias of error message. |
+| `--agent` | string | no | no | - | Alias of agent ID. |
 | `--agent-id` | string | no | no | - | Agent ID recording failure. |
 | `--lease-token` | string | no | no | - | Active lease token. |
 | `--token` | string | no | no | - | Alias of lease token. |
@@ -79,6 +86,7 @@ Transitions task to failed or increments retry count if retries remain.
 | `--escalate` | bool | no | no | - | Escalate task upon reaching max retries. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
+| `--run` | string | no | no | - | Capsule run root or custom queue path. |
 
 ```bash
 bun harness.ts task:fail --task task-1 --message "Test failure"
@@ -99,8 +107,10 @@ Removes completed tasks from the active queue and archives them to completed log
 | `--completed-tasks-path` | string | no | no | - | Completed tasks archive file path. |
 | `--archive-path` | string | no | no | - | Alias of completed tasks archive path. |
 | `--auto-archive` | bool | no | no | - | Archive completed tasks before pruning. |
+| `--no-auto-archive` | bool | no | no | - | Disable archiving completed tasks before pruning. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
+| `--run` | string | no | no | - | Capsule run root or custom queue path. |
 
 ```bash
 bun harness.ts task:prune

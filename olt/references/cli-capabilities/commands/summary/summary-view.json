@@ -10,6 +10,13 @@
       "required": true,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

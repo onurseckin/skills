@@ -45,6 +45,20 @@
       "required": false,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "simulate",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "simulate-probes",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

@@ -19,6 +19,8 @@ Deterministic auto-initialization ensuring .olt/capsules/<run_id>/ exists on dis
 | `--run-id` | string | no | no | - | Alias of --run. |
 | `--repo` | string | no | no | `.` | Repository root. |
 | `--prompt` | string | no | no | - | Prompt string for run initialization. |
+| `--prompt-file` | string | no | no | - | File path containing initialization prompt. |
+| `--prompt-stdin` | bool | no | no | - | Read initialization prompt from standard input. |
 | `--mode` | string | no | no | - | Capsule mode (feature, bugfix, investigation, etc.). |
 | `--actor` | string | no | no | - | Agent or actor initializing the run. |
 | `--capture-mode` | string | no | no | - | Capture mode (file, stdin, argv). |
@@ -92,6 +94,7 @@ Validates actor role capabilities against repository policy (blocking un-targete
 | `--run` | string | no | no | - | Capsule run root (optional if running standalone). |
 | `--run-id` | string | no | no | - | Alias for --run. |
 | `--task` | string | no | no | - | Task id this command belongs to. |
+| `--wave` | int | no | no | - | Current execution wave index. |
 | `--gate` | string | no | no | - | Gate id proven by this command. |
 | `--cwd` | string | no | no | - | Working directory for the execution. |
 | `--role` | string | no | no | - | Explicit role override if actor metadata is not initialized on disk. |

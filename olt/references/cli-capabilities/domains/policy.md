@@ -18,10 +18,15 @@ Scans repository signatures to detect ecosystem and initializes .olt/policy.json
 | `--repo-root` | string | no | no | - | Target repository root directory. |
 | `--repo` | string | no | no | - | Alias for --repo-root. |
 | `--dir` | string | no | no | - | Alias for --repo-root. |
+| `--run` | string | no | no | - | Capsule run root directory. |
+| `--run-root` | string | no | no | - | Alias for --run. |
 | `--ecosystem` | string | no | no | - | Override detected repository ecosystem. |
 | `--force` | bool | no | no | - | Force overwrite if policy already exists. |
 | `--calibrate` | bool | no | no | - | Perform empirical toolchain auto-discovery and calibration. |
 | `--auto-discover` | bool | no | no | - | Alias for --calibrate. |
+| `--awaken` | bool | no | no | - | Awaken Tier 0 governance. |
+| `--first-responder` | bool | no | no | - | Alias for --awaken. |
+| `--test-commands` | bool | no | no | - | Calibrate test commands. |
 | `--json` | bool | no | no | - | Output in JSON format. |
 
 ```bash
@@ -119,6 +124,7 @@ Inspects .olt/policy.json, backlogs, defects, and session authority.
 | `--repo` | string | no | no | - | Alias for --repo-root. |
 | `--dir` | string | no | no | - | Alias for --repo-root. |
 | `--run` | string | no | no | - | Capsule run root directory. |
+| `--run-root` | string | no | no | - | Alias for --run. |
 | `--json` | bool | no | no | - | Output in JSON format. |
 
 ```bash

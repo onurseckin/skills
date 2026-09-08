@@ -33,6 +33,20 @@
       "default": null
     },
     {
+      "name": "prompt-file",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "prompt-stdin",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "mode",
       "type": "string",
       "required": false,

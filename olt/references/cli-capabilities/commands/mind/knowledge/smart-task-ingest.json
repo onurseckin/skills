@@ -24,6 +24,20 @@
       "required": false,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "queue-file",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "auto-enqueue",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

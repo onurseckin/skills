@@ -16,6 +16,8 @@ Without an id the whole findings directory is listed.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--id` | string | no | no | - | Finding id or file name. |
 | `--finding` | string | no | no | - | Alias of --id. |
 
@@ -36,6 +38,8 @@ With --task the review report is preferred and the submission is used as the fal
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--task` | string | no | no | - | Task whose report is wanted. |
 | `--critic` | bool | no | no | - | Read the critic review report. |
 | `--submission` | bool | no | no | - | Force the submission report. |
@@ -63,6 +67,8 @@ Filters the evidence directory by command id, task, gate or actor.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--command` | string | no | no | - | Command id. |
 | `--id` | string | no | no | - | Alias of --command. |
 | `--cmd` | string | no | no | - | Alias of --command. |
@@ -88,6 +94,8 @@ Queries the screenshot store rather than the evidence files.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--task` | string | no | no | - | Filter by task id. |
 | `--command` | string | no | no | - | Filter by command id. |
 | `--cmd` | string | no | no | - | Alias of --command. |

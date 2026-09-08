@@ -21,6 +21,8 @@ Performs 3-stage autonomous initialization: (1) In-flight worktree snapshot & us
 | `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
 | `--generation` | int | no | no | `1` | Mind generation index (>=1). |
 | `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
+| `--simulate` | bool | no | no | - | Simulate probe execution without live git repository. |
+| `--simulate-probes` | bool | no | no | - | Alias for --simulate. |
 
 ```bash
 bun harness.ts mind:init
@@ -45,6 +47,8 @@ Performs 3-stage autonomous initialization: (1) In-flight worktree snapshot & us
 | `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
 | `--generation` | int | no | no | `1` | Mind generation index (>=1). |
 | `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
+| `--simulate` | bool | no | no | - | Simulate probe execution without live git repository. |
+| `--simulate-probes` | bool | no | no | - | Alias for --simulate. |
 
 ```bash
 bun harness.ts mind:bootstrap
@@ -91,6 +95,9 @@ Runs the six admission gates (falsifier verification, scope disjointness, charte
 | `--run` | string | yes | no | - | The mind capsule root. |
 | `--actor` | string | yes | no | - | Acting agent. |
 | `--candidate` | string | yes | no | - | Candidate id. |
+| `--quota` | string | no | no | - | Quota percentage threshold. |
+| `--quota-percentage` | string | no | no | - | Alias for --quota. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:admit --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12

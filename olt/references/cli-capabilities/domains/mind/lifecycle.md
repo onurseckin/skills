@@ -19,6 +19,9 @@ Inspects the mind capsule state and budget, reclaims any open pulse past its dea
 | `--actor` | string | no | no | - | Recorded only if the call reclaims a dead pulse. |
 | `--depth` | string | no | no | `brief` | Orientation depth: brief (default) or run. |
 | `--target-run` | string | no | no | - | With --depth run, the run capsule whose handoff to render. |
+| `--host` | string | no | no | - | Host runtime as reported. |
+| `--driver` | string | no | no | - | Driver identity as reported. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:wake --run .olt/capsules/mind-gen-1
@@ -40,7 +43,10 @@ Records an observation from one of the ten discovery sources evidenced by a reco
 | `--actor` | string | yes | no | - | Acting agent. |
 | `--source` | string | yes | no | - | One of the ten source ids in PLAN.md §7.2. |
 | `--command-id` | string | yes | no | - | The recorded command whose output this is. |
+| `--command` | string | no | no | - | Alias for --command-id. |
+| `--cmd` | string | no | no | - | Alias for --command-id. |
 | `--count` | int | yes | no | - | How many items that source returned. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:observe --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0
@@ -61,6 +67,8 @@ Records that all ten discovery sources were scanned and found clean with zero it
 | `--run` | string | yes | no | - | The mind capsule root. |
 | `--actor` | string | yes | no | - | Acting agent. |
 | `--source` | string | yes | yes | - | Source scan result as <source>:<command-id>:<count>; repeat for each of the ten sources. |
+| `--capsules-dir` | string | no | no | - | Override capsules root directory. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:quiesce --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0
@@ -122,6 +130,8 @@ Performs generational rotation, carrying forward charter pin and declined candid
 | `--run` | string | yes | no | - | The current generation capsule root. |
 | `--next-run` | string | yes | no | - | The next generation capsule root. |
 | `--actor` | string | yes | no | - | Acting agent id. |
+| `--capsules-dir` | string | no | no | - | Override capsules root directory. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:rotate --run .olt/capsules/mind-gen-1 --next-run .olt/capsules/mind-gen-2 --actor coordinator-1

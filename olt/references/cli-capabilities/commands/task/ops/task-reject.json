@@ -89,6 +89,13 @@
       "default": null
     },
     {
+      "name": "kind",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "micro-cycle",
       "type": "bool",
       "required": false,

@@ -108,6 +108,7 @@ Universal diagnostic finding ingestion command accessible to all companion and a
 | `--remediation` | string | no | no | - | Remediation guidance. |
 | `--actor` | string | no | no | - | Actor recording the finding. |
 | `--defects-path` | string | no | no | - | Custom defects.jsonl file location. |
+| `--defects` | string | no | no | - | Alias for --defects-path. |
 
 ```bash
 bun harness.ts finding:file --code AST_PURITY_VIOLATION --severity high --file src/index.ts --message 'Found as any'

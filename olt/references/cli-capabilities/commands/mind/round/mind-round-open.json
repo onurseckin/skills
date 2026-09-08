@@ -45,6 +45,34 @@
       "required": false,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "chain-from",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "chained-from",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "statement",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "now",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

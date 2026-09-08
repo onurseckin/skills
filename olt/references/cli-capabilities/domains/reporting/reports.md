@@ -60,6 +60,8 @@ Extracts and formats full task report evidence including verification outcomes, 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--task` | string | no | no | - | Task whose report is wanted. |
 | `--critic` | bool | no | no | - | Read the critic review report. |
 | `--submission` | bool | no | no | - | Force the submission report. |
@@ -88,6 +90,8 @@ Runs the capsule doctor to check health status.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--source` | string | no | no | - | Source. |
 | `--home` | string | no | no | - | Home. |
 | `--clients` | string | no | no | - | Clients. |
@@ -109,6 +113,8 @@ Reports the matrix of active leases.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 
 ```bash
 bun harness.ts report:leases --run .olt/capsules/<run-id>
@@ -127,6 +133,8 @@ Reports the decisions audit matrix.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 
 ```bash
 bun harness.ts report:decisions --run .olt/capsules/<run-id>
@@ -168,6 +176,8 @@ Export DAG telemetry and metrics to JSON.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | no | no | - | Path to capsule run directory |
 | `--run-id` | string | no | no | - | Capsule run identifier |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
+| `--format` | string | no | no | - | Export format: json, dot, mermaid. |
 | `--out` | string | no | no | - | Path to save JSON |
 | `--pretty` | bool | no | no | - | Format output JSON nicely |
 

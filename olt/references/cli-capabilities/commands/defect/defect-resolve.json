@@ -26,6 +26,13 @@
       "default": null
     },
     {
+      "name": "path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "task-id",
       "type": "string",
       "required": false,

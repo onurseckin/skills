@@ -19,6 +19,7 @@ Opens a new pulse cycle, validating budget headroom, daily pulse and wall-clock 
 | `--actor` | string | yes | no | - | The tier-0 agent id. |
 | `--host` | string | yes | no | - | Host runtime as reported. |
 | `--driver` | string | yes | no | - | Driver identity as reported. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:pulse-open --run .olt/capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop

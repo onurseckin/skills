@@ -26,6 +26,13 @@
       "default": null
     },
     {
+      "name": "no-auto-archive",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "queue-path",
       "type": "string",
       "required": false,
@@ -34,6 +41,13 @@
     },
     {
       "name": "path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run",
       "type": "string",
       "required": false,
       "repeatable": false,

@@ -12,6 +12,20 @@
       "default": null
     },
     {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "."
+    },
+    {
       "name": "source",
       "type": "string",
       "required": false,

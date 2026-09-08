@@ -35,6 +35,10 @@ Computes anti-idle sleep and rollover intervals based on work status, rate limit
 | `--jitter-ratio` | string | no | no | - | Jitter ratio fraction. |
 | `--multiplier` | string | no | no | - | Exponential backoff multiplier. |
 | `--no-jitter` | bool | no | no | - | Disable jitter for deterministic evaluation. |
+| `--trace-id` | string | no | no | - | Trace correlation ID. |
+| `--span-id` | string | no | no | - | Span ID. |
+| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
+| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
 
 ```bash
 bun harness.ts sched:eval --streak 2
@@ -59,6 +63,10 @@ Computes interval delay using exponential, linear, fibonacci, or fixed backoff s
 | `--streak` | int | no | no | - | Consecutive streak count. |
 | `--strategy` | string | no | no | - | Backoff strategy (exponential, linear, fibonacci, fixed, immediate). |
 | `--multiplier` | string | no | no | - | Backoff multiplier factor. |
+| `--trace-id` | string | no | no | - | Trace correlation ID. |
+| `--span-id` | string | no | no | - | Span ID. |
+| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
+| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
 
 ```bash
 bun harness.ts sched:backoff --streak 3 --strategy exponential

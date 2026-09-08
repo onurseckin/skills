@@ -40,6 +40,13 @@
       "default": "converged"
     },
     {
+      "name": "outcome",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "terminal-reason",
       "type": "string",
       "required": false,
@@ -47,7 +54,28 @@
       "default": null
     },
     {
+      "name": "reason",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "successor-run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "successor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "now",
       "type": "string",
       "required": false,
       "repeatable": false,

@@ -19,6 +19,7 @@ Produces a structured briefing containing assigned write scope, target files, ga
 | `--task` | string | no | no | - | Task id to brief. |
 | `--agent` | string | no | no | - | Agent id assigned to or briefing for the task. |
 | `--role` | string | no | no | - | Role under which the task is being briefed. |
+| `--all` | bool | no | no | - | Include all task details in briefing. |
 
 ```bash
 bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-1
@@ -44,6 +45,7 @@ Each --demand becomes a probe_demand finding on the task.
 | `--requirement` | string | no | no | - | Requirement the demands bind to. |
 | `--revalidation` | string | no | no | - | How each demand is to be answered. |
 | `--evidence` | string | no | no | - | Comma-separated command ids the demands cite. |
+| `--kind` | string | no | no | - | Review channel kind: cognitive or adversarial. |
 
 ```bash
 bun harness.ts task:probe --run <run> --task t1 --demand "test"
@@ -73,6 +75,7 @@ Records the validator's finding and returns the task to the implementer.
 | `--evidence` | string | no | no | - | Comma-separated command ids proving the defect. |
 | `--checks` | string | no | no | - | Alias of --evidence. |
 | `--requirement` | string | no | no | - | Requirement the finding binds to. |
+| `--kind` | string | no | no | - | Review channel kind: cognitive or adversarial. |
 | `--micro-cycle` | bool | no | no | - | Record micro-cycle feedback within active lease. |
 | `--in-lease` | bool | no | no | - | Alias of --micro-cycle. |
 | `--defect` | string | no | no | - | Identified defect category or description. |
@@ -100,6 +103,7 @@ Check the files using AST lint audit and TypeScript typecheck pass.
 | `--actor` | string | no | no | - | Who is running the check. |
 | `--typecheck` | bool | no | no | - | Force the typecheck pass to run. |
 | `--lint` | bool | no | no | - | Run only the AST lint audit. |
+| `--format` | string | no | no | - | Output format (json, text, etc.). |
 
 ```bash
 bun harness.ts task:check --file src/index.ts
@@ -134,6 +138,11 @@ Appends a new task item into the task queue with dependency graph validation.
 | `--max-retries` | int | no | no | - | Maximum retry count. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
+| `--run` | string | no | no | - | Capsule run root or custom queue path. |
+| `--trace-id` | string | no | no | - | Trace correlation ID. |
+| `--span-id` | string | no | no | - | Span ID. |
+| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
+| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
 
 ```bash
 bun harness.ts task:add --task task-1 --title "Implement auth" --gate "bun test"
@@ -151,7 +160,6 @@ Queries and lists queue items with filtering and queue statistics.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root or ID. |
 | `--capsule` | string | no | no | - | Alias for run. |
 | `--status` | string | no | no | - | Filter tasks by status. |
 | `--priority` | string | no | no | - | Filter tasks by priority. |
@@ -162,7 +170,12 @@ Queries and lists queue items with filtering and queue statistics.
 | `--page` | int | no | no | - | Pagination page number. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
+| `--run` | string | no | no | - | Capsule run root or custom queue path. |
 | `--stats` | bool | no | no | - | Include queue statistics in output. |
+| `--trace-id` | string | no | no | - | Trace correlation ID. |
+| `--span-id` | string | no | no | - | Span ID. |
+| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
+| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
 
 ```bash
 bun harness.ts task:list --status PENDING
@@ -188,6 +201,8 @@ QUEUE-6: the edge every pushback ran on was validator -> implementer; this is th
 | `--cause` | string | yes | no | - | 'procedural' (the review was not properly evidenced) or 'substantive' (the work itself is wrong). |
 | `--observation` | string | yes | no | - | What the coordinator found wrong with the pass. |
 | `--remediation` | string | yes | no | - | What must happen before this can pass again. |
+| `--guidance` | string | no | no | - | Optional guidance for the validator or implementer. |
+| `--rejection-reasons` | string | no | no | - | Comma-separated rejection reasons. |
 
 ```bash
 bun harness.ts coordinator:pushback --run .olt/capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain ui-design --cause procedural --observation "pass carried zero screenshot evidence" --remediation "re-run the visual suite and record real evidence before passing again"

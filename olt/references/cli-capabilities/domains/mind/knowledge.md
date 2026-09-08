@@ -51,6 +51,8 @@ Smart task planner: prioritizes feedback intake, or synthesizes autonomic self-e
 | `--capsules-dir` | string | no | no | - | Capsules root directory. |
 | `--max-tasks` | int | no | no | - | Maximum tasks to generate (default: 5). |
 | `--goal` | string | no | no | - | Charter goal ID to bind. |
+| `--queue-file` | string | no | no | - | Custom task queue file path. |
+| `--auto-enqueue` | bool | no | no | - | Automatically enqueue generated tasks. |
 
 ```bash
 bun harness.ts smart-task:plan
@@ -72,6 +74,8 @@ Expands an external prompt into a structured task with write scope and mandatory
 | `--prompt` | string | yes | no | - | External prompt or task description. |
 | `--id` | string | no | no | - | Custom task ID. |
 | `--goal` | string | no | no | - | Charter goal ID to bind. |
+| `--queue-file` | string | no | no | - | Custom task queue file path. |
+| `--auto-enqueue` | bool | no | no | - | Automatically enqueue generated tasks. |
 
 ```bash
 bun harness.ts smart-task:ingest --prompt 'Implement real-time metrics telemetry' --id task-metrics

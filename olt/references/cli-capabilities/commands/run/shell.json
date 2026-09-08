@@ -33,6 +33,13 @@
       "default": null
     },
     {
+      "name": "wave",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "gate",
       "type": "string",
       "required": false,

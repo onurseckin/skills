@@ -87,6 +87,13 @@
       "required": false,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "defects",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

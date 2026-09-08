@@ -35,6 +35,7 @@ Generates the same suite in memory and returns only the markdown brief.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
+| `--json` | bool | no | no | - | Output JSON format. |
 
 ```bash
 bun harness.ts summary:view --run .olt/capsules/<run-id>

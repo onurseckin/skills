@@ -66,6 +66,7 @@ Equivalent to critic:review --decision request_changes with a rejection brief. S
 | `--critic` | string | yes | no | - | Critic agent id. |
 | `--token` | string | yes | no | - | Critic token. |
 | `--summary` | string | yes | no | - | Rejection summary in the critic's own words. |
+| `--decision` | string | no | no | - | Rejection decision override (defaults to request_changes). |
 | `--findings` | string | no | no | - | Inline JSON findings payload. |
 | `--findings-file` | string | no | no | - | Path to a JSON findings payload. |
 | `--proofs` | string | no | no | - | Inline JSON requirement_proofs payload. |

@@ -33,6 +33,13 @@
       "default": null
     },
     {
+      "name": "run-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "json",
       "type": "bool",
       "required": false,

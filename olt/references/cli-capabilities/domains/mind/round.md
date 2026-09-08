@@ -21,6 +21,10 @@ Opens a new execution round for an objective in Phase 4, linking the round to it
 | `--candidate` | string | no | no | - | Candidate id. |
 | `--round` | int | yes | no | - | Round index. |
 | `--target-run` | string | no | no | - | Chained-from capsule run id. |
+| `--chain-from` | string | no | no | - | Alias for --target-run. |
+| `--chained-from` | string | no | no | - | Alias for --target-run. |
+| `--statement` | string | no | no | - | Objective statement. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:round-open --run .olt/capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1
@@ -43,8 +47,12 @@ Closes an active execution round for an objective in Phase 4, recording successo
 | `--objective` | string | yes | no | - | Objective id. |
 | `--round` | int | yes | no | - | Round index. |
 | `--result` | string | no | no | `converged` | Round result (converged \| exhausted \| escalated). |
+| `--outcome` | string | no | no | - | Alias for --result. |
 | `--terminal-reason` | string | no | no | - | Reason if round terminates without successor. |
+| `--reason` | string | no | no | - | Alias for --terminal-reason. |
 | `--successor-run` | string | no | no | - | Successor capsule run id. |
+| `--successor` | string | no | no | - | Alias for --successor-run. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:round-close --run .olt/capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason "objective completed"

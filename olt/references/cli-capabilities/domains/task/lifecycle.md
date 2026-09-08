@@ -107,13 +107,18 @@ Claims an exclusive active lease on a task for an agent worker.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--task` | string | no | no | - | Task ID to claim lease on. |
-| `--task-id` | string | no | no | - | Alias of task ID. |
+| `--task` | string | no | no | - | Task ID. |
+| `--task-id` | string | no | no | - | Alias for task ID. |
 | `--agent-id` | string | no | no | - | Agent ID claiming the lease. |
 | `--lease-duration` | int | no | no | - | Lease duration in seconds. |
 | `--duration-seconds` | int | no | no | - | Alias of lease duration. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
+| `--run` | string | no | no | - | Capsule run root or custom queue path. |
+| `--trace-id` | string | no | no | - | Trace correlation ID. |
+| `--span-id` | string | no | no | - | Span ID. |
+| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
+| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
 
 ```bash
 bun harness.ts task:lease --task task-1 --agent-id worker-1

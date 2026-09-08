@@ -33,9 +33,30 @@
       "default": null
     },
     {
+      "name": "command",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "cmd",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "count",
       "type": "int",
       "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "now",
+      "type": "string",
+      "required": false,
       "repeatable": false,
       "default": null
     }

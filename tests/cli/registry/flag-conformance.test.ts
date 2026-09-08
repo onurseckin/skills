@@ -35,8 +35,8 @@ export interface FlagMismatchInventoryItem {
   readonly unresolvable: boolean;
 }
 
-export const MAX_MISMATCH_COMMANDS_BASELINE = 70;
-export const MAX_TOTAL_MISMATCHES_BASELINE = 244;
+export const MAX_MISMATCH_COMMANDS_BASELINE = 41;
+export const MAX_TOTAL_MISMATCHES_BASELINE = 174;
 
 const commandsDir = resolve(import.meta.dir, "../../../olt/scripts/src/cli/commands");
 

@@ -10,6 +10,20 @@
       "required": true,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "."
     }
   ],
   "reads_stdin": false,

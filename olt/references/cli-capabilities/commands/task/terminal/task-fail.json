@@ -19,6 +19,13 @@
       "default": null
     },
     {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "message",
       "type": "string",
       "required": false,
@@ -34,6 +41,13 @@
     },
     {
       "name": "reason",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "agent",
       "type": "string",
       "required": false,
       "repeatable": false,
@@ -83,6 +97,13 @@
     },
     {
       "name": "path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run",
       "type": "string",
       "required": false,
       "repeatable": false,

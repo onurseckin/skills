@@ -19,6 +19,8 @@ Initiates an independent audit cycle in Phase 5, recording window start time and
 | `--actor` | string | yes | no | - | Auditor agent id. |
 | `--audit-id` | string | yes | no | - | Audit id. |
 | `--window-start` | string | yes | no | - | Window start timestamp (ISO8601). |
+| `--window` | string | no | no | - | Alias for --window-start. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:audit-start --run .olt/capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z
@@ -41,6 +43,9 @@ Records the eight audit answers with supporting command ids and overall verdict 
 | `--audit-id` | string | yes | no | - | Audit id. |
 | `--verdict` | string | yes | no | - | Audit verdict: approved or failed. |
 | `--answer` | string | yes | yes | - | One of eight audit question answers as <question-id>:<command-id>:<verdict>; repeat for all eight. |
+| `--summary` | string | no | no | - | Audit summary description. |
+| `--answers-file` | string | no | no | - | Path to answers JSON file. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:audit-report --run .olt/capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass

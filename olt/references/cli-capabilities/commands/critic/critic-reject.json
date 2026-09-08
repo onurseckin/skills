@@ -33,6 +33,13 @@
       "default": null
     },
     {
+      "name": "decision",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "findings",
       "type": "string",
       "required": false,

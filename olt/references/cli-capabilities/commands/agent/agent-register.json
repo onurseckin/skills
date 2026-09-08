@@ -96,6 +96,20 @@
       "default": null
     },
     {
+      "name": "pid",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "ppid",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "tool",
       "type": "string",
       "required": false,
