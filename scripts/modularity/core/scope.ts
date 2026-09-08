@@ -68,13 +68,6 @@ const TYPESCRIPT_FILE: ScopeDecision = {
   importScanned: true,
 };
 
-const TYPESCRIPT_INDEX_FILE: ScopeDecision = {
-  included: true,
-  lineLimited: true,
-  fanoutCounted: false,
-  importScanned: true,
-};
-
 function hasExcludedDirectory(path: string): boolean {
   const segments = path.split("/");
   return segments.some((segment, index) => {
@@ -123,7 +116,6 @@ export function classifyPath(path: string): ScopeDecision {
   }
 
   const extension = extname(path);
-  if (path.endsWith("/index.ts") || path === "index.ts") return TYPESCRIPT_INDEX_FILE;
   if (extension === ".ts") return TYPESCRIPT_FILE;
   if (extension === ".tsx") return TYPESCRIPT_FILE;
   if (extension === ".mts") return TYPESCRIPT_FILE;

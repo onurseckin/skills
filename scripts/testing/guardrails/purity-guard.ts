@@ -145,22 +145,13 @@ export function auditTestPuritySync(
     }
   }
 
-  const rawResult = buildAuditResult(
+  return buildAuditResult(
     scannedCount,
     allViolations,
     request.scope,
     request.files.length,
     allowance,
   );
-
-  const isReportOnly = !Array.isArray(optionsOrFiles) && Boolean(optionsOrFiles?.reportOnly);
-  if (isReportOnly) {
-    return {
-      ...rawResult,
-      passed: true,
-    };
-  }
-  return rawResult;
 }
 
 export async function auditTestPurity(

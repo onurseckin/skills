@@ -112,6 +112,21 @@ test("never exempts TypeScript fixtures", () => {
   expect(classifyPath("tests/fixtures/worker.fixture.ts").lineLimited).toBe(true);
 });
 
+test("never exempts index.ts from fanout counting", () => {
+  expect(classifyPath("index.ts")).toEqual({
+    included: true,
+    lineLimited: true,
+    fanoutCounted: true,
+    importScanned: true,
+  });
+  expect(classifyPath("scripts/modularity/core/index.ts")).toEqual({
+    included: true,
+    lineLimited: true,
+    fanoutCounted: true,
+    importScanned: true,
+  });
+});
+
 test("excludes cache directories before extension rules", () => {
   expect(classifyPath("cache/runtime-metadata.ts")).toEqual({
     included: false,

@@ -19,15 +19,23 @@ describe("directory fanout violations", () => {
     expect(findFanoutViolations(files.map(blob))).toEqual([]);
   });
 
-  test("permits ten non-index files plus index.ts (eleven total files)", () => {
+  test("reports eleven total files even when one is index.ts", () => {
     const files = [
       "slice/index.ts",
       ...Array.from({ length: 10 }, (_, index) => `slice/file-${index}.ts`),
     ];
-    expect(findFanoutViolations(files.map(blob))).toEqual([]);
+    expect(findFanoutViolations(files.map(blob))).toEqual([
+      {
+        rule: "directory_fanout",
+        path: "slice",
+        observed: 11,
+        limit: 10,
+        detail: "Directory exceeds the 10 direct-file limit.",
+      },
+    ]);
   });
 
-  test("reports eleven direct non-index files", () => {
+  test("reports twelve total files including index.ts", () => {
     const files = [
       "slice/index.ts",
       ...Array.from({ length: 11 }, (_, index) => `slice/file-${index}.ts`),
@@ -36,7 +44,7 @@ describe("directory fanout violations", () => {
       {
         rule: "directory_fanout",
         path: "slice",
-        observed: 11,
+        observed: 12,
         limit: 10,
         detail: "Directory exceeds the 10 direct-file limit.",
       },

@@ -13,7 +13,6 @@ export function findFanoutViolations(blobs: readonly IndexedBlob[]): readonly Vi
   const counts = new Map<string, number>();
   for (const blob of blobs) {
     if (!classifyPath(blob.path).fanoutCounted) continue;
-    if (blob.path.endsWith("/index.ts") || blob.path === "index.ts") continue;
     const directory = dirname(blob.path);
     const existing = counts.get(directory);
     const count = existing !== undefined ? existing + 1 : 1;
