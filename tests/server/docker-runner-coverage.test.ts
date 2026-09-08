@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
 import {
   DEFAULT_ASYNC_DOCKER_TIMEOUT_MS,
   DEFAULT_DOCKER_TIMEOUT_MS,
@@ -7,7 +8,28 @@ import {
   isDockerDaemonUnavailableError,
 } from "../../olt/scripts/src/server/docker/runner.ts";
 
+const TEST_ASYNC_TIMEOUT_MS = 30_000;
+
+interface MaybeMockFunction {
+  readonly mockRestore?: () => void;
+}
+
+let counter = 0;
+const uniquePayload = (prefix: string): string =>
+  `${prefix}-${process.pid}-${Date.now()}-${counter++}`;
+
 describe("docker runner coverage suite", () => {
+  beforeEach(() => {
+    const sp = childProcess.spawn as unknown as MaybeMockFunction;
+    if (typeof sp.mockRestore === "function") {
+      sp.mockRestore();
+    }
+    const spSync = childProcess.spawnSync as unknown as MaybeMockFunction;
+    if (typeof spSync.mockRestore === "function") {
+      spSync.mockRestore();
+    }
+  });
+
   describe("constants", () => {
     it("exports standard timeout constants", () => {
       expect(DEFAULT_DOCKER_TIMEOUT_MS).toBe(4000);
@@ -17,17 +39,19 @@ describe("docker runner coverage suite", () => {
 
   describe("defaultDockerRunner (synchronous)", () => {
     it("executes successful command and captures stdout", () => {
-      const res = defaultDockerRunner("echo", ["hello-docker-sync"]);
+      const payload = uniquePayload("hello-docker-sync");
+      const res = defaultDockerRunner("echo", [payload]);
       expect(res.status).toBe(0);
-      expect(res.stdout).toContain("hello-docker-sync");
+      expect(res.stdout).toContain(payload);
       expect(res.stderr).toBe("");
       expect(res.error).toBeUndefined();
     });
 
     it("captures non-zero exit status and stderr output", () => {
-      const res = defaultDockerRunner("sh", ["-c", "echo sync-err >&2; exit 42"]);
+      const payload = uniquePayload("sync-err");
+      const res = defaultDockerRunner("sh", ["-c", `echo ${payload} >&2; exit 42`]);
       expect(res.status).toBe(42);
-      expect(res.stderr).toContain("sync-err");
+      expect(res.stderr).toContain(payload);
     });
 
     it("handles nonexistent binary returning spawnSync error", () => {
@@ -37,7 +61,6 @@ describe("docker runner coverage suite", () => {
     });
 
     it("handles thrown errors in catch block if spawn fails catastrophically", () => {
-      // Passing an invalid command type or null causes runtime error / catch handling
       const res = defaultDockerRunner(null as unknown as string, []);
       expect(res.error).toBeDefined();
       expect(res.status).toBeNull();
@@ -45,29 +68,48 @@ describe("docker runner coverage suite", () => {
   });
 
   describe("execDockerAsync (asynchronous)", () => {
+    it("proves timeout mechanism by returning null status on deliberately slow command", async () => {
+      const res = await execDockerAsync("sleep", ["1"], 1);
+      expect(res.status).toBeNull();
+      expect(res.stderr).toBe("Docker command timed out");
+      expect(res.error?.message).toContain("Docker command timed out after 1ms");
+    });
+
     it("executes async process and captures stdout on close", async () => {
-      const res = await execDockerAsync("echo", ["hello-docker-async"]);
+      const payload = uniquePayload("hello-docker-async");
+      const res = await execDockerAsync("echo", [payload], TEST_ASYNC_TIMEOUT_MS);
       expect(res.status).toBe(0);
-      expect(res.stdout).toContain("hello-docker-async");
+      expect(res.stdout).toContain(payload);
       expect(res.stderr).toBe("");
       expect(res.error).toBeUndefined();
     });
 
     it("captures stderr and non-zero exit code asynchronously", async () => {
-      const res = await execDockerAsync("sh", ["-c", "echo async-err >&2; exit 7"]);
+      const payload = uniquePayload("async-err");
+      const res = await execDockerAsync(
+        "sh",
+        ["-c", `echo ${payload} >&2; exit 7`],
+        TEST_ASYNC_TIMEOUT_MS,
+      );
       expect(res.status).toBe(7);
-      expect(res.stderr).toContain("async-err");
+      expect(res.stderr).toContain(payload);
     });
 
     it("captures both stdout and stderr chunks concurrently", async () => {
-      const res = await execDockerAsync("sh", ["-c", "echo out-data; echo err-data >&2"]);
+      const outPayload = uniquePayload("out-data");
+      const errPayload = uniquePayload("err-data");
+      const res = await execDockerAsync(
+        "sh",
+        ["-c", `echo ${outPayload}; echo ${errPayload} >&2`],
+        TEST_ASYNC_TIMEOUT_MS,
+      );
       expect(res.status).toBe(0);
-      expect(res.stdout).toContain("out-data");
-      expect(res.stderr).toContain("err-data");
+      expect(res.stdout).toContain(outPayload);
+      expect(res.stderr).toContain(errPayload);
     });
 
     it("handles process spawn error event for invalid binary", async () => {
-      const res = await execDockerAsync("nonexistent_async_bin_99999", []);
+      const res = await execDockerAsync("nonexistent_async_bin_99999", [], TEST_ASYNC_TIMEOUT_MS);
       expect(res.status).toBeNull();
       expect(res.error).toBeDefined();
       expect(res.stderr.length).toBeGreaterThan(0);
@@ -82,13 +124,27 @@ describe("docker runner coverage suite", () => {
     });
 
     it("uses default timeout when timeout argument is omitted", async () => {
-      const res = await execDockerAsync("echo", ["default-timeout-test"]);
-      expect(res.status).toBe(0);
-      expect(res.stdout).toContain("default-timeout-test");
+      let passedTimeout: number | undefined;
+      const originalSetTimeout = globalThis.setTimeout;
+      const setTimeoutSpy = spyOn(globalThis, "setTimeout").mockImplementation(
+        (handler: Parameters<typeof setTimeout>[0], timeout?: number, ...args: unknown[]) => {
+          passedTimeout = timeout;
+          return originalSetTimeout(handler, TEST_ASYNC_TIMEOUT_MS, ...args);
+        },
+      );
+      try {
+        const payload = uniquePayload("default-timeout-test");
+        const res = await execDockerAsync("echo", [payload]);
+        expect(res.status).toBe(0);
+        expect(res.stdout).toContain(payload);
+        expect(passedTimeout).toBe(DEFAULT_ASYNC_DOCKER_TIMEOUT_MS);
+      } finally {
+        setTimeoutSpy.mockRestore();
+      }
     });
 
     it("handles thrown exception in catch block when spawn arguments are invalid", async () => {
-      const res = await execDockerAsync(null as unknown as string, []);
+      const res = await execDockerAsync(null as unknown as string, [], TEST_ASYNC_TIMEOUT_MS);
       expect(res.status).toBeNull();
       expect(res.error).toBeDefined();
     });
