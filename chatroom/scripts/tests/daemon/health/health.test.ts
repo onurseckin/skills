@@ -11,8 +11,8 @@ import {
   writeHealthRecord,
   type DaemonHealthRecord,
   type HealthPorts,
-} from "../../src/daemon/index.ts";
-import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
+} from "../../../src/daemon/index.ts";
+import { ChatVirtualFS } from "../../../src/testing/virtual-fs/index.ts";
 
 const HEALTH_PATH = "/rooms/claude-antigravity/daemon/claude-code-skills.health.json";
 const ROOM = "claude-antigravity";

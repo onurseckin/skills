@@ -9,7 +9,7 @@ const tempHome = join(
   "chat-test-" + Date.now() + "-" + Math.random().toString(36).slice(2),
 );
 const prevHome = process.env.CHATROOM_HOME;
-import { ChatError } from "../../src/core/index.ts";
+import { ChatError } from "../../../src/core/index.ts";
 import {
   claimHealthRecord,
   createInitialHealthRecord,
@@ -20,8 +20,8 @@ import {
   writeHealthRecord,
   type DaemonHealthRecord,
   type HealthPorts,
-} from "../../src/daemon/index.ts";
-import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
+} from "../../../src/daemon/index.ts";
+import { ChatVirtualFS } from "../../../src/testing/virtual-fs/index.ts";
 
 const ROOM = "room-ownership";
 const READER = "reader-1";
