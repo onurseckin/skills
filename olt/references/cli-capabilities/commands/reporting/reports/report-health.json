@@ -26,6 +26,20 @@
       "default": "."
     },
     {
+      "name": "detailed",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "source",
       "type": "string",
       "required": false,

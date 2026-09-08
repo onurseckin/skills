@@ -38,10 +38,12 @@ Records task completion, unblocks downstream dependents, and optionally archives
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--task` | string | no | no | - | Task ID. |
 | `--task-id` | string | no | no | - | Alias for task ID. |
+| `--id` | string | no | no | - | Alias of task ID. |
 | `--agent-id` | string | no | no | - | Agent ID completing the task. |
 | `--lease-token` | string | no | no | - | Active lease token. |
 | `--token` | string | no | no | - | Alias of lease token. |
 | `--proof-summary` | string | no | no | - | Summary proof of task completion. |
+| `--proof` | string | no | no | - | Alias of proof summary. |
 | `--test-path` | string | no | no | - | Test file path demonstrating completion. |
 | `--commit-sha` | string | no | no | - | Commit SHA associated with completion. |
 | `--auto-archive` | bool | no | no | - | Automatically archive completed task. |

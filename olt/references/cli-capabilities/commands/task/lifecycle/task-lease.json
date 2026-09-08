@@ -19,6 +19,13 @@
       "default": null
     },
     {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "agent-id",
       "type": "string",
       "required": false,
@@ -34,6 +41,13 @@
     },
     {
       "name": "duration-seconds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "duration",
       "type": "int",
       "required": false,
       "repeatable": false,

@@ -26,6 +26,7 @@ export const QUEUE_OP_FLAGS: readonly FlagSpec[] = [...QUEUE_PATH_FLAGS, ...TRAC
 export const TASK_ID_FLAGS: readonly FlagSpec[] = [
   opt("task", "string", "Task ID."),
   opt("task-id", "string", "Alias for task ID."),
+  opt("id", "string", "Alias of task ID."),
 ];
 
 export const LEASE_TOKEN_FLAGS: readonly FlagSpec[] = [
@@ -45,17 +46,25 @@ export const taskAddSpec: CommandSpec = taskCmd(
   [
     ...TASK_ID_FLAGS,
     opt("title", "string", "Task title."),
+    opt("name", "string", "Alias of task title."),
     opt("description", "string", "Task description."),
+    opt("desc", "string", "Alias of task description."),
     opt("priority", "string", "Task priority (CRITICAL, HIGH, MEDIUM, LOW)."),
     opt("gate", "string", "Gate verification command."),
     rep("write-scope", "string", "Assigned writable file path."),
+    rep("scope", "string", "Alias of write-scope."),
     rep("charter-goals", "string", "Charter goal identifiers."),
+    rep("goals", "string", "Alias of charter-goals."),
     rep("acceptance-criteria", "string", "Acceptance criteria items."),
+    rep("criteria", "string", "Alias of acceptance-criteria."),
     rep("dependencies", "string", "Task dependency IDs."),
+    rep("deps", "string", "Alias of dependencies."),
     opt("source-type", "string", "Task source type."),
     opt("status", "string", "Initial task status."),
     opt("assigned-tier", "string", "Assigned execution tier."),
+    opt("tier", "string", "Alias of assigned-tier."),
     opt("assigned-role", "string", "Assigned agent role."),
+    opt("role", "string", "Alias of assigned-role."),
     opt("max-retries", "int", "Maximum retry count."),
     ...QUEUE_OP_FLAGS,
   ],
@@ -72,6 +81,7 @@ export const taskLeaseSpec: CommandSpec = taskCmd(
     opt("agent-id", "string", "Agent ID claiming the lease."),
     opt("lease-duration", "int", "Lease duration in seconds."),
     opt("duration-seconds", "int", "Alias of lease duration."),
+    opt("duration", "int", "Alias of lease duration."),
     ...QUEUE_OP_FLAGS,
   ],
   taskLeaseCommand,
@@ -87,6 +97,7 @@ export const taskCompleteSpec: CommandSpec = taskCmd(
     opt("agent-id", "string", "Agent ID completing the task."),
     ...LEASE_TOKEN_FLAGS,
     opt("proof-summary", "string", "Summary proof of task completion."),
+    opt("proof", "string", "Alias of proof summary."),
     opt("test-path", "string", "Test file path demonstrating completion."),
     opt("commit-sha", "string", "Commit SHA associated with completion."),
     opt("auto-archive", "bool", "Automatically archive completed task."),
@@ -104,7 +115,6 @@ export const taskFailSpec: CommandSpec = taskCmd(
   "Transitions task to failed or increments retry count if retries remain.",
   [
     ...TASK_ID_FLAGS,
-    opt("id", "string", "Alias of task ID."),
     opt("message", "string", "Failure error message."),
     opt("error", "string", "Alias of error message."),
     opt("reason", "string", "Alias of error message."),

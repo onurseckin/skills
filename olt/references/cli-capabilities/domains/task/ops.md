@@ -123,18 +123,27 @@ Appends a new task item into the task queue with dependency graph validation.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--task` | string | no | no | - | Task ID. |
 | `--task-id` | string | no | no | - | Alias for task ID. |
+| `--id` | string | no | no | - | Alias of task ID. |
 | `--title` | string | no | no | - | Task title. |
+| `--name` | string | no | no | - | Alias of task title. |
 | `--description` | string | no | no | - | Task description. |
+| `--desc` | string | no | no | - | Alias of task description. |
 | `--priority` | string | no | no | - | Task priority (CRITICAL, HIGH, MEDIUM, LOW). |
 | `--gate` | string | no | no | - | Gate verification command. |
 | `--write-scope` | string | no | yes | - | Assigned writable file path. |
+| `--scope` | string | no | yes | - | Alias of write-scope. |
 | `--charter-goals` | string | no | yes | - | Charter goal identifiers. |
+| `--goals` | string | no | yes | - | Alias of charter-goals. |
 | `--acceptance-criteria` | string | no | yes | - | Acceptance criteria items. |
+| `--criteria` | string | no | yes | - | Alias of acceptance-criteria. |
 | `--dependencies` | string | no | yes | - | Task dependency IDs. |
+| `--deps` | string | no | yes | - | Alias of dependencies. |
 | `--source-type` | string | no | no | - | Task source type. |
 | `--status` | string | no | no | - | Initial task status. |
 | `--assigned-tier` | string | no | no | - | Assigned execution tier. |
+| `--tier` | string | no | no | - | Alias of assigned-tier. |
 | `--assigned-role` | string | no | no | - | Assigned agent role. |
+| `--role` | string | no | no | - | Alias of assigned-role. |
 | `--max-retries` | int | no | no | - | Maximum retry count. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |

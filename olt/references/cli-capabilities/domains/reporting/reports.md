@@ -92,6 +92,8 @@ Runs the capsule doctor to check health status.
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--run-id` | string | no | no | - | Alias of --run. |
 | `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
+| `--detailed` | bool | no | no | - | Detailed doctor diagnostic report. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
 | `--source` | string | no | no | - | Source. |
 | `--home` | string | no | no | - | Home. |
 | `--clients` | string | no | no | - | Clients. |
@@ -115,6 +117,8 @@ Reports the matrix of active leases.
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--run-id` | string | no | no | - | Alias of --run. |
 | `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
+| `--detailed` | bool | no | no | - | Detailed lease matrix report. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
 bun harness.ts report:leases --run .olt/capsules/<run-id>
@@ -135,6 +139,8 @@ Reports the decisions audit matrix.
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--run-id` | string | no | no | - | Alias of --run. |
 | `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
+| `--detailed` | bool | no | no | - | Detailed decisions audit report. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
 bun harness.ts report:decisions --run .olt/capsules/<run-id>

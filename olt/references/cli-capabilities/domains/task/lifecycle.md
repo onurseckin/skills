@@ -109,9 +109,11 @@ Claims an exclusive active lease on a task for an agent worker.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--task` | string | no | no | - | Task ID. |
 | `--task-id` | string | no | no | - | Alias for task ID. |
+| `--id` | string | no | no | - | Alias of task ID. |
 | `--agent-id` | string | no | no | - | Agent ID claiming the lease. |
 | `--lease-duration` | int | no | no | - | Lease duration in seconds. |
 | `--duration-seconds` | int | no | no | - | Alias of lease duration. |
+| `--duration` | int | no | no | - | Alias of lease duration. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
 | `--run` | string | no | no | - | Capsule run root or custom queue path. |

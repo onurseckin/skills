@@ -19,6 +19,13 @@
       "default": null
     },
     {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "title",
       "type": "string",
       "required": false,
@@ -26,7 +33,21 @@
       "default": null
     },
     {
+      "name": "name",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "description",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "desc",
       "type": "string",
       "required": false,
       "repeatable": false,
@@ -54,7 +75,21 @@
       "default": null
     },
     {
+      "name": "scope",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
       "name": "charter-goals",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "goals",
       "type": "string",
       "required": false,
       "repeatable": true,
@@ -68,7 +103,21 @@
       "default": null
     },
     {
+      "name": "criteria",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
       "name": "dependencies",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "deps",
       "type": "string",
       "required": false,
       "repeatable": true,
@@ -96,7 +145,21 @@
       "default": null
     },
     {
+      "name": "tier",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "assigned-role",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "role",
       "type": "string",
       "required": false,
       "repeatable": false,
