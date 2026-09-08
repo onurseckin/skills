@@ -22,13 +22,14 @@ export function computeDaemonState(
   });
 }
 
+export { releaseDaemonLock } from "./lock.ts";
+
 export {
   acquireDaemonLock,
   checkRespawnBudget,
   parseDaemonLockPayload,
   reclaimStaleLock,
   recordRespawn,
-  releaseDaemonLock,
   startDaemon,
   stopDaemon,
   type LockAcquisitionResult,

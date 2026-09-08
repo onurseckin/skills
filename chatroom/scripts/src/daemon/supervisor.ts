@@ -23,6 +23,7 @@ import {
 } from "../core/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import { readHealthRecord, writeHealthRecord } from "./health.ts";
+import { releaseDaemonLock } from "./lock.ts";
 import { dispatchRespawnNotification, type ExecuteNotifyOptions } from "./notify.ts";
 
 export interface SupervisorPorts {
@@ -274,15 +275,6 @@ export function acquireDaemonLock(
     closeSync(fd);
     throw error;
   }
-}
-
-export function releaseDaemonLock(roomId: string, readerId: string, lockFd: number | null): void {
-  try {
-    if (lockFd !== null) closeSync(lockFd);
-  } catch {}
-  try {
-    unlinkSync(daemonLockPath(roomId, readerId));
-  } catch {}
 }
 
 export function startDaemon(options: SupervisorOptions): SupervisorResult {

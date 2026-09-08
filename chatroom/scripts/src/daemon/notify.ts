@@ -9,7 +9,7 @@ import {
   type DaemonHealthRecord,
   type HealthPorts,
 } from "./health.ts";
-import { releaseDaemonLock } from "./supervisor.ts";
+import { releaseDaemonLock } from "./lock.ts";
 import { type DaemonWatcher } from "./watcher.ts";
 
 export interface NotifyResult {
