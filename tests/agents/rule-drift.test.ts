@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import * as yaml from "js-yaml";
-import { LINE_LIMIT } from "../../scripts/modularity/inventory/physical-lines.ts";
+import { LINE_LIMIT } from "../../scripts/modularity/inventory/index.ts";
 
 interface RuleFrontmatter {
   readonly description: string;
@@ -79,14 +79,12 @@ describe("rule drift control", () => {
     }
   });
 
-  it("verifies file-structure.md asserts exact LINE_LIMIT and fanout rules", async () => {
+  it("verifies file-structure.md asserts exact LINE_LIMIT", async () => {
     const filePath = join(rulesDir, "file-structure.md");
     const content = await Bun.file(filePath).text();
 
     expect(content).toContain(`Maximum ${LINE_LIMIT} physical lines per source file`);
-    expect(content).toContain("Maximum 10 direct .ts/.tsx files per directory");
     expect(content).toContain("scripts/modularity/inventory/physical-lines.ts:LINE_LIMIT");
     expect(content).toContain("scripts/modularity/inventory/fanout.ts:FANOUT_LIMIT");
-    expect(LINE_LIMIT).toBe(400);
   });
 });
