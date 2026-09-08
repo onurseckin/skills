@@ -23,19 +23,27 @@ import {
 } from "../core/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import { readHealthRecord, writeHealthRecord } from "./health.ts";
-import { releaseDaemonLock } from "./lock.ts";
+import {
+  parseDaemonLockPayload,
+  purgeStaleDaemonLockAndHealth,
+  readLockPid,
+  releaseDaemonLock,
+} from "./lock.ts";
 import { dispatchRespawnNotification, type ExecuteNotifyOptions } from "./notify.ts";
 
+export { parseDaemonLockPayload } from "./lock.ts";
+
 export interface SupervisorPorts {
-  readonly now?: () => number;
-  readonly isProcessAlive?: (pid: number) => boolean;
-  readonly getStartTime?: (pid: number) => string | undefined;
-  readonly getBootId?: () => string;
-  readonly existsSync?: (path: string) => boolean;
-  readonly readFileSync?: (path: string, encoding: string) => string;
-  readonly writeFileSync?: (path: string, content: string) => void;
-  readonly writeAtomic?: (path: string, content: string) => void;
-  readonly daemonRespawnPath?: (roomId: string, readerId: string) => string;
+  readonly now?: (() => number) | undefined;
+  readonly isProcessAlive?: ((pid: number) => boolean) | undefined;
+  readonly getStartTime?: ((pid: number) => string | undefined) | undefined;
+  readonly getBootId?: (() => string) | undefined;
+  readonly existsSync?: ((path: string) => boolean) | undefined;
+  readonly readFileSync?: ((path: string, encoding: string) => string) | undefined;
+  readonly writeFileSync?: ((path: string, content: string) => void) | undefined;
+  readonly writeAtomic?: ((path: string, content: string) => void) | undefined;
+  readonly unlinkSync?: ((path: string) => void) | undefined;
+  readonly daemonRespawnPath?: ((roomId: string, readerId: string) => string) | undefined;
   readonly spawnDetached?: (
     cmd: string,
     args: readonly string[],
@@ -81,25 +89,6 @@ function getSystemBootId(): string {
     return existsSync(f) ? readFileSync(f, "utf8").trim() : "system-boot-default";
   } catch {
     return "system-boot-default";
-  }
-}
-
-export function parseDaemonLockPayload(raw: string): LockPayload | null {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return isLockPayload(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function readLockPid(path: string): number | null {
-  try {
-    return existsSync(path)
-      ? (parseDaemonLockPayload(readFileSync(path, "utf8"))?.pid ?? null)
-      : null;
-  } catch {
-    return null;
   }
 }
 
@@ -168,7 +157,8 @@ export function reclaimStaleLock(
       evidence,
     }) + "\n",
   );
-  releaseDaemonLock(roomId, readerId, null);
+  releaseDaemonLock(roomId, readerId, null, undefined, ports);
+  purgeStaleDaemonLockAndHealth(roomId, readerId, ports);
 }
 
 export function acquireDaemonLock(
@@ -289,10 +279,12 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
     return { status: "already_running", pid: existingHealth.pid, already_running: true };
   }
 
-  const lockPid = readLockPid(daemonLockPath(room, reader));
+  const lockPid = readLockPid(daemonLockPath(room, reader), ports);
   if (lockPid !== null && checkAlive(lockPid)) {
     return { status: "already_running", pid: lockPid, already_running: true };
   }
+
+  purgeStaleDaemonLockAndHealth(room, reader, ports);
 
   const budget = checkRespawnBudget(room, reader, resolved.respawn_budget_per_hour, ports);
   if (!budget.allowed) {
@@ -371,7 +363,7 @@ export function stopDaemon(options: SupervisorOptions): SupervisorResult {
   const { room, reader } = options;
   const ports = options.ports ?? {};
   const checkAlive = ports.isProcessAlive ?? isProcessAlive;
-  const pid = readLockPid(daemonLockPath(room, reader));
+  const pid = readLockPid(daemonLockPath(room, reader), ports);
 
   const hPath = daemonHealthPath(room, reader);
   const existingHealth = readHealthRecord(hPath, ports);
@@ -385,6 +377,6 @@ export function stopDaemon(options: SupervisorOptions): SupervisorResult {
     } catch {}
   }
 
-  releaseDaemonLock(room, reader, null);
+  releaseDaemonLock(room, reader, null, undefined, ports);
   return { status: "stopped", pid };
 }

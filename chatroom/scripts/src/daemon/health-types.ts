@@ -50,13 +50,14 @@ export interface HealthComputeOptions {
 }
 
 export interface HealthPorts {
-  readonly existsSync?: (path: string) => boolean;
-  readonly readFileSync?: (path: string, encoding: string) => string;
-  readonly writeAtomic?: (path: string, content: string) => void;
-  readonly writeFileSync?: (path: string, content: string) => void;
-  readonly fs?: { readonly existsSync?: (path: string) => boolean };
-  readonly isProcessAlive?: (pid: number) => boolean;
-  readonly daemonRespawnPath?: (room: string, reader: string) => string;
+  readonly existsSync?: ((path: string) => boolean) | undefined;
+  readonly readFileSync?: ((path: string, encoding: string) => string) | undefined;
+  readonly writeAtomic?: ((path: string, content: string) => void) | undefined;
+  readonly writeFileSync?: ((path: string, content: string) => void) | undefined;
+  readonly fs?: { readonly existsSync?: ((path: string) => boolean) | undefined } | undefined;
+  readonly isProcessAlive?: ((pid: number) => boolean) | undefined;
+  readonly unlinkSync?: ((path: string) => void) | undefined;
+  readonly daemonRespawnPath?: ((room: string, reader: string) => string) | undefined;
 }
 
 export interface HealthClaimOptions {

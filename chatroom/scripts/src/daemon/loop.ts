@@ -37,7 +37,9 @@ import {
   runWithProcessLifecycle,
   type NotifyResult,
   type NotifySpawner,
+  type ProcessLifecycleController,
 } from "./notify.ts";
+import { checkAndHandleLockLoss, verifyDaemonLock } from "./lock.ts";
 import { appendSpool, getSpoolStats, isSpoolBackpressured, repairSpool } from "./spool.ts";
 import { acquireDaemonLock } from "./supervisor.ts";
 import {
@@ -59,6 +61,9 @@ export interface DaemonLoopOptions {
   readonly healthPorts?: HealthPorts;
   readonly spawnNotify?: NotifySpawner;
   readonly notifyTimeoutMs?: number;
+  readonly verifyLock?: boolean;
+  readonly expectedPid?: number;
+  readonly onLockLoss?: (reason: "missing" | "stolen" | "corrupt") => void;
 }
 
 export interface DaemonStepResult {
@@ -66,6 +71,7 @@ export interface DaemonStepResult {
   readonly remaining: number;
   readonly backpressured: boolean;
   readonly idle: boolean;
+  readonly lockLost?: boolean;
   readonly notifyPromise?: Promise<NotifyResult | null>;
 }
 
@@ -74,6 +80,20 @@ export function stepDaemonLoop(
   wakeSource: WakeSource = "tick",
 ): DaemonStepResult {
   const { room, reader } = options;
+
+  if (options.verifyLock) {
+    const lockCheck = verifyDaemonLock(
+      room,
+      reader,
+      options.expectedPid ?? process.pid,
+      options.healthPorts,
+    );
+    if (!lockCheck.valid) {
+      options.onLockLoss?.(lockCheck.reason ?? "missing");
+      return { delivered: 0, remaining: 0, backpressured: false, idle: true, lockLost: true };
+    }
+  }
+
   const policy = options.policy ?? resolvePolicy();
   const token = computeChangeToken(room);
   const headSeq = token.next_seq > 0 ? token.next_seq - 1 : 0;
@@ -81,8 +101,7 @@ export function stepDaemonLoop(
   const nowIso = options.now ?? new Date().toISOString();
   const nowMs = options.now ? Date.parse(options.now) : Date.now();
 
-  const repairResult = repairSpool(room, reader);
-  const highestSpooledSeq = repairResult.highestSeq;
+  const highestSpooledSeq = repairSpool(room, reader).highestSeq;
 
   const existingHealth = claimHealthRecord(
     healthPath,
@@ -91,11 +110,9 @@ export function stepDaemonLoop(
   );
 
   const metrics = options.watcher?.getMetrics();
-  const watchActive = metrics !== undefined ? metrics.watch_active : existingHealth.watch_active;
-  const watchFailures =
-    metrics !== undefined ? metrics.watch_failures : existingHealth.watch_failures;
-  const pollIntervalMs =
-    metrics !== undefined ? metrics.poll_interval_ms : existingHealth.poll_interval_ms;
+  const watchActive = metrics?.watch_active ?? existingHealth.watch_active;
+  const watchFailures = metrics?.watch_failures ?? existingHealth.watch_failures;
+  const pollIntervalMs = metrics?.poll_interval_ms ?? existingHealth.poll_interval_ms;
 
   const updateHealth = (patch: Partial<DaemonHealthRecord>): void => {
     const current = readHealthRecord(healthPath, options.healthPorts) ?? existingHealth;
@@ -116,11 +133,10 @@ export function stepDaemonLoop(
   };
 
   const spoolStats = getSpoolStats(room, reader);
-  const currentlyBp = existingHealth.state === "BACKPRESSURED";
   const isBp = isSpoolBackpressured(
     spoolStats,
     { maxSpoolBytes: policy.max_spool_bytes, maxSpoolLines: policy.max_spool_lines },
-    currentlyBp,
+    existingHealth.state === "BACKPRESSURED",
   );
 
   const rLockPath = readerLockPath(room, reader);
@@ -187,7 +203,6 @@ export function stepDaemonLoop(
       ttlMs: policy.lease_ttl_ms,
       now: nowIso,
     });
-
     if (!leaseRes.leaseId || leaseRes.messages.length === 0) {
       recordStepState(contiguousSeq, spoolStats.bytes, spoolStats.lines);
       return;
@@ -196,17 +211,13 @@ export function stepDaemonLoop(
     let lastContiguousVerifiedSeq: number | null = null;
     const validEnvelopes: Envelope[] = [];
     for (const msg of leaseRes.messages) {
-      if (msg.seq <= highestSpooledSeq) {
-        continue;
-      }
-      const envelopeCandidate = msg;
-      const verifyRes = verifyEnvelope(envelopeCandidate, key);
+      if (msg.seq <= highestSpooledSeq) continue;
+      const verifyRes = verifyEnvelope(msg, key);
       if (verifyRes.valid) {
-        validEnvelopes.push(envelopeCandidate);
+        validEnvelopes.push(msg);
         lastContiguousVerifiedSeq = msg.seq;
       } else {
-        const qPath = roomQuarantinePath(room, msg.ts, msg.seq);
-        writeAtomic(qPath, JSON.stringify(msg, null, 2) + "\n");
+        writeAtomic(roomQuarantinePath(room, msg.ts, msg.seq), JSON.stringify(msg, null, 2) + "\n");
         recentErrors.push(`envelope_verification_failed for seq ${msg.seq} at ${nowIso}`);
         if (recentErrors.length > 20) recentErrors.splice(0, recentErrors.length - 20);
         break;
@@ -230,19 +241,15 @@ export function stepDaemonLoop(
       spool_offset: spoolOffset,
       fsynced: true,
     };
-
     const lastMsgSeq = leaseRes.messages[leaseRes.messages.length - 1]?.seq ?? null;
     const ackSeq =
       lastContiguousVerifiedSeq ??
       (validEnvelopes.length === 0 && lastMsgSeq !== null && lastMsgSeq <= highestSpooledSeq
         ? lastMsgSeq
         : null);
-
-    const ackedCursor: ReaderCursor =
+    const ackedCursor =
       ackSeq !== null
-        ? ackLease(leaseRes.cursor, leaseRes.leaseId, ackSeq, confirmation, {
-            now: nowIso,
-          })
+        ? ackLease(leaseRes.cursor, leaseRes.leaseId, ackSeq, confirmation, { now: nowIso })
         : leaseRes.cursor;
     saveCursorCas(cPath, ackedCursor, checksum);
 
@@ -285,12 +292,10 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
   const existsFn = options.healthPorts?.existsSync ?? existsSync;
   const rDir = roomDir(room);
   const mPath = roomManifestPath(room);
-  if (!existsFn(rDir)) {
+  if (!existsFn(rDir))
     throw new ChatError("NOT_FOUND", `Room directory not found for room '${room}'`);
-  }
-  if (!existsFn(mPath)) {
+  if (!existsFn(mPath))
     throw new ChatError("NOT_FOUND", `Room manifest not found for room '${room}'`);
-  }
   const policy = options.policy ?? resolvePolicy();
 
   const lockRes = acquireDaemonLock(room, reader, "daemon", {}, policy);
@@ -319,7 +324,12 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
       ...(options.watcherPorts !== undefined ? { ports: options.watcherPorts } : {}),
     });
 
-  const stepOptions: DaemonLoopOptions = { ...options, watcher };
+  const stepOptions: DaemonLoopOptions = {
+    ...options,
+    watcher,
+    verifyLock: true,
+    expectedPid: process.pid,
+  };
 
   const syncHealth = (source?: WakeSource): void => {
     const syncIso = new Date().toISOString();
@@ -332,6 +342,17 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
       ...(options.healthPorts !== undefined ? { ports: options.healthPorts } : {}),
     });
   };
+
+  const checkLockLoss = (controller: ProcessLifecycleController): boolean =>
+    checkAndHandleLockLoss({
+      room,
+      reader,
+      expectedPid: process.pid,
+      ports: options.healthPorts,
+      onLockLoss: options.onLockLoss,
+      notifyCommand: policy.notify_command,
+      onStop: () => controller.stop(),
+    });
 
   await runWithProcessLifecycle({
     healthPath,
@@ -347,6 +368,7 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
           controller.stop();
           return;
         }
+        if (!checkLockLoss(controller)) return;
         if (!tokenChanged && source !== "tick") {
           syncHealth(source);
           return;
@@ -357,13 +379,14 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
             controller.stop();
             return;
           }
+          if (!checkLockLoss(controller)) return;
           const result = stepDaemonLoop(stepOptions, source);
-          if (result.notifyPromise) {
-            await result.notifyPromise;
+          if (result.lockLost) {
+            checkLockLoss(controller);
+            return;
           }
-          if (result.backpressured || result.idle || result.delivered === 0) {
-            break;
-          }
+          if (result.notifyPromise) await result.notifyPromise;
+          if (result.backpressured || result.idle || result.delivered === 0) break;
           remaining = result.remaining;
         }
       };

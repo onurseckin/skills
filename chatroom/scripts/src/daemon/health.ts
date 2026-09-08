@@ -7,6 +7,7 @@ import {
   resolveActiveConsumerCursorPath,
   writeAtomic,
 } from "../core/index.ts";
+import { purgeStaleDaemonLockAndHealth } from "./lock.ts";
 import type {
   CursorAckProvenance,
   DaemonHealthRecord,
@@ -336,11 +337,18 @@ export function inspectDaemon(
   options: HealthComputeOptions = {},
   ports?: HealthPorts,
 ): DaemonInspectionResult {
+  const checkAlive = options.isProcessAlive ?? ports?.isProcessAlive ?? isProcessAlive;
+  purgeStaleDaemonLockAndHealth(room, reader, {
+    existsSync: ports?.existsSync,
+    readFileSync: ports?.readFileSync,
+    unlinkSync: ports?.unlinkSync,
+    isProcessAlive: checkAlive,
+  });
   const health = readHealthRecord(daemonHealthPath(room, reader), ports);
   if (health === null) return { room, reader, state: "STOPPED", health: null, watch_active: false };
   const opts = {
     ...options,
-    isProcessAlive: options.isProcessAlive ?? ports?.isProcessAlive ?? isProcessAlive,
+    isProcessAlive: checkAlive,
   };
   const state = computeDaemonState(health, Date.now(), opts);
   return { room, reader, state, health, watch_active: health.watch_active };

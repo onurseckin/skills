@@ -242,9 +242,14 @@ export interface ProcessLifecycleController {
 
 export function createProcessLifecycle(onShutdown?: () => void): ProcessLifecycleController {
   let running = true;
+  let stopResolve: (() => void) | null = null;
   const handleSignal = (): void => {
     running = false;
     onShutdown?.();
+    if (stopResolve !== null) {
+      stopResolve();
+      stopResolve = null;
+    }
   };
   process.once("SIGTERM", handleSignal);
   process.once("SIGINT", handleSignal);
@@ -253,19 +258,23 @@ export function createProcessLifecycle(onShutdown?: () => void): ProcessLifecycl
     stop: () => {
       running = false;
       onShutdown?.();
+      if (stopResolve !== null) {
+        stopResolve();
+        stopResolve = null;
+      }
     },
     waitUntilStopped: () =>
       new Promise<void>((resolvePromise) => {
-        const interval = setInterval(() => {
-          if (!running) {
-            clearInterval(interval);
-            resolvePromise();
-          }
-        }, 250);
+        if (!running) {
+          resolvePromise();
+          return;
+        }
+        stopResolve = resolvePromise;
       }),
     dispose: () => {
       process.removeListener("SIGTERM", handleSignal);
       process.removeListener("SIGINT", handleSignal);
+      stopResolve = null;
     },
   };
 }
@@ -289,7 +298,7 @@ export async function runWithProcessLifecycle(input: ProcessLifecycleRunInput): 
     lifecycle.dispose();
     input.watcher.stop();
     stampStoppedIfOwned(input.healthPath, process.pid, new Date().toISOString(), input.ports);
-    releaseDaemonLock(input.room, input.reader, input.lockFd);
+    releaseDaemonLock(input.room, input.reader, input.lockFd, process.pid, input.ports);
   }
 }
 

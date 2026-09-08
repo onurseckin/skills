@@ -6,14 +6,16 @@ import {
   type LockPayload,
 } from "../core/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
+import { purgeStaleDaemonLockAndHealth, type DaemonLockPorts } from "./lock.ts";
 import { parseDaemonLockPayload, startDaemon } from "./supervisor.ts";
 
 export interface EnsureDaemonPorts {
-  readonly existsSync?: (path: string) => boolean;
-  readonly readFileSync?: (path: string, encoding: string) => string;
-  readonly statSync?: (path: string) => { readonly mtimeMs: number };
-  readonly isProcessAlive?: (pid: number) => boolean;
-  readonly now?: () => number;
+  readonly existsSync?: ((path: string) => boolean) | undefined;
+  readonly readFileSync?: ((path: string, encoding: string) => string) | undefined;
+  readonly statSync?: ((path: string) => { readonly mtimeMs: number }) | undefined;
+  readonly isProcessAlive?: ((pid: number) => boolean) | undefined;
+  readonly now?: (() => number) | undefined;
+  readonly unlinkSync?: ((path: string) => void) | undefined;
 }
 
 export interface EnsureDaemonOptions {
@@ -48,6 +50,16 @@ export function ensureDaemon(
   const getNow = options.ports?.now ?? options.now ?? Date.now;
   const heartbeatInterval = options.heartbeatIntervalMs ?? policy.heartbeat_interval_ms ?? 5000;
   const autoStart = options.autoStart ?? true;
+
+  const lockPorts: DaemonLockPorts = {
+    existsSync: options.ports?.existsSync,
+    readFileSync: options.ports?.readFileSync,
+    unlinkSync: options.ports?.unlinkSync,
+    isProcessAlive: checkAlive,
+    now: getNow,
+  };
+
+  purgeStaleDaemonLockAndHealth(room, reader, lockPorts);
 
   if (exists(lockPath)) {
     let payload: LockPayload | null = null;
@@ -90,6 +102,11 @@ export function ensureDaemon(
     room,
     reader,
     policy,
+    ports: {
+      ...options.ports,
+      isProcessAlive: checkAlive,
+      now: getNow,
+    },
   });
 
   if (startRes.status === "already_running") {
