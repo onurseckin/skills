@@ -3,13 +3,19 @@ import { appendFileSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { doctorCommand } from "../../../chatroom/scripts/src/cli/commands/doctor.ts";
-import { roomLogSegmentPath, roomQuarantineDir } from "../../../chatroom/scripts/src/core/paths.ts";
+import {
+  roomLogDir,
+  roomLogSegmentPath,
+  roomQuarantineDir,
+} from "../../../chatroom/scripts/src/core/paths.ts";
+import { createInitialCursor, leaseNext } from "../../../chatroom/scripts/src/cursor/index.ts";
 import { appendMessage } from "../../../chatroom/scripts/src/log/append.ts";
 import {
   quarantineCorruptLine,
   readSegmentEnvelopes,
   scanRange,
 } from "../../../chatroom/scripts/src/log/scan.ts";
+import { readLogIndex, writeLogIndex } from "../../../chatroom/scripts/src/log/segments.ts";
 import { addMember, createRoom } from "../../../chatroom/scripts/src/room/index.ts";
 
 describe("log corruption quarantine and doctor integration", () => {
@@ -153,6 +159,86 @@ describe("log corruption quarantine and doctor integration", () => {
 
       const qFilesAfter = readdirSync(qDir).filter((file) => !file.startsWith("."));
       expect(qFilesAfter).toHaveLength(2);
+    } finally {
+      if (prevHome !== undefined) {
+        process.env["CHATROOM_HOME"] = prevHome;
+      } else {
+        delete process.env["CHATROOM_HOME"];
+      }
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("quarantines corrupt line during lease reading and delivers contiguous valid messages", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "chat-lease-quarantine-"));
+    const prevHome = process.env["CHATROOM_HOME"];
+    process.env["CHATROOM_HOME"] = tempDir;
+
+    try {
+      const room = "lease-quarantine-room";
+      const reader = "reader-agent-1";
+
+      createRoom({
+        id: room,
+        title: "Lease Quarantine Room",
+        visibility: "public",
+        createdBy: reader,
+      });
+
+      addMember(room, {
+        id: reader,
+        role: "agent",
+        host: "antigravity",
+      });
+
+      const sender = { id: reader, role: "agent" as const, host: "antigravity" };
+
+      const env1 = appendMessage(room, {
+        sender,
+        kind: "message",
+        body: { schema: "text", data: { text: "msg-1-valid" } },
+      });
+      expect(env1.seq).toBe(1);
+
+      const segmentPath = roomLogSegmentPath(room, 1);
+      const tornLine = '{"seq":2,"broken\n';
+      appendFileSync(segmentPath, tornLine, "utf8");
+
+      const currentIndex = readLogIndex(room);
+      writeLogIndex(room, {
+        ...currentIndex,
+        next_seq: 3,
+      });
+
+      const env3 = appendMessage(room, {
+        sender,
+        kind: "message",
+        body: { schema: "text", data: { text: "msg-3-valid" } },
+      });
+      expect(env3.seq).toBe(3);
+
+      const cursor = createInitialCursor(room, reader);
+      const logDir = roomLogDir(room);
+      const leaseResult = leaseNext(cursor, logDir, 50);
+
+      expect(leaseResult.messages).toHaveLength(1);
+      expect(leaseResult.messages[0]?.seq).toBe(1);
+      expect(leaseResult.messages[0]?.body.data).toEqual({ text: "msg-1-valid" });
+
+      const qDir = roomQuarantineDir(room);
+      const qFiles = readdirSync(qDir).filter((file) => !file.startsWith("."));
+      expect(qFiles.length).toBeGreaterThanOrEqual(1);
+
+      const quarantineRecordPath = join(qDir, qFiles[0]!);
+      const quarantineRecord = JSON.parse(readFileSync(quarantineRecordPath, "utf8")) as {
+        readonly ts: string;
+        readonly seq: number;
+        readonly reason: string;
+        readonly raw: string;
+      };
+      expect(quarantineRecord.raw).toBe('{"seq":2,"broken');
+      expect(typeof quarantineRecord.reason).toBe("string");
+      expect(quarantineRecord.reason.length).toBeGreaterThan(0);
     } finally {
       if (prevHome !== undefined) {
         process.env["CHATROOM_HOME"] = prevHome;

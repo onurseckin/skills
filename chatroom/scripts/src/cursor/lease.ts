@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ChatError, type Envelope } from "../core/index.ts";
+import { parseLogLine, quarantineCorruptLine } from "../log/index.ts";
 import {
   assertCursorInvariants,
   computeCursorChecksum,
@@ -34,6 +35,7 @@ export interface LeaseOptions {
   readonly ttlMs?: number;
   readonly leaseId?: string;
   readonly fs?: LeaseFsPorts;
+  readonly roomId?: string;
 }
 
 export interface LeaseResult {
@@ -83,6 +85,7 @@ function scanFromFiles(
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
+  roomId?: string,
 ): Envelope[] {
   const collected: Envelope[] = [];
   let expectedSeq = fromSeq;
@@ -99,15 +102,20 @@ function scanFromFiles(
       if (trimmed.length === 0) {
         continue;
       }
-      try {
-        const envelope = JSON.parse(trimmed) as Envelope;
+      const parsed = parseLogLine(trimmed);
+      if (parsed.success) {
+        const envelope = parsed.envelope;
         if (envelope && typeof envelope === "object" && typeof envelope.seq === "number") {
           if (envelope.seq === expectedSeq && collected.length < limit) {
             collected.push(envelope);
             expectedSeq++;
           }
         }
-      } catch {}
+      } else {
+        if (roomId !== undefined && roomId.length > 0) {
+          quarantineCorruptLine(roomId, trimmed, undefined, parsed.error);
+        }
+      }
       if (collected.length >= limit) {
         return collected;
       }
@@ -122,6 +130,7 @@ export function scanFromDirectory(
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
+  roomId?: string,
 ): Envelope[] {
   if (!fsExists(logDir, fsPorts)) {
     return [];
@@ -135,7 +144,7 @@ export function scanFromDirectory(
     .sort();
 
   const filePaths = files.map((file) => join(logDir, file));
-  return scanFromFiles(filePaths, fromSeq, limit, fsPorts);
+  return scanFromFiles(filePaths, fromSeq, limit, fsPorts, roomId);
 }
 
 export function scanFromFile(
@@ -143,6 +152,7 @@ export function scanFromFile(
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
+  roomId?: string,
 ): Envelope[] {
   if (!fsExists(filePath, fsPorts)) {
     return [];
@@ -177,17 +187,18 @@ export function scanFromFile(
 
     segments.sort((a, b) => a.num - b.num);
     const filesToScan = [...segments.map((s) => s.path), filePath];
-    return scanFromFiles(filesToScan, fromSeq, limit, fsPorts);
+    return scanFromFiles(filesToScan, fromSeq, limit, fsPorts, roomId);
   }
 
-  return scanFromFiles([filePath], fromSeq, limit, fsPorts);
+  return scanFromFiles([filePath], fromSeq, limit, fsPorts, roomId);
 }
 
-function scanFromInput(
+export function readLeaseLogs(
   log: readonly Envelope[] | LogSource | string,
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
+  roomId?: string,
 ): Envelope[] {
   if (Array.isArray(log)) {
     const sorted = [...log].sort((a, b) => a.seq - b.seq);
@@ -208,10 +219,10 @@ function scanFromInput(
     }
     const stat = fsStat(log, fsPorts);
     if (stat?.isDirectory()) {
-      return scanFromDirectory(log, fromSeq, limit, fsPorts);
+      return scanFromDirectory(log, fromSeq, limit, fsPorts, roomId);
     }
     if (stat?.isFile()) {
-      return scanFromFile(log, fromSeq, limit, fsPorts);
+      return scanFromFile(log, fromSeq, limit, fsPorts, roomId);
     }
     throw new ChatError("INVALID_STATE", `Expected file or directory at '${log}'`);
   }
@@ -224,10 +235,30 @@ function scanFromInput(
   }
   if ("getEnvelopes" in log && typeof log.getEnvelopes === "function") {
     const all = log.getEnvelopes();
-    return scanFromInput(all, fromSeq, limit, fsPorts);
+    return readLeaseLogs(all, fromSeq, limit, fsPorts, roomId);
   }
 
   return [];
+}
+
+function makeCursor(cursor: ReaderCursor, held: readonly HeldLease[], now: string): ReaderCursor {
+  const unsigned: Omit<ReaderCursor, "checksum"> = {
+    v: 1,
+    room: cursor.room,
+    reader: cursor.reader,
+    contiguous_seq: cursor.contiguous_seq,
+    held,
+    acked_above: cursor.acked_above,
+    last_ack_at: cursor.last_ack_at,
+    last_ack_kind: cursor.last_ack_kind,
+    updated_at: now,
+  };
+  const result: ReaderCursor = {
+    ...unsigned,
+    checksum: computeCursorChecksum(unsigned),
+  };
+  assertCursorInvariants(result);
+  return result;
 }
 
 export function leaseNext(
@@ -290,28 +321,13 @@ export function leaseNext(
     }
   }
 
-  const rawMessages = scanFromInput(log, startSeq, nextLimit, options.fs);
+  const effectiveRoomId = options.roomId ?? cursor.room;
+  const rawMessages = readLeaseLogs(log, startSeq, nextLimit, options.fs, effectiveRoomId);
 
   if (rawMessages.length === 0) {
     if (activeHeld.length !== cursor.held.length) {
-      const unsigned: Omit<ReaderCursor, "checksum"> = {
-        v: 1,
-        room: cursor.room,
-        reader: cursor.reader,
-        contiguous_seq: cursor.contiguous_seq,
-        held: activeHeld,
-        acked_above: cursor.acked_above,
-        last_ack_at: cursor.last_ack_at,
-        last_ack_kind: cursor.last_ack_kind,
-        updated_at: now,
-      };
-      const updatedCursor: ReaderCursor = {
-        ...unsigned,
-        checksum: computeCursorChecksum(unsigned),
-      };
-      assertCursorInvariants(updatedCursor);
       return {
-        cursor: updatedCursor,
+        cursor: makeCursor(cursor, activeHeld, now),
         leaseId: null,
         messages: [],
       };
@@ -356,27 +372,8 @@ export function leaseNext(
 
   const updatedHeld = [...activeHeld, newLease].sort((a, b) => a.from - b.from);
 
-  const unsigned: Omit<ReaderCursor, "checksum"> = {
-    v: 1,
-    room: cursor.room,
-    reader: cursor.reader,
-    contiguous_seq: cursor.contiguous_seq,
-    held: updatedHeld,
-    acked_above: cursor.acked_above,
-    last_ack_at: cursor.last_ack_at,
-    last_ack_kind: cursor.last_ack_kind,
-    updated_at: now,
-  };
-
-  const nextCursor: ReaderCursor = {
-    ...unsigned,
-    checksum: computeCursorChecksum(unsigned),
-  };
-
-  assertCursorInvariants(nextCursor);
-
   return {
-    cursor: nextCursor,
+    cursor: makeCursor(cursor, updatedHeld, now),
     leaseId,
     messages: deliveredMessages,
   };
