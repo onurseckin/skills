@@ -8,7 +8,10 @@ import {
   setActiveTelemetryCollector,
   setTelemetryQuotaProvider,
 } from "../../../olt/scripts/src/orchestrator/concurrency/index.ts";
-import { assessTaskStraggler, type MonitoredTask } from "../../../olt/scripts/src/watchdog/index.ts";
+import {
+  assessTaskStraggler,
+  type MonitoredTask,
+} from "../../../olt/scripts/src/watchdog/index.ts";
 import {
   AntigravityCollector,
   canAdmitTask,
@@ -283,4 +286,3 @@ describe("Domain 20: Brent Work/Span Dynamic Concurrency Scaling (P = ceil(W / S
     setTelemetryQuotaProvider(undefined);
   });
 });
-

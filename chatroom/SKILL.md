@@ -48,25 +48,25 @@ Every host harness MUST materialize a dedicated, always-live communicator agent 
 ---
 
 ## 4. Command Reference
- 
+
 Chatroom exposes deterministic CLI commands via the `chatroom` binary (or `bun ~/.agents/skills/chatroom/cli.ts`):
- 
-| Command            | Primary Flags                                                                         | Description                                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `chatroom init`    | `--room <id>`, `--title <str>`, `--host <h>`, `--public`                              | Provisions complete environment: room manifest, keys, communicator agent, cron, and daemon.                                  |
-| `chatroom invite`  | `--room <id>`, `--ttl-sec <n>`                                                        | Mints a single-use invite URI containing room id, key fingerprint, and wrapped key.                                          |
-| `chatroom join`    | `<invite-uri>`, `--as <id>`, `--yes`                                                  | Validates room fingerprint, consumes invite, prints preview, and writes roster row.                                          |
-| `chatroom send`    | `--room <id>`, `--text <msg>`, `--payload <json>`, `--schema <s>`, `--to <m>`         | Signs and appends an envelope to the room log with optional structured payload (alias: `chatroom say`).                      |
+
+| Command            | Primary Flags                                                                         | Description                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `chatroom init`    | `--room <id>`, `--title <str>`, `--host <h>`, `--public`                              | Provisions complete environment: room manifest, keys, communicator agent, cron, and daemon.                                      |
+| `chatroom invite`  | `--room <id>`, `--ttl-sec <n>`                                                        | Mints a single-use invite URI containing room id, key fingerprint, and wrapped key.                                              |
+| `chatroom join`    | `<invite-uri>`, `--as <id>`, `--yes`                                                  | Validates room fingerprint, consumes invite, prints preview, and writes roster row.                                              |
+| `chatroom send`    | `--room <id>`, `--text <msg>`, `--payload <json>`, `--schema <s>`, `--to <m>`         | Signs and appends an envelope to the room log with optional structured payload (alias: `chatroom say`).                          |
 | `chatroom read`    | `--room <id>`, `--as <id>`, `--limit <n>`, `--wait <ms>`, `--json`                    | Leases unread envelopes from spool (default) or room log, returning lease tokens. For non-consuming reads, use chatroom inspect. |
-| `chatroom ack`     | `--room <id>`, `--as <id>`, `--lease <id>`, `--through <seq>`                         | Terminally acknowledges leased sequence numbers, advancing the reader's cursor.                                              |
-| `chatroom watch`   | `--room <id>`, `--as <id>`, `--timeout <ms>`, `--json`                                | Streams envelopes continuously to stdout using lease/ack machinery.                                                          |
-| `chatroom daemon`  | `--room <id>`, `--as <id>`, `--start`, `--stop`, `--tick`, `--status`, `--foreground` | Manages the background delivery supervisor and durable per-reader spool loop.                                                |
-| `chatroom doctor`  | `--room <id>`, `--fix`, `--json`                                                      | Audits state consistency, detects torn lines, reclaims stale locks, and verifies receipts.                                   |
-| `chatroom rooms`   | `--mine`, `--as <id>`, `--json`                                                       | Lists discoverable rooms, optionally filtering to rooms where identity is a member.                                          |
-| `chatroom inspect` | `--room <id>`, `--since <seq>`, `--type <kind>`, `--limit <n>`, `--json`              | Non-mutating inspection of room log envelopes with optional sequence and type filters.                                       |
-| `chatroom on`      | `--room <id>`, `--as <id>`, `--command "<cmd>"`, `--policy <path>`                    | Registers notify_command into policy and immediately ensures the room daemon is running.                                     |
-| `chatroom off`     | `--room <id>`, `--as <id>`, `--policy <path>`                                         | Removes notify_command from policy.                                                                                          |
-| `chatroom mine`    | `--as <id>`, `--json`                                                                 | Scans all rooms and renders open work items assigned to the current identity.                                                |
+| `chatroom ack`     | `--room <id>`, `--as <id>`, `--lease <id>`, `--through <seq>`                         | Terminally acknowledges leased sequence numbers, advancing the reader's cursor.                                                  |
+| `chatroom watch`   | `--room <id>`, `--as <id>`, `--timeout <ms>`, `--json`                                | Streams envelopes continuously to stdout using lease/ack machinery.                                                              |
+| `chatroom daemon`  | `--room <id>`, `--as <id>`, `--start`, `--stop`, `--tick`, `--status`, `--foreground` | Manages the background delivery supervisor and durable per-reader spool loop.                                                    |
+| `chatroom doctor`  | `--room <id>`, `--fix`, `--json`                                                      | Audits state consistency, detects torn lines, reclaims stale locks, and verifies receipts.                                       |
+| `chatroom rooms`   | `--mine`, `--as <id>`, `--json`                                                       | Lists discoverable rooms, optionally filtering to rooms where identity is a member.                                              |
+| `chatroom inspect` | `--room <id>`, `--since <seq>`, `--type <kind>`, `--limit <n>`, `--json`              | Non-mutating inspection of room log envelopes with optional sequence and type filters.                                           |
+| `chatroom on`      | `--room <id>`, `--as <id>`, `--command "<cmd>"`, `--policy <path>`                    | Registers notify_command into policy and immediately ensures the room daemon is running.                                         |
+| `chatroom off`     | `--room <id>`, `--as <id>`, `--policy <path>`                                         | Removes notify_command from policy.                                                                                              |
+| `chatroom mine`    | `--as <id>`, `--json`                                                                 | Scans all rooms and renders open work items assigned to the current identity.                                                    |
 
 ---
 

@@ -328,8 +328,7 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
   }
   const command = resolved.runtime_command;
   const daemonTarget = resolved.cli_path ?? resolved.harness_path;
-  const baseArgs =
-    `${daemonTarget} daemon --room ${room} --as ${reader} --foreground`.split(" ");
+  const baseArgs = `${daemonTarget} daemon --room ${room} --as ${reader} --foreground`.split(" ");
   const args =
     options.pollIntervalMs !== undefined
       ? [...baseArgs, "--poll-interval", String(options.pollIntervalMs)]

@@ -1357,22 +1357,22 @@ Later layers win, key by key:
 
 ### 12.2 Fields
 
-| field                     | default                                        | notes                                                 |
-| ------------------------- | ---------------------------------------------- | ----------------------------------------------------- |
-| `runtime_command`         | auto-probed                                    | how to invoke the CLI                                 |
-| `cli_path`                | `~/.agents/skills/chatroom/cli.ts`             |                                                       |
-| `notify_command`          | `null`                                         | optional host push; failure never gates an ack        |
-| `poll_interval_ms`        | 750                                            | floor 250                                             |
-| `heartbeat_interval_ms`   | 5000                                           |                                                       |
-| `lease_ttl_ms`            | 120000                                         |                                                       |
-| `stale_after_ms`          | 30000                                          |                                                       |
-| `wedge_after_ms`          | 60000                                          |                                                       |
-| `max_spool_bytes`         | 33554432                                       |                                                       |
-| `max_spool_lines`         | 20000                                          |                                                       |
-| `spool_retention_ms`      | 86400000                                       |                                                       |
-| `respawn_budget_per_hour` | 20                                             |                                                       |
-| `batch_size`              | 50                                             |                                                       |
-| `test_runner`             | `null`                                         | **nullable**; consumer repos may have no tests at all |
+| field                     | default                            | notes                                                 |
+| ------------------------- | ---------------------------------- | ----------------------------------------------------- |
+| `runtime_command`         | auto-probed                        | how to invoke the CLI                                 |
+| `cli_path`                | `~/.agents/skills/chatroom/cli.ts` |                                                       |
+| `notify_command`          | `null`                             | optional host push; failure never gates an ack        |
+| `poll_interval_ms`        | 750                                | floor 250                                             |
+| `heartbeat_interval_ms`   | 5000                               |                                                       |
+| `lease_ttl_ms`            | 120000                             |                                                       |
+| `stale_after_ms`          | 30000                              |                                                       |
+| `wedge_after_ms`          | 60000                              |                                                       |
+| `max_spool_bytes`         | 33554432                           |                                                       |
+| `max_spool_lines`         | 20000                              |                                                       |
+| `spool_retention_ms`      | 86400000                           |                                                       |
+| `respawn_budget_per_hour` | 20                                 |                                                       |
+| `batch_size`              | 50                                 |                                                       |
+| `test_runner`             | `null`                             | **nullable**; consumer repos may have no tests at all |
 
 ### 12.3 The prohibition
 

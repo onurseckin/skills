@@ -149,10 +149,9 @@ export function setTelemetryQuotaProvider(
   globalTelemetryQuotaProvider = provider;
 }
 
-export function getTelemetryQuotaProvider(): (
+export function getTelemetryQuotaProvider():
   | (() => number | null | undefined | QuotaState | UnifiedTelemetryReport | unknown)
-  | undefined
-) {
+  | undefined {
   return globalTelemetryQuotaProvider;
 }
 

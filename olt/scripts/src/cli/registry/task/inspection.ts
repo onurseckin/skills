@@ -2,11 +2,7 @@ import { taskBriefCommand } from "../../commands/task-brief.ts";
 import { taskCheckCommand } from "../../commands/task-check.ts";
 import { taskProbeCommand } from "../../commands/task-ops.ts";
 import { taskListCommand } from "../../commands/task-queue-ops.ts";
-import {
-  DEFAULT_EXIT_CODES,
-  type CommandSpec,
-  type ExitCodeSpec,
-} from "../types.ts";
+import { DEFAULT_EXIT_CODES, type CommandSpec, type ExitCodeSpec } from "../types.ts";
 import { opt, rep, req, taskCmd } from "./lifecycle.ts";
 import { QUEUE_PATH_FLAGS, TRACING_FLAGS } from "./queue.ts";
 
@@ -96,9 +92,4 @@ export const TASK_INSPECTION_COMMANDS: readonly CommandSpec[] = [
   taskListSpec,
 ];
 
-export {
-  taskBriefCommand,
-  taskCheckCommand,
-  taskListCommand,
-  taskProbeCommand,
-};
+export { taskBriefCommand, taskCheckCommand, taskListCommand, taskProbeCommand };

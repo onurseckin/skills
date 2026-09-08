@@ -31,7 +31,6 @@ import type {
 import { OrchestratorWatchdog } from "./watchdog.ts";
 import { bootstrapTelemetryQuota } from "./lifecycle/index.ts";
 
-
 export interface TrackOptions {
   readonly trackId: string;
   readonly repoPath: string;

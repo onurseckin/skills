@@ -29,7 +29,6 @@ import type { DeadAgentEvent } from "./dead-agent-detector.ts";
 import type { BehavioralForensicsReport, CompanionPairingResult } from "./types.ts";
 import { bootstrapTelemetryQuota } from "./lifecycle/index.ts";
 
-
 export interface TaskDispatchInput {
   readonly taskId: string;
   readonly writeScope: readonly string[];

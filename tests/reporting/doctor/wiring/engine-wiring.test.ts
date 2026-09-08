@@ -93,7 +93,6 @@ describe(engineWiringSuiteName, () => {
 });
 
 describe(`${engineWiringSuiteName} - laundering resistance on live source`, () => {
-
   test("wiring checkEpistemicConfidence with an option it never reads fails the guard", () => {
     const laundered = auditEngineWiring(
       withCollectorEdit((text) =>

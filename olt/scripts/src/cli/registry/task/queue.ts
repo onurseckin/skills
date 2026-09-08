@@ -151,10 +151,4 @@ export const TASK_QUEUE_COMMANDS: readonly CommandSpec[] = [
   taskPruneSpec,
 ];
 
-export {
-  taskAddCommand,
-  taskCompleteCommand,
-  taskFailCommand,
-  taskLeaseCommand,
-  taskPruneCommand,
-};
+export { taskAddCommand, taskCompleteCommand, taskFailCommand, taskLeaseCommand, taskPruneCommand };

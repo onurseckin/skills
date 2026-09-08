@@ -72,20 +72,14 @@ export function calculateBrentDecomposition(
   const rawQuota =
     options.quotaPercentage ??
     (typeof options.getQuotaPercentage === "function"
-      ? options.getQuotaPercentage() ?? undefined
+      ? (options.getQuotaPercentage() ?? undefined)
       : undefined) ??
     (typeof options.quotaProvider === "function"
-      ? options.quotaProvider() ?? undefined
+      ? (options.quotaProvider() ?? undefined)
       : undefined) ??
     options.quotaState;
 
-  const optimalParallelism = calculateBrentConcurrency(
-    workUnits,
-    spanLength,
-    minP,
-    maxP,
-    rawQuota,
-  );
+  const optimalParallelism = calculateBrentConcurrency(workUnits, spanLength, minP, maxP, rawQuota);
 
   const scopeFiles = options.scopeFiles ?? [];
   const parentId = options.parentTaskId ?? "task";

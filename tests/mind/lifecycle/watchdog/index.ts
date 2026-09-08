@@ -1,3 +1,1 @@
-export const MIND_LIFECYCLE_WATCHDOG_SUITES = [
-  "watchdog-manager",
-] as const;
+export const MIND_LIFECYCLE_WATCHDOG_SUITES = ["watchdog-manager"] as const;

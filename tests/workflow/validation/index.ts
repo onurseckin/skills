@@ -1,3 +1,1 @@
-export const WORKFLOW_VALIDATION_SUITES = [
-  "cognitive-probes",
-] as const;
+export const WORKFLOW_VALIDATION_SUITES = ["cognitive-probes"] as const;

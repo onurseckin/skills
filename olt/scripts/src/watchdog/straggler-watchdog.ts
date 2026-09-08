@@ -112,10 +112,10 @@ export function assessTaskStraggler(
       const rawQuota =
         options?.quotaPercentage ??
         (typeof options?.getQuotaPercentage === "function"
-          ? options.getQuotaPercentage() ?? undefined
+          ? (options.getQuotaPercentage() ?? undefined)
           : undefined) ??
         (typeof options?.quotaProvider === "function"
-          ? options.quotaProvider() ?? undefined
+          ? (options.quotaProvider() ?? undefined)
           : undefined) ??
         options?.quotaState ??
         task.quota_percentage ??

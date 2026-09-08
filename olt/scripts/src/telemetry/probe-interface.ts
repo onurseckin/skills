@@ -7,4 +7,3 @@ export interface TelemetryCollector {
   readonly latestResult?: PlatformProbeResult | undefined;
   readCurrentQuota?(): number | null | undefined;
 }
-

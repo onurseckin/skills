@@ -16,7 +16,6 @@ import {
   updateCachedTelemetryQuota,
 } from "../../orchestrator/lifecycle/index.ts";
 
-
 export interface ProbeLifecycleQuotaOptions {
   readonly host?: string | undefined;
   readonly activeAgentsCount?: number | undefined;
