@@ -64,7 +64,11 @@ export function compareBaseline(
       added.push(curr);
     } else {
       const baseNodes = new Set(String(matchingBase.observed).split(","));
-      if (currNodes.length > baseNodes.size) {
+      const hasNewNodes = currNodes.some((node) => !baseNodes.has(node));
+      if (
+        currNodes.length > baseNodes.size ||
+        (currNodes.length === baseNodes.size && hasNewNodes)
+      ) {
         worsenedFindings.push(curr);
       }
     }

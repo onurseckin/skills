@@ -257,6 +257,34 @@ describe("baseline comparison", () => {
       ),
     ).toThrow("duplicate");
   });
+
+  test("rejects equal-size cycle with swapped members as worsened", () => {
+    const base: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts,src/c.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const swapped: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts,src/d.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const result = compareBaseline(base, swapped);
+    expect(result.passed).toBe(false);
+    expect(result.baselineDelta.worsened.length).toBe(1);
+  });
 });
 
 describe("report formatting", () => {
