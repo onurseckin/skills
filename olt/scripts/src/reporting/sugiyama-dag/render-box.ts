@@ -11,7 +11,6 @@ import type { SugiyamaNode } from "./types.ts";
 
 export { formatNodeBadges, getNodeStatusGlyph };
 
-// eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\u001b\[[0-9;]*[a-zA-Z]|\u001b\].*?(\u0007|\u001b\\)/g;
 
 export function stripAnsiCodes(text: string): string {
