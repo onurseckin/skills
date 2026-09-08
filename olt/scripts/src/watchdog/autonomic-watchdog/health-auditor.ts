@@ -107,7 +107,7 @@ export class HealthAuditor {
     let rawState: JsonObject | null = null;
     if (this.options.capsuleRoot && existsSync(this.options.capsuleRoot)) {
       try {
-        const storeModule = await import("../../engine/store/capsule/load.ts").catch(() => null);
+        const storeModule = await import("../../engine/store/capsule/index.ts").catch(() => null);
         if (storeModule && typeof storeModule.loadRun === "function") {
           const loaded = storeModule.loadRun(this.options.capsuleRoot, false);
           rawState = isJsonObject(loaded.state) ? (loaded.state as JsonObject) : null;

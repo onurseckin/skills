@@ -1,4 +1,4 @@
-import type { DomPhysicsSnapshot } from "../runners/types.ts";
+import type { DomPhysicsSnapshot } from "../runners/index.ts";
 
 export interface EnvironmentContext {
   readonly timestamp: string;

@@ -1,4 +1,4 @@
-import type { CodeRemediation, CodeRemediationFramework } from "../types.ts";
+import type { CodeRemediation, CodeRemediationFramework } from "../index.ts";
 
 interface CategoryTemplate {
   readonly description: string;

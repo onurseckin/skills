@@ -2,7 +2,7 @@ import type {
   CaptureBrowserDriver,
   CaptureBrowserProvider,
   CapturePageDriver,
-} from "../runners/types.ts";
+} from "../runners/index.ts";
 
 export type PoolState = "INITIALIZING" | "READY" | "DRAINING" | "CLOSED";
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { CaptureBrowserDriver, CapturePageDriver } from "../runners/types.ts";
+import type { CaptureBrowserDriver, CapturePageDriver } from "../runners/index.ts";
 import type { BrowserInstanceStatus, IPooledBrowserInstance } from "./types.ts";
 
 export class PooledBrowserInstance implements IPooledBrowserInstance {

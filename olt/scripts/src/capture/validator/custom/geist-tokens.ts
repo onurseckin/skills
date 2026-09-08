@@ -1,5 +1,5 @@
-import type { ElementPhysicsSnapshot, ValidationDefect } from "../types.ts";
-import { generateRemediations } from "../synthesis/remediation-generator.ts";
+import type { ElementPhysicsSnapshot, ValidationDefect } from "../index.ts";
+import { generateRemediations } from "../synthesis/index.ts";
 
 const GEIST_ALLOWED_RADII = new Set([0, 4, 6, 8, 12, 16, 24, 9999]);
 

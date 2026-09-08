@@ -1,4 +1,4 @@
-import type { DomPhysicsSnapshot } from "../runners/types.ts";
+import type { DomPhysicsSnapshot } from "../runners/index.ts";
 import { computeMerkleRoot, computeNodeStateHash } from "./state-hasher.ts";
 import type { SnapshotContext, SnapshotNode, SnapshotTreeStats } from "./types.ts";
 

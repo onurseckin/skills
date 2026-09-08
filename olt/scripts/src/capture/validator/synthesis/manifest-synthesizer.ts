@@ -7,7 +7,7 @@ import type {
   ValidationDefect,
   ValidationPillar,
   ValidationVerdict,
-} from "../types.ts";
+} from "../index.ts";
 import { validateMechanical } from "../mechanical/index.ts";
 import { evaluateCognitiveQuestions, validateCognitive } from "../cognitive/index.ts";
 import { validateCustom } from "../custom/index.ts";

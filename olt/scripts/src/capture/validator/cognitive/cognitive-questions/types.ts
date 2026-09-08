@@ -1,4 +1,4 @@
-import type { ElementPhysicsSnapshot, ValidationContext } from "../../types.ts";
+import type { ElementPhysicsSnapshot, ValidationContext } from "../../index.ts";
 
 export interface QuestionEvaluatorParams {
   readonly context: ValidationContext;

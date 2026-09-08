@@ -2,7 +2,7 @@ import type {
   CaptureBrowserDriver,
   CaptureBrowserProvider,
   CapturePageDriver,
-} from "../runners/types.ts";
+} from "../runners/index.ts";
 import { BrowserPoolManager } from "./pool-manager.ts";
 import type { BrowserPoolOptions, IPooledBrowserInstance } from "./types.ts";
 

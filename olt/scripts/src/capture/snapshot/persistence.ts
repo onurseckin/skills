@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, normalize, resolve } from "node:path";
-import { atomicWriteBytes } from "../../core/durable-write.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { atomicWriteBytes } from "../../core/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { SnapshotTree } from "./snapshot-tree.ts";
 import { verifySnapshotIntegrity } from "./state-hasher.ts";
 import type { SnapshotNode, SnapshotTreeStats } from "./types.ts";

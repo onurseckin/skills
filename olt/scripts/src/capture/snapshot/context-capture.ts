@@ -1,4 +1,4 @@
-import type { CaptureViewport } from "../config/types.ts";
+import type { CaptureViewport } from "../config/index.ts";
 import { sha256Hex } from "./state-hasher.ts";
 import type {
   EnvironmentContext,

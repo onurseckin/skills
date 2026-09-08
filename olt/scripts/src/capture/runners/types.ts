@@ -5,8 +5,8 @@ import type {
   CaptureScreenTarget,
   CaptureUserConfig,
   CaptureViewport,
-} from "../config/types.ts";
-import type { CognitiveAnalysisReport, EvaluatedCriterion } from "../validator/types.ts";
+} from "../config/index.ts";
+import type { CognitiveAnalysisReport, EvaluatedCriterion } from "../validator/index.ts";
 
 export interface CaptureCookie {
   readonly name: string;

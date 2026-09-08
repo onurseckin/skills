@@ -4,12 +4,12 @@ import type {
   BrentConcurrencyPlan,
   RawDefectItem,
   StragglerAssessment,
-} from "../mind/preplanning/types.ts";
+} from "../mind/preplanning/index.ts";
 import {
   calculateBrentDecomposition,
   resolveMeasuredQuotaPercentage,
   type QuotaState,
-} from "../orchestrator/velocity-rebalancer.ts";
+} from "../orchestrator/concurrency/index.ts";
 
 export const STRAGGLER_SLA_SECONDS = 300;
 export const PROGRESS_SILENCE_THRESHOLD_SECONDS = 120;

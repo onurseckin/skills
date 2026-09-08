@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { CompanionManifestV2 } from "../types.ts";
+import type { CompanionManifestV2 } from "../index.ts";
 
 export function formatManifestFilename(screenId: string, viewport: string): string {
   const sanitizedScreen = screenId.replace(/[^a-zA-Z0-9_-]/g, "_");

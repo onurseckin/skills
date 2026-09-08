@@ -1,8 +1,8 @@
 import { join, resolve } from "node:path";
-import { loadCaptureConfig } from "../../config/config-loader.ts";
-import { CANONICAL_VIEWPORTS } from "../../config/default-presets.ts";
-import type { CaptureConfig, CaptureScreenTarget, CaptureViewport } from "../../config/types.ts";
-import { resolveCapsulesDir } from "../../../core/shared/paths.ts";
+import { loadCaptureConfig } from "../../config/index.ts";
+import { CANONICAL_VIEWPORTS } from "../../config/index.ts";
+import type { CaptureConfig, CaptureScreenTarget, CaptureViewport } from "../../config/index.ts";
+import { resolveCapsulesDir } from "../../../core/shared/index.ts";
 import type { CaptureRunOptions } from "../types.ts";
 
 export function resolveCaptureOutputDir(options: CaptureRunOptions, config: CaptureConfig): string {

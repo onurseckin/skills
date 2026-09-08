@@ -1,4 +1,4 @@
-import type { ElementBoundingBox } from "../../types.ts";
+import type { ElementBoundingBox } from "../../index.ts";
 import { calculateConcentricRadius, validateNestedConcentricCorners } from "./concentricity.ts";
 import { auditFocusRingContrast } from "./contrast.ts";
 import { calculateOpticalCurvatureMetrics } from "./curvature.ts";

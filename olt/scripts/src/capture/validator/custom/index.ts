@@ -1,4 +1,4 @@
-import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../types.ts";
+import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../index.ts";
 import { validateWaiAriaFocusTrap } from "./wai-aria-focus-trap.ts";
 import { validateFloatingUiCollision } from "./floating-ui-collision.ts";
 import { validateMaterialStateLayers } from "./material-state-layers.ts";

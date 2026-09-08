@@ -1,5 +1,5 @@
 import { generateCanonicalDefaultPolicy } from "../policy/index.ts";
-import { loadRepoPolicy } from "../policy/repo-policy.ts";
+import { loadRepoPolicy } from "../policy/index.ts";
 import type { ContainerConfig, RepoPolicy } from "../policy/types/index.ts";
 
 /**

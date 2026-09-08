@@ -1,6 +1,6 @@
-import type { SidebarLayoutConfig } from "../../config/types.ts";
-import type { ElementPhysicsSnapshot, ValidationDefect } from "../types.ts";
-import { generateRemediations } from "../synthesis/remediation-generator.ts";
+import type { SidebarLayoutConfig } from "../../config/index.ts";
+import type { ElementPhysicsSnapshot, ValidationDefect } from "../index.ts";
+import { generateRemediations } from "../synthesis/index.ts";
 
 export function validateSidebarLayout(
   elements: readonly ElementPhysicsSnapshot[],

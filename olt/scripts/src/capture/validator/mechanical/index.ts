@@ -1,4 +1,4 @@
-import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../types.ts";
+import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../index.ts";
 import { validateApcaElement, calculateApcaLightness } from "./apca.ts";
 import { validateTouchTargetDimensions, validateTouchTargetClearance } from "./touch-target.ts";
 import { validateConcentricRadius } from "./concentric-radius.ts";

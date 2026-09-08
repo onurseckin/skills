@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { DomPhysicsSnapshot } from "../runners/types.ts";
+import type { DomPhysicsSnapshot } from "../runners/index.ts";
 import type { SnapshotContext, SnapshotNode } from "./types.ts";
 
 export const GENESIS_MERKLE_ROOT = "0".repeat(64);

@@ -1,4 +1,4 @@
-import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../types.ts";
+import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../index.ts";
 import { validateCowanChunking } from "./cowan-chunking.ts";
 import { validateFittsLaw } from "./fitts-law.ts";
 import { validateHickHyman } from "./hick-hyman.ts";

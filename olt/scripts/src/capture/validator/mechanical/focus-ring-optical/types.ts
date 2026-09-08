@@ -1,4 +1,4 @@
-import type { ElementBoundingBox } from "../../types.ts";
+import type { ElementBoundingBox } from "../../index.ts";
 
 /**
  * Geometric definition of an element's focus ring and its surrounding physical context.

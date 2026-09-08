@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { loadCaptureConfig } from "../../config/config-loader.ts";
+import { loadCaptureConfig } from "../../config/index.ts";
 import { synthesizeCompanionManifest, type ValidationContext } from "../../validator/index.ts";
 import { extractDomPhysics } from "../dom-physics-extractor.ts";
 import { extractPngDimensions, validatePngBuffer } from "../png-ihdr-validator.ts";

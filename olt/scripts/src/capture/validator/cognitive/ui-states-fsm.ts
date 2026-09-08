@@ -1,5 +1,5 @@
-import type { ElementPhysicsSnapshot, UIInteractionState, ValidationDefect } from "../types.ts";
-import { generateRemediations } from "../synthesis/remediation-generator.ts";
+import type { ElementPhysicsSnapshot, UIInteractionState, ValidationDefect } from "../index.ts";
+import { generateRemediations } from "../synthesis/index.ts";
 
 const REQUIRED_UI_STATES: readonly UIInteractionState[] = [
   "default",

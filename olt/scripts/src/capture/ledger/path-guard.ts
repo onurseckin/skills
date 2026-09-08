@@ -1,7 +1,7 @@
 import { normalize, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import { resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import { resolveCapsulesDir } from "../../core/shared/index.ts";
 
 export function assertSafeLedgerPath(targetPath: string): void {
   const normalized = normalize(resolve(targetPath));

@@ -1,4 +1,4 @@
-import type { CaptureAuthConfig, CaptureConfig, CaptureUserConfig } from "../config/types.ts";
+import type { CaptureAuthConfig, CaptureConfig, CaptureUserConfig } from "../config/index.ts";
 import type { CapturePageDriver, ResolvedSessionAuth } from "./types.ts";
 
 export const CANONICAL_ROLES: readonly string[] = ["admin", "driver", "customer", "custom"];

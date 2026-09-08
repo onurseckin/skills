@@ -1,5 +1,5 @@
-import type { ElementPhysicsSnapshot, ValidationDefect } from "../types.ts";
-import { generateRemediations } from "../synthesis/remediation-generator.ts";
+import type { ElementPhysicsSnapshot, ValidationDefect } from "../index.ts";
+import { generateRemediations } from "../synthesis/index.ts";
 
 const FLOATING_BOUNDARY_PADDING = 8;
 
