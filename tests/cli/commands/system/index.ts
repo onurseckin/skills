@@ -1,6 +1,8 @@
-export * as infra from "./infra/index.ts";
-export * as ops from "./ops/index.ts";
-export * as services from "./services/index.ts";
-export * as dag from "./dag/index.ts";
-export * as todo from "./todo/index.ts";
-export * as orchestration from "./orchestration/index.ts";
+import * as infra from "./infra/index.ts";
+import * as ops from "./ops/index.ts";
+import * as services from "./services/index.ts";
+import * as dag from "./dag/index.ts";
+import * as todo from "./todo/index.ts";
+import * as orchestration from "./orchestration/index.ts";
+
+export { infra, ops, services, dag, todo, orchestration };

@@ -1,6 +1,8 @@
-export * as guard from "./guard/index.ts";
-export * as metadata from "./metadata/index.ts";
-export * as session from "./session/index.ts";
+import * as guard from "./guard/index.ts";
+import * as metadata from "./metadata/index.ts";
+import * as session from "./session/index.ts";
+
+export { guard, metadata, session };
 
 export {
   checkReadScopeAuthorization,

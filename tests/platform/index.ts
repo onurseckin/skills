@@ -1,6 +1,8 @@
-export * as adapters from "./adapters/index.ts";
-export * as host from "./host/index.ts";
-export * as process from "./process/index.ts";
+import * as adapters from "./adapters/index.ts";
+import * as host from "./host/index.ts";
+import * as process from "./process/index.ts";
+
+export { adapters, host, process };
 
 export {
   AntigravityHostAdapter,

@@ -1,3 +1,1 @@
-export {
-  // Core test domain facade
-} from "./config/index.ts";
+export { CORE_SHARED_SUITES } from "./shared/index.ts";

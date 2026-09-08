@@ -1,11 +1,13 @@
-export * as audit from "./audit/index.ts";
-export * as engine from "./engine/index.ts";
-export * as hooks from "./hooks/index.ts";
-export * as io from "./io/index.ts";
-export * as rbac from "./rbac/index.ts";
-export * as review from "./review/index.ts";
-export * as schema from "./schema/index.ts";
-export * as toolchain from "./toolchain/index.ts";
+import * as audit from "./audit/index.ts";
+import * as engine from "./engine/index.ts";
+import * as hooks from "./hooks/index.ts";
+import * as io from "./io/index.ts";
+import * as rbac from "./rbac/index.ts";
+import * as review from "./review/index.ts";
+import * as schema from "./schema/index.ts";
+import * as toolchain from "./toolchain/index.ts";
+
+export { audit, engine, hooks, io, rbac, review, schema, toolchain };
 export {
   setupVirtualPolicyFS,
   cleanupVirtualPolicyFS,

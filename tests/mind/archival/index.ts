@@ -1,0 +1,17 @@
+export const MIND_ARCHIVAL_SUITES = [
+  "archival-compactor",
+  "archival-pruner",
+  "archival-validator",
+  "completed-ledger",
+  "generational",
+  "pruner",
+  "quiesce-evaluator",
+  "quiesce-types",
+  "recycler-collector",
+  "recycler-reporter",
+  "recycler-scanner",
+  "rotate-finisher",
+  "rotate-history",
+  "rotator-coverage",
+  "writer-coverage",
+] as const;

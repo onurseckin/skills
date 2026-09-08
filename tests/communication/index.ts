@@ -1,9 +1,11 @@
-export * as cursor from "./cursor/index.ts";
-export * as envelope from "./envelope/index.ts";
-export * as guard from "./guard/index.ts";
-export * as locking from "./locking/index.ts";
-export * as mailbox from "./mailbox/index.ts";
-export * as quarantine from "./quarantine/index.ts";
+import * as cursor from "./cursor/index.ts";
+import * as envelope from "./envelope/index.ts";
+import * as guard from "./guard/index.ts";
+import * as locking from "./locking/index.ts";
+import * as mailbox from "./mailbox/index.ts";
+import * as quarantine from "./quarantine/index.ts";
+
+export { cursor, envelope, guard, locking, mailbox, quarantine };
 
 export {
   DEFAULT_MAX_SEEN_IDS,

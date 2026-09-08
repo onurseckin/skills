@@ -1,7 +1,9 @@
-export * as config from "./config/index.ts";
-export * as dispatcher from "./dispatcher/index.ts";
-export * as execution from "./execution/index.ts";
-export * as security from "./security/index.ts";
+import * as config from "./config/index.ts";
+import * as dispatcher from "./dispatcher/index.ts";
+import * as execution from "./execution/index.ts";
+import * as security from "./security/index.ts";
+
+export { config, dispatcher, execution, security };
 
 export {
   DEFAULT_DARWIN_AUDIO_COMMAND,

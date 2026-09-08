@@ -1,3 +1,4 @@
+export { TESTING_RANKING_HTML_SUITES } from "./html/index.ts";
 export { createSampleRuntimeSummary } from "./fixture.ts";
 
 export const RANKING_SUITES = [

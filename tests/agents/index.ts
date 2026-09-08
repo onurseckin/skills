@@ -1,7 +1,3 @@
-/**
- * Agents Domain Test & Logic Facades.
- * Explicit named exports - zero wildcard export *.
- */
 export {
   releaseGrantInLedger,
   releaseAllActiveGrants,
@@ -78,6 +74,8 @@ export {
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
 } from "./governance/index.ts";
+
+export { AGENTS_FLEET_SUITES } from "./fleet/index.ts";
 
 export {
   setupVirtualAgentsFS,

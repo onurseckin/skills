@@ -20,3 +20,7 @@ export {
 } from "./review/index.ts";
 
 export { FakeRunStore, seedLedger, seedTask, baseLedger, FAKE_RUN_ROOT } from "./worktree/index.ts";
+
+export { WORKFLOW_GATES_SUITES } from "./gates/index.ts";
+export { WORKFLOW_LIFECYCLE_SUITES } from "./lifecycle/index.ts";
+export { WORKFLOW_VALIDATION_SUITES } from "./validation/index.ts";

@@ -3,6 +3,7 @@ import { RUNNER_SUITES } from "./runner/index.ts";
 import { SCHEDULER_SUITES } from "./scheduler/index.ts";
 import { STORE_SUITES } from "./store/index.ts";
 import { SYNC_SUITES } from "./sync/index.ts";
+import { DAG_SUITES } from "./dag/index.ts";
 
 export { createTestPolicy, POLICY_SUITES } from "./policy/index.ts";
 export { createTestAgentMetadata, RUNNER_SUITES } from "./runner/index.ts";
@@ -14,6 +15,7 @@ export {
   createTestProgressSnapshot,
   SYNC_SUITES,
 } from "./sync/index.ts";
+export { DAG_SUITES } from "./dag/index.ts";
 
 export const ENGINE_DOMAIN_SUITES = {
   policy: POLICY_SUITES,
@@ -21,4 +23,5 @@ export const ENGINE_DOMAIN_SUITES = {
   scheduler: SCHEDULER_SUITES,
   store: STORE_SUITES,
   sync: SYNC_SUITES,
+  dag: DAG_SUITES,
 } as const;

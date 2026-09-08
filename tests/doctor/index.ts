@@ -40,6 +40,8 @@ export {
   doctorDiagnosticsWiringSuiteName,
 } from "./diagnostics/index.ts";
 
+export { planQualityEngineSuiteName } from "./plan-quality/index.ts";
+
 export {
   setupVirtualDoctorFS,
   cleanupVirtualDoctorFS,

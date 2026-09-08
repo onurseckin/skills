@@ -1,17 +1,3 @@
-/**
- * Lane 10: Authority Domain Root Test Facade.
- * Re-exports domain facades across all 8 subdomains:
- * - session/
- * - grants/
- * - rbac/
- * - tokens/
- * - manifest/
- * - persona/
- * - review/
- * - watchdog/
- */
-
-// 1. Session Subdomain
 export {
   enableInMemorySessionStore,
   disableInMemorySessionStore,
@@ -53,7 +39,6 @@ export {
   type ResolveSessionOptions,
 } from "./session/index.ts";
 
-// 2. Grants Subdomain
 export {
   assertCoordinatorPreToolGuard,
   isCoordinatorFileEditForbidden,
@@ -81,7 +66,6 @@ export {
   type ManagedTaskContext,
 } from "./grants/index.ts";
 
-// 3. RBAC Subdomain
 export {
   verifyCommandAuthorization,
   executeShieldedCommand,
@@ -103,7 +87,6 @@ export {
   type ScopeOverlap,
 } from "./rbac/index.ts";
 
-// 4. Tokens Subdomain
 export {
   identifyExecutionContext,
   formatThreadIdentificationBrief,
@@ -133,7 +116,6 @@ export {
   type ParsedStandardAgentId,
 } from "./tokens/index.ts";
 
-// 5. Manifest Subdomain
 export {
   parseYaml,
   parseMarkdownFrontmatter,
@@ -155,7 +137,6 @@ export {
   type UnifiedAgentManifest,
 } from "./manifest/index.ts";
 
-// 6. Persona Subdomain
 export {
   COGNITIVE_PILLARS,
   COGNITIVE_PILLARS_COUNT,
@@ -198,7 +179,6 @@ export {
   type SubagentDispatchContext,
 } from "./persona/index.ts";
 
-// 7. Review Subdomain
 export {
   SUPERFICIAL_PATTERNS,
   rejectSuperficialClaims,
@@ -219,7 +199,6 @@ export {
   type PushbackHistory,
 } from "./review/index.ts";
 
-// 8. Watchdog Subdomain
 export {
   loadWatchdogStore,
   saveWatchdogStore,
@@ -245,7 +224,9 @@ export {
   type WatchdogStatus,
 } from "./watchdog/index.ts";
 
-// 9. Virtual Fixture
+export { AUTHORITY_THREAD_SUITES } from "./thread/index.ts";
+export { AUTHORITY_GUARDS_SUITES } from "./guards/index.ts";
+
 export {
   setupVirtualAuthorityFS,
   cleanupVirtualAuthorityFS,

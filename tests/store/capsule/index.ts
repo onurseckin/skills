@@ -1,7 +1,4 @@
-/**
- * @file index.ts
- * Facade for Store Capsule subpackage
- */
+export { STORE_CAPSULE_BLOBS_SUITES } from "./blobs/index.ts";
 
 export const STORE_CAPSULE_SUITES = [
   "manifest",

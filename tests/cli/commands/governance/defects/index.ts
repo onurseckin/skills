@@ -1,3 +1,6 @@
+export { CLI_DEFECTS_META_SUITES } from "./meta/index.ts";
+export { CLI_DEFECTS_AUDIT_SUITES } from "./audit/index.ts";
+
 export const CLI_GOVERNANCE_DEFECTS_SUITES = [
   "defect-ops",
   "finding-ops",

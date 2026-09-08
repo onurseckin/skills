@@ -22,6 +22,11 @@ export {
   setInMemoryMailbox,
   setInMemoryStreamMode,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
+
+export { MAILBOX_LIFECYCLE_SUITES } from "./lifecycle/index.ts";
+export { MAILBOX_OPERATIONS_SUITES } from "./operations/index.ts";
+export { MAILBOX_DELIVERY_SUITES } from "./delivery/index.ts";
+
 export type {
   CollectReceiptsOptions,
   CollectReceiptsResult,

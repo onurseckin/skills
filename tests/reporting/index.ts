@@ -34,6 +34,9 @@ export {
   doctorUnifiedSuiteName,
   socraticValidatorSuiteName,
   statusDoctorGapsSuiteName,
+  planQualityEngineSuiteName,
+  roleBoundaryShellSuiteName,
+  REPORTING_DOCTOR_SUITES,
 } from "./doctor/index.ts";
 
 export {
@@ -72,6 +75,9 @@ export {
   themeContrastMatrixSuiteName,
   visualReportSuiteName,
 } from "./visuals/index.ts";
+
+export { REPORTING_TUI_SUITES } from "./tui/index.ts";
+export { REPORTING_COMMANDS_SUITES } from "./commands/index.ts";
 
 export {
   cleanupVirtualReportingFS,
