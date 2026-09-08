@@ -79,7 +79,8 @@ export type CommandDomain =
   | "sched"
   | "role"
   | "hygiene"
-  | "defect";
+  | "defect"
+  | "optimize";
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "plan",
@@ -107,6 +108,7 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "role",
   "hygiene",
   "defect",
+  "optimize",
 ];
 
 export type CommandHandler = (

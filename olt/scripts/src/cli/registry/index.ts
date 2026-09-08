@@ -15,6 +15,7 @@ import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
 import { MIND_COMMANDS } from "./mind/index.ts";
 import { ENGINE_COMMANDS, MSG_COMMANDS } from "./engine.ts";
+import { OPTIMIZE_COMMANDS } from "./optimize.ts";
 import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 import { ORPHAN_COMMANDS } from "./orphan.ts";
 import { PLAN_COMMANDS } from "./plan.ts";
@@ -97,6 +98,7 @@ export { INSPECTION_COMMANDS } from "./inspection.ts";
 export { INSTALL_COMMANDS } from "./install.ts";
 export { MIND_COMMANDS } from "./mind/index.ts";
 export { ENGINE_COMMANDS, MSG_COMMANDS } from "./engine.ts";
+export { OPTIMIZE_COMMANDS } from "./optimize.ts";
 export { DEFAULT_WATCH_INTERVAL_SECONDS, ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 export { ORPHAN_COMMANDS } from "./orphan.ts";
 export { PLAN_COMMANDS } from "./plan.ts";
@@ -138,6 +140,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...POLICY_COMMANDS,
   ...FACTORY_COMMANDS,
   ...ENGINE_COMMANDS,
+  ...OPTIMIZE_COMMANDS,
   ...WORKFLOW_COMMANDS,
   ...SCHED_COMMANDS,
   ...ROLE_COMMANDS,

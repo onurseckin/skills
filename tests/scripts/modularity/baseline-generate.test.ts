@@ -7,7 +7,7 @@ import {
   generateBaseline,
 } from "../../../scripts/modularity/baseline/generate.ts";
 import type { Violation, ViolationRule } from "../../../scripts/modularity/core/index.ts";
-import { readHeadBlobs } from "../../../scripts/modularity/inventory/index.ts";
+import { readHeadBlobs, readIndexedBlobs } from "../../../scripts/modularity/inventory/index.ts";
 import { PATH_BEARING_RULE_CONTRACTS } from "../../../scripts/modularity/policy/baseline.ts";
 import { loadBaseline, type ModularityBaseline } from "../../../scripts/modularity/policy/index.ts";
 
@@ -192,9 +192,10 @@ describe("modularity baseline generator", () => {
   });
 
   test("CLEAN BASELINE PROVENANCE: actual repo baseline has zero phantom paths against HEAD", async () => {
-    const headBlobs = await readHeadBlobs(".");
+    const indexed = await readIndexedBlobs(".");
+    const blobs = indexed.length > 0 ? indexed : await readHeadBlobs(".");
     const baseline = await loadBaseline(".", "scripts/modularity/baseline/index.json");
-    expect(() => assertNoPhantomPaths(baseline, headBlobs)).not.toThrow();
+    expect(() => assertNoPhantomPaths(baseline, blobs)).not.toThrow();
   });
 
   test("assertNoPhantomPaths catches phantom observed target in facade_bypass", () => {

@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ScanSource, Violation } from "../core/index.ts";
-import { readHeadBlobs } from "../inventory/index.ts";
+import { readHeadBlobs, readIndexedBlobs, readTreeBlobs } from "../inventory/index.ts";
 import { checkModularity } from "../modularity-engine.ts";
 import { assertNoPhantomPaths, type ModularityBaseline } from "../policy/index.ts";
 
@@ -54,8 +54,13 @@ export async function generateBaseline(
     repoRoot,
   });
   const baseline = buildBaselineDocument(report.violations);
-  const headBlobs = await readHeadBlobs(repoRoot);
-  assertNoPhantomPaths(baseline, headBlobs);
+  const blobs =
+    source === "index"
+      ? await readIndexedBlobs(repoRoot)
+      : source === "tree"
+        ? await readTreeBlobs(repoRoot)
+        : await readHeadBlobs(repoRoot);
+  assertNoPhantomPaths(baseline, blobs);
   return baseline;
 }
 

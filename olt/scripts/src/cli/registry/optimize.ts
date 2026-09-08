@@ -1,0 +1,165 @@
+import {
+  optimizeAnalyzeCommand,
+  optimizeCheckAstCommand,
+  optimizeCheckDriftCommand,
+  optimizeCheckTestsCommand,
+  optimizeQuarantineCommand,
+  optimizeScanCommand,
+} from "../commands/optimize/index.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
+
+export const OPTIMIZE_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "optimize:scan",
+    aliases: ["opt:scan"],
+    domain: "optimize",
+    tier: "internal",
+    summary: "Scan codebase for architectural and quality violations across five pillars.",
+    description:
+      "Evaluates codebase files against modularity (<= 400 SLOC), purity, type safety, hot-path latency, and ergonomics rules.",
+    flags: [
+      optionalFlag("dir", "string", "Directory path to scan."),
+      optionalFlag("root", "string", "Root directory path to scan (alias for dir)."),
+      optionalFlag("strict", "bool", "Fail with non-zero exit when violations are detected."),
+      optionalFlag("json", "bool", "Output results in JSON format."),
+      optionalFlag("pillar", "string", "Filter scan violations by specific pillar."),
+      optionalFlag("limit", "int", "Maximum number of violations to report."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts optimize:scan --dir src --strict",
+      "bun harness.ts opt:scan --pillar modularity",
+    ],
+    handler: optimizeScanCommand,
+  },
+  {
+    name: "optimize:analyze",
+    aliases: ["opt:analyze"],
+    domain: "optimize",
+    tier: "internal",
+    summary: "Empirical decomposition analysis and public API surface locking for target file.",
+    description:
+      "Generates empirical baseline metrics, inbound/outbound coupling map, submodule decomposition, public API surface lock, verification gates, and rollback thresholds.",
+    flags: [
+      requiredFlag("target", "string", "Path to source file to analyze."),
+      optionalFlag("out", "string", "Output markdown analysis file path."),
+      optionalFlag("dry-run", "bool", "Simulate analysis without writing output file."),
+      optionalFlag("json", "bool", "Output results in JSON format."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts optimize:analyze --target src/core/engine.ts --dry-run",
+      "bun harness.ts opt:analyze --target src/core/engine.ts",
+    ],
+    handler: optimizeAnalyzeCommand,
+  },
+  {
+    name: "optimize:check-ast",
+    aliases: ["opt:check-ast"],
+    domain: "optimize",
+    tier: "internal",
+    summary: "Verify AST public API invariants and prevent signature mutations or evasions.",
+    description:
+      "Compares pre- and post-mutation AST representations to detect added, removed, or mutated public exports, and checks for double-cast type safety evasions.",
+    flags: [
+      optionalFlag("pre", "string", "Pre-mutation file path or source content."),
+      optionalFlag("post", "string", "Post-mutation file path or source content."),
+      optionalFlag(
+        "target",
+        "string",
+        "Target file path to compare against HEAD or pre-mutation version.",
+      ),
+      optionalFlag("strict", "bool", "Throw on any AST invariant breach."),
+      optionalFlag("json", "bool", "Output results in JSON format."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts optimize:check-ast --pre old.ts --post new.ts --strict",
+      "bun harness.ts opt:check-ast --target src/core/engine.ts",
+    ],
+    handler: optimizeCheckAstCommand,
+  },
+  {
+    name: "optimize:check-tests",
+    aliases: ["opt:check-tests"],
+    domain: "optimize",
+    tier: "internal",
+    summary: "Enforce assertion preservation gate and prohibit test deletions or evasion.",
+    description:
+      "Inspects git diff or pre/post test content to ensure zero assertions are deleted or commented out.",
+    flags: [
+      optionalFlag("target", "string", "Target test file or directory path filter."),
+      optionalFlag("base", "string", "Base git reference to diff against (default HEAD)."),
+      optionalFlag("diff", "string", "Git diff file path or inline diff string to check."),
+      optionalFlag("json", "bool", "Output results in JSON format."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts optimize:check-tests --target tests/core",
+      "bun harness.ts opt:check-tests --base HEAD~1",
+    ],
+    handler: optimizeCheckTestsCommand,
+  },
+  {
+    name: "optimize:quarantine",
+    aliases: ["opt:quarantine"],
+    domain: "optimize",
+    tier: "internal",
+    summary: "Isolate and quarantine failing optimization plans with atomic recovery.",
+    description:
+      "Cleans target child worktrees, restores git index to clean main, verifies compiler health, and archives quarantine details to QUARANTINED.md.",
+    flags: [
+      requiredFlag("plan", "string", "Plan slug to quarantine."),
+      optionalFlag("reason", "string", "Reason for quarantine."),
+      optionalFlag("defect", "string", "Defect identifier or defect commit SHA."),
+      optionalFlag("dry-run", "bool", "Simulate quarantine without modifying worktrees or files."),
+      optionalFlag("json", "bool", "Output results in JSON format."),
+      optionalFlag("failure-logs", "string", "Raw failure log output or details."),
+      optionalFlag(
+        "clean-all",
+        "bool",
+        "Clean all active worktrees instead of only target plan worktrees.",
+      ),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts optimize:quarantine --plan my-plan --dry-run",
+      "bun harness.ts opt:quarantine --plan my-plan --reason 'Persistent test failure'",
+    ],
+    handler: optimizeQuarantineCommand,
+  },
+  {
+    name: "optimize:check-drift",
+    aliases: ["opt:check-drift", "opt:drift"],
+    domain: "optimize",
+    tier: "internal",
+    summary: "Check for code-relevant drift against baseline to enforce quiescent standby.",
+    description:
+      "Differentiates code-relevant mutations from quiescent/hygiene changes across specified git revisions or file paths.",
+    flags: [
+      optionalFlag("base", "string", "Base git reference to compare against (default HEAD~1)."),
+      optionalFlag("target", "string", "Target path or directory to check for drift."),
+      optionalFlag("paths", "string", "Explicit paths list or comma-separated string to evaluate."),
+      optionalFlag("json", "bool", "Output results in JSON format."),
+      optionalFlag("strict", "bool", "Fail with exit code 1 if code-relevant drift is detected."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts optimize:check-drift --base HEAD~1 --strict",
+      "bun harness.ts opt:drift --paths src/index.ts,src/core.ts",
+    ],
+    handler: optimizeCheckDriftCommand,
+  },
+];
