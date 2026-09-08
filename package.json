@@ -2,10 +2,6 @@
   "name": "@onurseckin/skills",
   "version": "0.1.0",
   "private": true,
-  "bin": {
-    "chatroom": "./chatroom/cli.ts",
-    "chat": "./chatroom/cli.ts"
-  },
   "description": "Personal collection of autonomous agent skills for AI assistants",
   "keywords": [
     "agent-skills",
@@ -18,8 +14,13 @@
   ],
   "license": "MIT",
   "author": "Onur Seçkin Şenoğlu",
+  "bin": {
+    "chat": "./chatroom/cli.ts",
+    "chatroom": "./chatroom/cli.ts"
+  },
   "type": "module",
   "scripts": {
+    "prepare": "lefthook install && bun scripts/git/harden-hooks.ts",
     "test": "bun scripts/testing/test-runner.ts tests",
     "test:all": "bun scripts/testing/test-runner.ts tests",
     "test:changed": "bun scripts/testing/test-changed.ts",

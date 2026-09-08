@@ -24,3 +24,4 @@ export {
   isHookFailingClosed,
   runHookHardener,
 } from "./hook-template.ts";
+export { computeIsHardenHooksMain, executeHardenHooksCli } from "./harden-hooks.ts";

@@ -8,7 +8,9 @@ import {
   FAIL_CLOSED_ERROR_MESSAGE,
   STANDARD_HOOK_NAMES,
   buildGitHookTemplate,
+  computeIsHardenHooksMain,
   computeIsHookTemplateMain,
+  executeHardenHooksCli,
   hardenGitHooksDirectory,
   hardenHookFile,
   hardenHookScript,
@@ -156,5 +158,25 @@ describe("git hook template and fail-closed hardening", () => {
     expect(computeIsHookTemplateMain(false, "/repo/scripts/git/hook-template.ts")).toBe(true);
     expect(computeIsHookTemplateMain(false, "/repo/scripts/git/hook-template")).toBe(true);
     expect(computeIsHookTemplateMain(false, "/repo/scripts/git/commit-msg-guard.ts")).toBe(false);
+  });
+
+  test("computeIsHardenHooksMain detects harden-hooks entrypoint correctly", () => {
+    expect(computeIsHardenHooksMain(true, undefined)).toBe(true);
+    expect(computeIsHardenHooksMain(false, undefined)).toBe(false);
+    expect(computeIsHardenHooksMain(false, "/repo/scripts/git/harden-hooks.ts")).toBe(true);
+    expect(computeIsHardenHooksMain(false, "/repo/scripts/git/harden-hooks")).toBe(true);
+    expect(computeIsHardenHooksMain(false, "/repo/scripts/git/commit-msg-guard.ts")).toBe(false);
+  });
+
+  test("executeHardenHooksCli runs hardener on target directory", () => {
+    const hooksDir = "/virtual/repo/.git/hooks";
+    vfsSession.vfs.mkdirSync(hooksDir, { recursive: true });
+    vfsSession.vfs.writeFileSync(`${hooksDir}/pre-commit`, MOCK_FAIL_OPEN_HOOK);
+
+    const exitCode = executeHardenHooksCli([hooksDir]);
+    expect(exitCode).toBe(0);
+
+    const content = vfsSession.vfs.readFileSync(`${hooksDir}/pre-commit`, "utf-8");
+    expect(isHookFailingClosed(content)).toBe(true);
   });
 });
