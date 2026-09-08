@@ -4,7 +4,37 @@ import { existsSync, readFileSync } from "node:fs";
 export type AttributionRule =
   | "ai-attribution-trailer"
   | "claude-session-trailer"
-  | "generated-with-phrase";
+  | "generated-with-phrase"
+  | "subject-length"
+  | "conventional-prefix";
+
+export const CONVENTIONAL_COMMIT_TAGS: readonly string[] = [
+  "feat",
+  "fix",
+  "chore",
+  "docs",
+  "refactor",
+  "perf",
+  "test",
+  "build",
+  "ci",
+  "revert",
+  "hotfix",
+  "security",
+  "deps",
+  "migration",
+];
+
+export const MAX_SUBJECT_LENGTH = 69;
+
+export const CONVENTIONAL_SUBJECT_PATTERN = new RegExp(
+  `^(?:${CONVENTIONAL_COMMIT_TAGS.join("|")})(?:\\([^()\\r\\n]+\\))?!?:\\s+\\S.*$`,
+);
+
+export interface SubjectLineInfo {
+  readonly line: number;
+  readonly text: string;
+}
 
 export interface AttributionViolation {
   readonly line: number;
@@ -73,6 +103,18 @@ export function extractPreScissorsLines(message: string): readonly string[] {
   return kept;
 }
 
+export function extractSubjectLine(message: string): SubjectLineInfo | undefined {
+  const lines = extractPreScissorsLines(message);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    const trimmed = line.trim();
+    if (trimmed.length > 0 && !trimmed.startsWith("#")) {
+      return { line: i + 1, text: trimmed };
+    }
+  }
+  return undefined;
+}
+
 function inspectTrailer(line: string): { rule: AttributionRule; detail: string } | undefined {
   const match = TRAILER_PATTERN.exec(line);
   if (!match) return undefined;
@@ -112,6 +154,27 @@ export function auditCommitMessage(message: string): CommitMessageAudit {
   const violations: AttributionViolation[] = [];
   const lines = extractPreScissorsLines(message);
 
+  const subjectInfo = extractSubjectLine(message);
+  if (subjectInfo !== undefined) {
+    const subject = subjectInfo.text;
+    if (subject.length > MAX_SUBJECT_LENGTH) {
+      violations.push({
+        line: subjectInfo.line,
+        rule: "subject-length",
+        text: subject,
+        detail: `Commit subject must be under 70 characters (got ${subject.length})`,
+      });
+    }
+    if (!CONVENTIONAL_SUBJECT_PATTERN.test(subject)) {
+      violations.push({
+        line: subjectInfo.line,
+        rule: "conventional-prefix",
+        text: subject,
+        detail: `Commit subject must start with an approved Conventional prefix (${CONVENTIONAL_COMMIT_TAGS.join(", ")})`,
+      });
+    }
+  }
+
   for (const [index, line] of lines.entries()) {
     if (line.trim().length === 0) continue;
     const finding = inspectTrailer(line) ?? inspectPhrases(line);
@@ -125,6 +188,8 @@ export function auditCommitMessage(message: string): CommitMessageAudit {
     }
   }
 
+  violations.sort((a, b) => a.line - b.line);
+
   return { passed: violations.length === 0, violations };
 }
 
@@ -136,9 +201,13 @@ export function formatViolationReport(violations: readonly AttributionViolation[
   );
   const footer = [
     "",
-    "Remove every AI/tool attribution line from the commit message and retry.",
-    "Forbidden: Co-Authored-By / Assisted-By / Co-Created-With naming an AI vendor,",
-    "Claude-Session trailers, and 'Generated with ...' banners.",
+    "Commit message requirements:",
+    `- Subject line length must be strictly < 70 characters (max ${MAX_SUBJECT_LENGTH}).`,
+    `- Subject line must start with an approved Conventional prefix:`,
+    `  ${CONVENTIONAL_COMMIT_TAGS.join(", ")}`,
+    "  Format: <tag>[(scope)][!]: <description>",
+    "- AI attribution is forbidden: remove every Co-Authored-By / Assisted-By / Co-Created-With",
+    "  naming an AI vendor, Claude-Session trailers, and 'Generated with ...' banners.",
   ].join("\n");
   return [header, ...rows, footer].join("\n");
 }

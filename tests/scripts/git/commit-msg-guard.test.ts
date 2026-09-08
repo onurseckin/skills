@@ -7,9 +7,14 @@ import {
 import {
   auditCommitMessage,
   computeIsMain,
+  CONVENTIONAL_COMMIT_TAGS,
+  CONVENTIONAL_SUBJECT_PATTERN,
+  extractSubjectLine,
   formatViolationReport,
   main,
+  MAX_SUBJECT_LENGTH,
   runCommitMsgGuard,
+  type SubjectLineInfo,
 } from "../../../scripts/git/index.ts";
 
 const MESSAGE_PATH = "/virtual/repo/.git/COMMIT_EDITMSG";
@@ -199,5 +204,155 @@ describe("commit message attribution guard (in-memory virtual)", () => {
       expect(audit.passed).toBe(true);
       expect(audit.violations).toEqual([]);
     }
+  });
+
+  describe("subject length enforcement", () => {
+    test("accepts subject line of exactly 69 characters", () => {
+      const subject69 = "feat: this subject line is exactly sixty-nine characters long to pass";
+      expect(subject69.length).toBe(MAX_SUBJECT_LENGTH);
+      const audit = auditCommitMessage(subject69);
+      expect(audit.passed).toBe(true);
+      expect(audit.violations).toEqual([]);
+    });
+
+    test("rejects subject line of 70 characters with subject-length violation", () => {
+      const subject70 = `${"feat: this subject line is exactly sixty-nine characters long to pass"}!`;
+      expect(subject70.length).toBe(70);
+      const audit = auditCommitMessage(subject70);
+      expect(audit.passed).toBe(false);
+      expect(audit.violations).toHaveLength(1);
+      expect(audit.violations[0]?.rule).toBe("subject-length");
+      expect(audit.violations[0]?.detail).toBe(
+        "Commit subject must be under 70 characters (got 70)",
+      );
+    });
+
+    test("vacuity proof: 6e73a89dc fixture (71 chars) fails with subject-length", () => {
+      const fixture6e73a89dc =
+        "feat(cli): compact task-add command spec to restore manifest line limit";
+      expect(fixture6e73a89dc.length).toBe(71);
+      const audit = auditCommitMessage(fixture6e73a89dc);
+      expect(audit.passed).toBe(false);
+      expect(audit.violations).toHaveLength(1);
+      expect(audit.violations[0]?.rule).toBe("subject-length");
+      expect(audit.violations[0]?.detail).toBe(
+        "Commit subject must be under 70 characters (got 71)",
+      );
+    });
+
+    test("vacuity proof: 2d2b7bdab fixture (76 chars) fails with subject-length", () => {
+      const fixture2d2b7bdab =
+        "test(orchestrator): use exact measured overlap for multi-capsule concurrency";
+      expect(fixture2d2b7bdab.length).toBe(76);
+      const audit = auditCommitMessage(fixture2d2b7bdab);
+      expect(audit.passed).toBe(false);
+      expect(audit.violations).toHaveLength(1);
+      expect(audit.violations[0]?.rule).toBe("subject-length");
+      expect(audit.violations[0]?.detail).toBe(
+        "Commit subject must be under 70 characters (got 76)",
+      );
+    });
+  });
+
+  describe("conventional commit prefix enforcement", () => {
+    test("verifies all 14 approved conventional commit tags pass", () => {
+      const expectedTags: readonly string[] = [
+        "feat",
+        "fix",
+        "chore",
+        "docs",
+        "refactor",
+        "perf",
+        "test",
+        "build",
+        "ci",
+        "revert",
+        "hotfix",
+        "security",
+        "deps",
+        "migration",
+      ];
+      expect(CONVENTIONAL_COMMIT_TAGS).toEqual(expectedTags);
+
+      for (const tag of CONVENTIONAL_COMMIT_TAGS) {
+        const message = `${tag}: valid concise commit subject`;
+        const audit = auditCommitMessage(message);
+        expect(audit.passed).toBe(true);
+        expect(audit.violations).toEqual([]);
+      }
+    });
+
+    test("accepts optional scope formats and breaking change indicators", () => {
+      const validCases = [
+        "feat(agents): compact task spec",
+        "fix(modularity/inventory): resolve module path",
+        "feat!: drop support for legacy v1 api",
+        "feat(scope)!: overhaul public interface",
+      ];
+      for (const msg of validCases) {
+        const audit = auditCommitMessage(msg);
+        expect(audit.passed).toBe(true);
+        expect(audit.violations).toEqual([]);
+      }
+    });
+
+    test("rejects invalid tags (wip:, temp:, custom:)", () => {
+      for (const msg of ["wip: in progress", "temp: quick fix", "custom: my tag"]) {
+        const audit = auditCommitMessage(msg);
+        expect(audit.passed).toBe(false);
+        expect(audit.violations.some((v) => v.rule === "conventional-prefix")).toBe(true);
+      }
+    });
+
+    test("rejects formatting errors: missing space, missing desc, capitalized, non-prefixed", () => {
+      const invalid = [
+        "feat:msg",
+        "feat: ",
+        "Feat: msg",
+        "FIX: msg",
+        "just a random commit message",
+      ];
+      for (const msg of invalid) {
+        const audit = auditCommitMessage(msg);
+        expect(audit.passed).toBe(false);
+        expect(audit.violations.some((v) => v.rule === "conventional-prefix")).toBe(true);
+      }
+    });
+  });
+
+  describe("extractSubjectLine and comment handling", () => {
+    test("correctly identifies subject line number when preceded by comments", () => {
+      const message = ["# Comment 1", "# Comment 2", "feat: subject line 3", "", "Body"].join("\n");
+      const info: SubjectLineInfo | undefined = extractSubjectLine(message);
+      expect(info).toEqual({ line: 3, text: "feat: subject line 3" });
+
+      const audit = auditCommitMessage(message);
+      expect(audit.passed).toBe(true);
+      expect(audit.violations).toEqual([]);
+    });
+
+    test("correctly attributes violation line when preceded by comments", () => {
+      const msg = ["# Comment 1", "# Comment 2", "invalid tag: bad on line 3"].join("\n");
+      const audit = auditCommitMessage(msg);
+      expect(audit.passed).toBe(false);
+      expect(audit.violations).toHaveLength(1);
+      expect(audit.violations[0]?.line).toBe(3);
+      expect(audit.violations[0]?.rule).toBe("conventional-prefix");
+    });
+
+    test("returns undefined for comment-only or empty messages", () => {
+      expect(extractSubjectLine("")).toBeUndefined();
+      expect(extractSubjectLine("# only comment\n# another comment")).toBeUndefined();
+    });
+  });
+
+  test("formatViolationReport contains instructions for subject length and conventional prefix", () => {
+    const violations = auditCommitMessage("bad: " + "a".repeat(70)).violations;
+    const report = formatViolationReport(violations);
+    expect(report).toContain("subject-length");
+    expect(report).toContain("conventional-prefix");
+    expect(report).toContain("AI attribution is forbidden");
+    expect(report).toContain("strictly < 70 characters");
+    expect(report).toContain("feat, fix, chore");
   });
 });

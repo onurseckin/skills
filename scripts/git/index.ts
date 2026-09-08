@@ -6,10 +6,15 @@ export {
   auditCommitMessage,
   type CommitMessageAudit,
   computeIsMain,
+  CONVENTIONAL_COMMIT_TAGS,
+  CONVENTIONAL_SUBJECT_PATTERN,
+  extractSubjectLine,
   FORBIDDEN_TRAILER_KEYS,
   formatViolationReport,
   main,
+  MAX_SUBJECT_LENGTH,
   runCommitMsgGuard,
+  type SubjectLineInfo,
 } from "./commit-msg-guard.ts";
 export {
   FAIL_CLOSED_ERROR_MESSAGE,
