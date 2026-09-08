@@ -1,5 +1,5 @@
 import { calculateBrentDecomposition } from "./brent-scaling.ts";
-import { resolveMeasuredQuotaPercentage } from "../../telemetry/circuit-breaker.ts";
+import { resolveMeasuredQuotaPercentage } from "../../telemetry/index.ts";
 import type {
   RebalancedTaskPackage,
   RebalanceStragglerOptions,
@@ -39,11 +39,9 @@ export function rebalanceStragglerTask(
   const rawQuota =
     options?.quotaPercentage ??
     (typeof options?.getQuotaPercentage === "function"
-      ? (options.getQuotaPercentage() ?? undefined)
+      ? options.getQuotaPercentage()
       : undefined) ??
-    (typeof options?.quotaProvider === "function"
-      ? (options.quotaProvider() ?? undefined)
-      : undefined) ??
+    (typeof options?.quotaProvider === "function" ? options.quotaProvider() : undefined) ??
     options?.quotaState ??
     task.quota_percentage ??
     task.quotaPercentage ??

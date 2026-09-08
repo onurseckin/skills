@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import {
   DEFAULT_QUOTA_THRESHOLD,
+  QuotaCircuitBreaker,
   resolveMeasuredQuotaPercentage,
-} from "../../telemetry/circuit-breaker.ts";
+} from "../../telemetry/index.ts";
 import { throttleConcurrency } from "../../telemetry/soft-drain/index.ts";
 import { partitionScopeDisjoint } from "./scope-partition.ts";
 import type { BrentConcurrencyPlan, BrentDecompositionOptions, BrentPartition } from "./types.ts";
@@ -71,12 +72,8 @@ export function calculateBrentDecomposition(
 
   const rawQuota =
     options.quotaPercentage ??
-    (typeof options.getQuotaPercentage === "function"
-      ? (options.getQuotaPercentage() ?? undefined)
-      : undefined) ??
-    (typeof options.quotaProvider === "function"
-      ? (options.quotaProvider() ?? undefined)
-      : undefined) ??
+    (typeof options.getQuotaPercentage === "function" ? options.getQuotaPercentage() : undefined) ??
+    (typeof options.quotaProvider === "function" ? options.quotaProvider() : undefined) ??
     options.quotaState;
 
   const optimalParallelism = calculateBrentConcurrency(workUnits, spanLength, minP, maxP, rawQuota);

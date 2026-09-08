@@ -1,4 +1,3 @@
-// @ts-nocheck
 export {
   MindCadenceEngine,
   CLOSING_FORBIDDEN_FOR_MIND,

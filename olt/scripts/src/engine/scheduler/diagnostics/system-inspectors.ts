@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { defaultLayout, runHealthCheck, type HealthCheckId } from "../../../health/index.ts";

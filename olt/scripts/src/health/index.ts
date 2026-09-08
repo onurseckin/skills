@@ -15,6 +15,7 @@ import {
   PRODUCT_GRAMMAR_MODULES,
 } from "./vendors.ts";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from "./types.ts";
+export type { HealthCheckId, HealthCheckResult, HealthReport } from "./types.ts";
 
 export const ALL_CHECKS: readonly HealthCheckId[] = [
   "unused-code",

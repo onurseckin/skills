@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { recoverProjection, verifyIntegrity, loadRun } from "../../engine/store/index.ts";

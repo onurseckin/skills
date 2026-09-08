@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * CLI command: task-check (task:check)
  * Fast incremental verification tool for targeted files and task write scopes.
