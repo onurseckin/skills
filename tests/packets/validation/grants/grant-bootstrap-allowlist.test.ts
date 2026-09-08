@@ -106,7 +106,6 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
     expect(declaresRunIdentityFlag(spec("mind:init"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("health"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("explain"))).toBe(false);
-    expect(declaresRunIdentityFlag(spec("agent:brief"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("role:cheat-sheet"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("install"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("queue:status"))).toBe(false);
@@ -114,6 +113,7 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
   });
 
   test("is true for commands that declare a --run/--run-id flag, whether required or optional", () => {
+    expect(declaresRunIdentityFlag(spec("agent:brief"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("plan:init"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("orchestrate"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("run:init"))).toBe(true);
@@ -132,6 +132,10 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
     const commandsWithNoRunFlag = COMMAND_REGISTRY.filter(
       (candidate) => !declaresRunIdentityFlag(candidate),
     );
-    expect(commandsWithNoRunFlag.length).toBe(59);
+    const commandNames = commandsWithNoRunFlag.map((candidate) => candidate.name);
+    expect(
+      commandsWithNoRunFlag.length,
+      `Expected 52 commands without --run/--run-id flag, found ${commandsWithNoRunFlag.length}: ${commandNames.join(", ")}`,
+    ).toBe(52);
   });
 });
