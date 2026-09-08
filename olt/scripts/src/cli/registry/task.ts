@@ -28,27 +28,8 @@ import {
   type CommandSpec,
   type ExitCodeSpec,
   type FlagSpec,
+  type FlagType,
 } from "./types.ts";
-
-export {
-  taskAbandonCommand,
-  taskAddCommand,
-  taskBriefCommand,
-  taskCheckCommand,
-  taskClaimCommand,
-  taskCompleteCommand,
-  taskFailCommand,
-  taskHeartbeatCommand,
-  taskListCommand,
-  taskLeaseCommand,
-  taskProbeCommand,
-  taskPruneCommand,
-  taskRejectCommand,
-  taskReleaseCommand,
-  taskReviewCommand,
-  taskSubmitCommand,
-  taskValidateStartCommand,
-};
 
 const TASK_CHECK_EXIT_CODES: readonly ExitCodeSpec[] = [
   { code: 0, meaning: "SUCCESS - the AST lint audit, and typecheck if requested, both passed" },
@@ -66,22 +47,9 @@ function taskCmd(
   description: string,
   flags: readonly FlagSpec[],
   handler: CommandHandler,
-  exOrCodes?: readonly string[] | readonly ExitCodeSpec[],
-  maybeExOrCodes?: readonly string[] | readonly ExitCodeSpec[],
+  examples: readonly string[] = [],
+  exitCodes: readonly ExitCodeSpec[] = DEFAULT_EXIT_CODES,
 ): CommandSpec {
-  const isCodes = (v?: readonly unknown[]): v is readonly ExitCodeSpec[] =>
-    Array.isArray(v) && v.length > 0 && typeof v[0] === "object";
-  const exitCodes = isCodes(exOrCodes)
-    ? exOrCodes
-    : isCodes(maybeExOrCodes)
-      ? maybeExOrCodes
-      : DEFAULT_EXIT_CODES;
-  const examples =
-    !isCodes(exOrCodes) && exOrCodes
-      ? (exOrCodes as readonly string[])
-      : !isCodes(maybeExOrCodes) && maybeExOrCodes
-        ? (maybeExOrCodes as readonly string[])
-        : [];
   return {
     name,
     aliases: [],
@@ -97,16 +65,24 @@ function taskCmd(
   };
 }
 
-const req = (name: string, type: "string" | "int" | "bool", desc: string): FlagSpec =>
+const req = (name: string, type: FlagType, desc: string): FlagSpec =>
   requiredFlag(name, type, desc);
-const opt = (
-  name: string,
-  type: "string" | "int" | "bool",
-  desc: string,
-  def?: string | number | boolean,
-): FlagSpec => optionalFlag(name, type, desc, def);
-const rep = (name: string, type: "string" | "int" | "bool", desc: string): FlagSpec =>
+const opt = (name: string, type: FlagType, desc: string, def?: FlagSpec["default"]): FlagSpec =>
+  optionalFlag(name, type, desc, def);
+const rep = (name: string, type: FlagType, desc: string): FlagSpec =>
   repeatableFlag(name, type, desc);
+
+const QUEUE_PATH_FLAGS: readonly FlagSpec[] = [
+  opt("queue-path", "string", "Custom task queue file path."),
+  opt("path", "string", "Alias for queue-path."),
+];
+
+const TRACING_FLAGS: readonly FlagSpec[] = [
+  opt("trace-id", "string", "Trace correlation ID."),
+  opt("span-id", "string", "Span ID."),
+  opt("parent-span-id", "string", "Parent span correlation ID."),
+  opt("trace-sampled", "bool", "Sampled tracing flag."),
+];
 
 export const TASK_COMMANDS: readonly CommandSpec[] = [
   taskCmd(
@@ -296,8 +272,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("lint", "bool", "Run only the AST lint audit."),
     ],
     taskCheckCommand,
-    TASK_CHECK_EXIT_CODES,
     ["bun harness.ts task:check --file src/index.ts"],
+    TASK_CHECK_EXIT_CODES,
   ),
   taskCmd(
     "task:add",
@@ -319,8 +295,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("assigned-tier", "string", "Assigned execution tier."),
       opt("assigned-role", "string", "Assigned agent role."),
       opt("max-retries", "int", "Maximum retry count."),
-      opt("queue-path", "string", "Custom task queue file path."),
-      opt("path", "string", "Alias for queue-path."),
+      ...QUEUE_PATH_FLAGS,
+      ...TRACING_FLAGS,
     ],
     taskAddCommand,
     ['bun harness.ts task:add --task task-1 --title "Implement auth" --gate "bun test"'],
@@ -339,9 +315,9 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("limit", "int", "Maximum number of tasks to return."),
       opt("offset", "int", "Pagination offset."),
       opt("page", "int", "Pagination page number."),
-      opt("queue-path", "string", "Custom task queue file path."),
-      opt("path", "string", "Alias for queue-path."),
+      ...QUEUE_PATH_FLAGS,
       opt("stats", "bool", "Include queue statistics in output."),
+      ...TRACING_FLAGS,
     ],
     taskListCommand,
     ["bun harness.ts task:list --status PENDING"],
@@ -356,8 +332,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("agent-id", "string", "Agent ID claiming the lease."),
       opt("lease-duration", "int", "Lease duration in seconds."),
       opt("duration-seconds", "int", "Alias of lease duration."),
-      opt("queue-path", "string", "Custom task queue file path."),
-      opt("path", "string", "Alias for queue-path."),
+      ...QUEUE_PATH_FLAGS,
+      ...TRACING_FLAGS,
     ],
     taskLeaseCommand,
     ["bun harness.ts task:lease --task task-1 --agent-id worker-1"],
@@ -379,8 +355,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("auto-prune", "bool", "Automatically prune completed task from queue."),
       opt("completed-tasks-path", "string", "Completed tasks archive file path."),
       opt("archive-path", "string", "Alias of completed tasks archive path."),
-      opt("queue-path", "string", "Custom task queue file path."),
-      opt("path", "string", "Alias for queue-path."),
+      ...QUEUE_PATH_FLAGS,
+      ...TRACING_FLAGS,
     ],
     taskCompleteCommand,
     ['bun harness.ts task:complete --task task-1 --proof-summary "All tests pass"'],
@@ -400,8 +376,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("token", "string", "Alias of lease token."),
       opt("can-retry", "bool", "Allow task retry if retry count permits."),
       opt("escalate", "bool", "Escalate task upon reaching max retries."),
-      opt("queue-path", "string", "Custom task queue file path."),
-      opt("path", "string", "Alias for queue-path."),
+      ...QUEUE_PATH_FLAGS,
     ],
     taskFailCommand,
     ['bun harness.ts task:fail --task task-1 --message "Test failure"'],
@@ -414,8 +389,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("completed-tasks-path", "string", "Completed tasks archive file path."),
       opt("archive-path", "string", "Alias of completed tasks archive path."),
       opt("auto-archive", "bool", "Archive completed tasks before pruning."),
-      opt("queue-path", "string", "Custom task queue file path."),
-      opt("path", "string", "Alias for queue-path."),
+      ...QUEUE_PATH_FLAGS,
     ],
     taskPruneCommand,
     ["bun harness.ts task:prune"],

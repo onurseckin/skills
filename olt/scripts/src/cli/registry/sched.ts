@@ -3,7 +3,14 @@ import {
   schedEvalCommand,
   schedJitterCommand,
 } from "../commands/sched-ops.ts";
-import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec, type FlagSpec } from "./types.ts";
+
+const TRACING_FLAGS: readonly FlagSpec[] = [
+  optionalFlag("trace-id", "string", "Trace correlation ID."),
+  optionalFlag("span-id", "string", "Span ID."),
+  optionalFlag("parent-span-id", "string", "Parent span correlation ID."),
+  optionalFlag("trace-sampled", "bool", "Sampled tracing flag."),
+];
 
 export const SCHED_COMMANDS: readonly CommandSpec[] = [
   {
@@ -34,6 +41,7 @@ export const SCHED_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("jitter-ratio", "string", "Jitter ratio fraction."),
       optionalFlag("multiplier", "string", "Exponential backoff multiplier."),
       optionalFlag("no-jitter", "bool", "Disable jitter for deterministic evaluation."),
+      ...TRACING_FLAGS,
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -60,6 +68,7 @@ export const SCHED_COMMANDS: readonly CommandSpec[] = [
         "Backoff strategy (exponential, linear, fibonacci, fixed, immediate).",
       ),
       optionalFlag("multiplier", "string", "Backoff multiplier factor."),
+      ...TRACING_FLAGS,
     ],
     readsStdin: false,
     takesRemainder: false,
