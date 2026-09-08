@@ -8,6 +8,14 @@
 
 ---
 
+## ⚠ Path-Integrity Audit Note (2026-09-07)
+
+A repo-wide plan path-integrity sweep found **12 of 21** file references in this plan do not exist on disk. They follow the pattern `defect-cli-<epoch>-<hash>.ts` / matching `tests/engine/defect-cli-<epoch>-<hash>.test.ts` — auto-generated **Write Scope** placeholders whose "defect" was a literal CLI/tool error string rather than a genuine source-level bug. This is the "Potemkin defect-cli" generation bug tracked separately in `.olt/backlog.jsonl` under `epic-05-potemkin-defect-purge` (see `docs/planning/live-sentinel-and-hygiene-remediation/PLAN.md`).
+
+**Do not** attempt to create or edit a literal `defect-cli-*.ts` filename from a task below — it was never a real source location. If this plan's `CONVERGED AND LANDED` status means these entries were mechanically/cognitively reviewed and dismissed as non-actionable rather than individually implemented, no further action is required. If picking up a specific task below because it still needs real work, re-derive the actual target file from the defect description and current source tree first — do not trust the literal `Write Scope` path.
+
+---
+
 ## 1. Executive Summary & The Assembly Pipeline Vision
 
 This Phase 1 blueprint coordinates the implementation of the ENGINE domain cluster.

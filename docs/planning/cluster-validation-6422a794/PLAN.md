@@ -8,6 +8,14 @@
 
 ---
 
+## ⚠ Path-Integrity Audit Note (2026-09-07)
+
+A repo-wide plan path-integrity sweep found **348 of 612** file references in this plan do not exist on disk. This plan is self-labeled `PHASE 1 - EXHAUSTIVE ARCHITECTURAL SPECIFICATION & TASK BREAKDOWN` (not yet landed), so most Write Scope targets below are expected to be not-yet-created. That said, the large majority of the missing references follow the pattern `defect-cli-<epoch>-<hash>.ts` / matching `.test.ts` — auto-generated placeholders whose "defect" was a literal CLI/tool error string (e.g. `unknown option: --repo`) rather than a genuine source-level bug. This is the "Potemkin defect-cli" generation bug tracked in `.olt/backlog.jsonl` under `epic-05-potemkin-defect-purge` (see `docs/planning/live-sentinel-and-hygiene-remediation/PLAN.md`).
+
+**Do not** create a literal `defect-cli-*.ts` file from a task below. Re-derive the actual target file from the defect description and current source tree before starting any task in this plan.
+
+---
+
 ## 1. Executive Summary & The Assembly Pipeline Vision
 
 This Phase 1 blueprint coordinates the implementation of the VALIDATION domain cluster.
