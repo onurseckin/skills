@@ -182,14 +182,19 @@ export async function loadBaseline(
   }
 }
 
-interface PathBearingRuleContract {
+export interface PathBearingRuleContract {
   readonly extractPaths: (observed: number | string) => readonly string[];
   readonly describePhantom: (targetPath: string, violation: Violation) => string;
 }
 
-const PATH_BEARING_RULE_CONTRACTS: Readonly<
-  Partial<Record<ViolationRule, PathBearingRuleContract>>
+export const PATH_BEARING_RULE_CONTRACTS: Readonly<
+  Record<ViolationRule, PathBearingRuleContract | null>
 > = {
+  line_limit: null,
+  directory_fanout: null,
+  export_star: null,
+  missing_facade: null,
+  generated_catalog: null,
   facade_bypass: {
     extractPaths: (observed) =>
       typeof observed === "string" && observed.length > 0 ? [observed] : [],
@@ -233,7 +238,7 @@ export function assertNoPhantomPaths(
       continue;
     }
     const contract = PATH_BEARING_RULE_CONTRACTS[violation.rule];
-    if (contract !== undefined) {
+    if (contract !== null && contract !== undefined) {
       for (const target of contract.extractPaths(violation.observed)) {
         if (!knownPaths.has(target)) {
           phantomPaths.push(contract.describePhantom(target, violation));

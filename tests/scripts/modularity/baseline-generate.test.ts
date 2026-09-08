@@ -5,8 +5,9 @@ import {
   compareViolations,
   generateBaseline,
 } from "../../../scripts/modularity/baseline/generate.ts";
-import type { Violation } from "../../../scripts/modularity/core/index.ts";
+import type { Violation, ViolationRule } from "../../../scripts/modularity/core/index.ts";
 import { readHeadBlobs } from "../../../scripts/modularity/inventory/index.ts";
+import { PATH_BEARING_RULE_CONTRACTS } from "../../../scripts/modularity/policy/baseline.ts";
 import { loadBaseline, type ModularityBaseline } from "../../../scripts/modularity/policy/index.ts";
 
 describe("modularity baseline generator", () => {
@@ -305,5 +306,46 @@ describe("modularity baseline generator", () => {
     expect(() => assertNoPhantomPaths(phantomBaseline, mockBlobs)).toThrow(
       /phantom path\(s\) not found in audited blob set: root path "phantom-root\.ts" in "existing\.ts"/,
     );
+  });
+
+  test("PATH_BEARING_RULE_CONTRACTS strictly keys every ViolationRule member without missing keys", () => {
+    const allViolationRules: readonly ViolationRule[] = [
+      "line_limit",
+      "directory_fanout",
+      "missing_facade",
+      "export_star",
+      "facade_bypass",
+      "dependency_cycle",
+      "root_no_growth",
+      "generated_catalog",
+    ];
+
+    const contractKeys = Object.keys(PATH_BEARING_RULE_CONTRACTS);
+    expect(contractKeys.sort()).toEqual([...allViolationRules].sort());
+
+    for (const rule of allViolationRules) {
+      expect(Object.prototype.hasOwnProperty.call(PATH_BEARING_RULE_CONTRACTS, rule)).toBe(true);
+      expect(rule in PATH_BEARING_RULE_CONTRACTS).toBe(true);
+    }
+
+    // Explicit null entries for non-path rules
+    expect(PATH_BEARING_RULE_CONTRACTS.line_limit).toBeNull();
+    expect(PATH_BEARING_RULE_CONTRACTS.directory_fanout).toBeNull();
+    expect(PATH_BEARING_RULE_CONTRACTS.export_star).toBeNull();
+    expect(PATH_BEARING_RULE_CONTRACTS.missing_facade).toBeNull();
+    expect(PATH_BEARING_RULE_CONTRACTS.generated_catalog).toBeNull();
+
+    // Contract implementations for path-bearing rules
+    expect(PATH_BEARING_RULE_CONTRACTS.facade_bypass).not.toBeNull();
+    expect(typeof PATH_BEARING_RULE_CONTRACTS.facade_bypass?.extractPaths).toBe("function");
+    expect(typeof PATH_BEARING_RULE_CONTRACTS.facade_bypass?.describePhantom).toBe("function");
+
+    expect(PATH_BEARING_RULE_CONTRACTS.dependency_cycle).not.toBeNull();
+    expect(typeof PATH_BEARING_RULE_CONTRACTS.dependency_cycle?.extractPaths).toBe("function");
+    expect(typeof PATH_BEARING_RULE_CONTRACTS.dependency_cycle?.describePhantom).toBe("function");
+
+    expect(PATH_BEARING_RULE_CONTRACTS.root_no_growth).not.toBeNull();
+    expect(typeof PATH_BEARING_RULE_CONTRACTS.root_no_growth?.extractPaths).toBe("function");
+    expect(typeof PATH_BEARING_RULE_CONTRACTS.root_no_growth?.describePhantom).toBe("function");
   });
 });
