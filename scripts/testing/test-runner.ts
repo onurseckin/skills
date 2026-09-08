@@ -105,12 +105,13 @@ export async function executeTestRunner(
           console.log(
             `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          exitCode = 0;
         } else {
           console.error(
             `\n[coverage] Generated coverage artifacts across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          exitCode = 1;
+          if (exitCode === 0) {
+            exitCode = 1;
+          }
         }
       }
     }
