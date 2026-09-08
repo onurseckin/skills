@@ -5,7 +5,13 @@
 
 import ts from "typescript";
 import type { PurityViolation } from "./types.ts";
-import { createViolation } from "./rules-config.ts";
+import {
+  createViolation,
+  WALL_CLOCK_COMPARISON_METHODS,
+  WALL_CLOCK_IDENTIFIERS,
+  WALL_CLOCK_RULE,
+  WALL_CLOCK_VIOLATION_MESSAGE,
+} from "./rules-config.ts";
 
 export function checkEmptyBody(
   call: ts.CallExpression,
@@ -156,5 +162,235 @@ export function checkMockTautologies(
       ts.forEachChild(n, scanAssertions);
     }
     scanAssertions(arg.body);
+  }
+}
+
+function unwrapParens(node: ts.Node): ts.Node {
+  let curr = node;
+  while (ts.isParenthesizedExpression(curr)) {
+    curr = curr.expression;
+  }
+  return curr;
+}
+
+function findDeclarationInitializer(
+  identName: string,
+  fromNode: ts.Node,
+): ts.Expression | undefined {
+  let curr: ts.Node | undefined = fromNode.parent;
+
+  while (curr) {
+    if (ts.isBlock(curr) || ts.isSourceFile(curr)) {
+      for (const stmt of curr.statements) {
+        if (stmt.pos >= fromNode.pos) break;
+
+        if (ts.isVariableStatement(stmt)) {
+          for (const decl of stmt.declarationList.declarations) {
+            if (ts.isIdentifier(decl.name) && decl.name.text === identName) {
+              if (decl.initializer) {
+                return decl.initializer;
+              }
+            }
+          }
+        }
+      }
+    }
+    curr = curr.parent;
+  }
+
+  return undefined;
+}
+
+export function involvesWallClock(node: ts.Node, sf: ts.SourceFile, depth = 0): boolean {
+  if (depth > 3) return false;
+  let found = false;
+
+  function visit(n: ts.Node): void {
+    if (found) return;
+
+    if (ts.isCallExpression(n)) {
+      const callText = n.expression.getText(sf);
+      if (callText === "Date.now" || callText === "performance.now" || callText.endsWith(".now")) {
+        found = true;
+        return;
+      }
+    }
+
+    if (ts.isIdentifier(n)) {
+      if (WALL_CLOCK_IDENTIFIERS.has(n.text)) {
+        found = true;
+        return;
+      }
+      if (depth < 2) {
+        const init = findDeclarationInitializer(n.text, n);
+        if (init && involvesWallClock(init, sf, depth + 1)) {
+          found = true;
+          return;
+        }
+      }
+    }
+
+    ts.forEachChild(n, visit);
+  }
+
+  visit(node);
+  return found;
+}
+
+export function isWallClockBinaryComparison(node: ts.Node, sf: ts.SourceFile, depth = 0): boolean {
+  const unwrapped = unwrapParens(node);
+
+  if (ts.isBinaryExpression(unwrapped)) {
+    const op = unwrapped.operatorToken.kind;
+    const isComparisonOp =
+      op === ts.SyntaxKind.LessThanToken ||
+      op === ts.SyntaxKind.LessThanEqualsToken ||
+      op === ts.SyntaxKind.GreaterThanToken ||
+      op === ts.SyntaxKind.GreaterThanEqualsToken;
+
+    if (isComparisonOp) {
+      if (involvesWallClock(unwrapped.left, sf) || involvesWallClock(unwrapped.right, sf)) {
+        return true;
+      }
+    }
+  }
+
+  if (ts.isIdentifier(unwrapped) && depth < 2) {
+    const init = findDeclarationInitializer(unwrapped.text, unwrapped);
+    if (init && isWallClockBinaryComparison(init, sf, depth + 1)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getExpectCall(expr: ts.PropertyAccessExpression): ts.CallExpression | undefined {
+  let curr: ts.Expression = expr.expression;
+  while (ts.isPropertyAccessExpression(curr)) {
+    const name = curr.name.text;
+    if (name === "not" || name === "resolves" || name === "rejects") {
+      curr = curr.expression;
+    } else {
+      break;
+    }
+  }
+  if (
+    ts.isCallExpression(curr) &&
+    ts.isIdentifier(curr.expression) &&
+    curr.expression.text === "expect"
+  ) {
+    return curr;
+  }
+  return undefined;
+}
+
+export function checkWallClockAssert(
+  node: ts.CallExpression,
+  expr: ts.PropertyAccessExpression,
+  sf: ts.SourceFile,
+  file: string,
+  out: PurityViolation[],
+): void {
+  const expectCall = getExpectCall(expr);
+  if (expectCall) {
+    const actualArg = expectCall.arguments[0];
+
+    // Case 1: expect(binaryComparison).matcher(...) e.g. expect(Date.now() - start < 100).toBe(true)
+    if (actualArg && isWallClockBinaryComparison(actualArg, sf)) {
+      out.push(
+        createViolation(
+          node,
+          sf,
+          file,
+          "anti_pattern",
+          WALL_CLOCK_RULE,
+          WALL_CLOCK_VIOLATION_MESSAGE,
+        ),
+      );
+      return;
+    }
+
+    // Case 2: expect(timingExpr).toBeLessThan(...) or expect(100).toBeGreaterThan(timingExpr)
+    const method = expr.name.text;
+    if (WALL_CLOCK_COMPARISON_METHODS.has(method)) {
+      const actualWallClock = actualArg !== undefined && involvesWallClock(actualArg, sf);
+      const expectedWallClock = node.arguments.some((arg) => involvesWallClock(arg, sf));
+
+      if (actualWallClock || expectedWallClock) {
+        out.push(
+          createViolation(
+            node,
+            sf,
+            file,
+            "anti_pattern",
+            WALL_CLOCK_RULE,
+            WALL_CLOCK_VIOLATION_MESSAGE,
+          ),
+        );
+        return;
+      }
+    }
+  }
+
+  const receiverText = expr.expression.getText(sf);
+  if (receiverText === "assert" || receiverText.endsWith(".assert")) {
+    if (node.arguments.some((arg) => isWallClockBinaryComparison(arg, sf))) {
+      out.push(
+        createViolation(
+          node,
+          sf,
+          file,
+          "anti_pattern",
+          WALL_CLOCK_RULE,
+          WALL_CLOCK_VIOLATION_MESSAGE,
+        ),
+      );
+      return;
+    }
+
+    const method = expr.name.text;
+    if (
+      method === "isBelow" ||
+      method === "isAbove" ||
+      method === "isAtLeast" ||
+      method === "isAtMost" ||
+      method === "lessThan" ||
+      method === "greaterThan"
+    ) {
+      if (node.arguments.some((arg) => involvesWallClock(arg, sf))) {
+        out.push(
+          createViolation(
+            node,
+            sf,
+            file,
+            "anti_pattern",
+            WALL_CLOCK_RULE,
+            WALL_CLOCK_VIOLATION_MESSAGE,
+          ),
+        );
+        return;
+      }
+    }
+  }
+}
+
+export function checkWallClockAssertIdentifier(
+  node: ts.CallExpression,
+  sf: ts.SourceFile,
+  file: string,
+  out: PurityViolation[],
+): void {
+  if (node.arguments.some((arg) => isWallClockBinaryComparison(arg, sf))) {
+    out.push(
+      createViolation(
+        node,
+        sf,
+        file,
+        "anti_pattern",
+        WALL_CLOCK_RULE,
+        WALL_CLOCK_VIOLATION_MESSAGE,
+      ),
+    );
   }
 }

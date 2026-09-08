@@ -91,3 +91,27 @@ export function createViolation(
     snippet: node.getText(sourceFile),
   };
 }
+
+export const WALL_CLOCK_IDENTIFIERS = new Set([
+  "now",
+  "elapsed",
+  "duration",
+  "latencyMs",
+  "delta",
+  "elapsedMs",
+  "durationMs",
+  "latency",
+  "deltaMs",
+]);
+
+export const WALL_CLOCK_COMPARISON_METHODS = new Set([
+  "toBeLessThan",
+  "toBeGreaterThan",
+  "toBeLessThanOrEqual",
+  "toBeGreaterThanOrEqual",
+]);
+
+export const WALL_CLOCK_RULE = "no-wall-clock-assertion";
+
+export const WALL_CLOCK_VIOLATION_MESSAGE =
+  "Wall-clock timing comparison detected in test. Tests must assert deterministic observable state instead of wall-clock latency.";

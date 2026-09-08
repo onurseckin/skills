@@ -15,7 +15,13 @@ import {
   REPO_PATH_REGEX,
   VIRTUAL_RECEIVER_REGEX,
 } from "./rules-config.ts";
-import { checkEmptyBody, checkMockTautologies, checkTrivialAssert } from "./anti-patterns.ts";
+import {
+  checkEmptyBody,
+  checkMockTautologies,
+  checkTrivialAssert,
+  checkWallClockAssert,
+  checkWallClockAssertIdentifier,
+} from "./anti-patterns.ts";
 
 function checkImports(
   node: ts.ImportDeclaration,
@@ -120,6 +126,16 @@ function checkIdentifierCall(
     checkEmptyBody(node, fnName, sf, file, out);
     checkMockTautologies(node, fnName, sf, file, out);
     return true;
+  }
+  if (fnName === "assert") {
+    checkWallClockAssertIdentifier(node, sf, file, out);
+    return true;
+  }
+  if (fnName === "expect") {
+    if (!node.parent || !ts.isPropertyAccessExpression(node.parent)) {
+      checkWallClockAssertIdentifier(node, sf, file, out);
+      return true;
+    }
   }
   return false;
 }
@@ -227,6 +243,7 @@ function checkMethodCall(
     return;
   }
   checkTrivialAssert(node, expr, sf, file, out);
+  checkWallClockAssert(node, expr, sf, file, out);
 }
 
 export function auditSourceCode(sourceCode: string, filePath: string): PurityViolation[] {
