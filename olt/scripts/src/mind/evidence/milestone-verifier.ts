@@ -42,13 +42,21 @@ export function verifyMilestoneEvidence(
   const normalizedMilestone = milestone.toLowerCase().trim();
 
   if (normalizedMilestone === "ignition" || normalizedMilestone === "mind-init") {
-    const hasInit = observedEvents.has("mind-initialized") || observedEvents.has("run-initialized");
+    const hasInit =
+      observedEvents.has("mind-initialized") ||
+      observedEvents.has("run-initialized") ||
+      Array.from(observedEvents).some((e) => e.startsWith("grant-mind"));
     if (!hasInit) {
       missingEvents.push("mind-initialized");
       errors.push(`Milestone '${milestone}' failed: missing required event 'mind-initialized'.`);
     } else {
       requiredEvents.push(
-        observedEvents.has("mind-initialized") ? "mind-initialized" : "run-initialized",
+        observedEvents.has("mind-initialized")
+          ? "mind-initialized"
+          : observedEvents.has("run-initialized")
+            ? "run-initialized"
+            : (Array.from(observedEvents).find((e) => e.startsWith("grant-mind")) ??
+              "mind-initialized"),
       );
     }
 

@@ -22,6 +22,13 @@ export function auditPulseTerminationConfinement(
       const pulseActor = typeof last.actor === "string" ? last.actor : "";
 
       if (TERMINAL_PULSE_OUTCOMES.has(outcome) || terminalReason !== null) {
+        if (
+          !pulseActor &&
+          (isJsonObject(state.mind) || Array.from(roleMap.values()).some((r) => r === "mind"))
+        ) {
+          // Internal mind pulse lifecycle / activity recovery, not an unauthorized subagent termination
+          return;
+        }
         const actorRole = roleMap.get(pulseActor) ?? inferRole(pulseActor, roleMap, state);
         if (actorRole && actorRole !== "human" && actorRole !== "user") {
           findings.push({
