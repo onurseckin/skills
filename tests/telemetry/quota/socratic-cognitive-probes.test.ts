@@ -17,6 +17,9 @@ import {
   calculateBrentConcurrency,
   calculateBrentDecomposition,
 } from "../../../olt/scripts/src/orchestrator/concurrency/brent-scaling.ts";
+import { rebalanceStragglerTask } from "../../../olt/scripts/src/orchestrator/concurrency/straggler-partition.ts";
+import { auditConcurrencySaturation } from "../../../olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts";
+import { auditStragglers } from "../../../olt/scripts/src/watchdog/straggler-watchdog.ts";
 import { mindAdmitCommand } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
 import {
   VirtualMemoryFS,
@@ -166,6 +169,65 @@ describe("Socratic Cognitive Probes for Quota Resilience & Soft Drain", () => {
 
       expect(throttleConcurrency(8, 15.0)).toBe(1);
       expect(throttleConcurrency(8, 15.1)).toBe(8);
+
+      const stragglerThrottled = rebalanceStragglerTask(
+        { id: "t1", scope_files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts", "g.ts", "h.ts"] },
+        { quotaPercentage: 10.0 },
+      );
+      expect(stragglerThrottled.decomposition_plan.optimal_parallelism).toBe(1);
+      expect(stragglerThrottled.decomposition_plan.sub_partitions.length).toBe(1);
+
+      const stragglerHealthy = rebalanceStragglerTask(
+        { id: "t1", scope_files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts", "g.ts", "h.ts"] },
+        { quotaPercentage: 90.0 },
+      );
+      expect(stragglerHealthy.decomposition_plan.optimal_parallelism).toBeGreaterThan(1);
+
+      const saturationThrottled = auditConcurrencySaturation({
+        totalWorkUnits: 50,
+        spanLength: 1,
+        quotaPercentage: 10.0,
+      });
+      expect(saturationThrottled.totalSlots).toBe(1);
+
+      const saturationHealthy = auditConcurrencySaturation({
+        totalWorkUnits: 50,
+        spanLength: 1,
+        quotaPercentage: 90.0,
+      });
+      expect(saturationHealthy.totalSlots).toBe(15);
+
+      const watchdogThrottled = auditStragglers(
+        [
+          {
+            id: "t-wd",
+            status: "RUNNING",
+            claimed_at: 0,
+            last_progress: 0,
+            scope_files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts", "g.ts", "h.ts"],
+          },
+        ],
+        { quotaPercentage: 10.0 },
+        400_000,
+      );
+      expect(watchdogThrottled.stragglers[0]?.decomposition_plan?.optimal_parallelism).toBe(1);
+
+      const watchdogHealthy = auditStragglers(
+        [
+          {
+            id: "t-wd",
+            status: "RUNNING",
+            claimed_at: 0,
+            last_progress: 0,
+            scope_files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts", "g.ts", "h.ts"],
+          },
+        ],
+        { quotaPercentage: 90.0 },
+        400_000,
+      );
+      expect(
+        watchdogHealthy.stragglers[0]?.decomposition_plan?.optimal_parallelism,
+      ).toBeGreaterThan(1);
     });
   });
 });

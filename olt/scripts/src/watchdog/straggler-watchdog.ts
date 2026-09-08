@@ -7,15 +7,15 @@ import type {
 } from "../mind/preplanning/types.ts";
 import { calculateBrentDecomposition } from "../orchestrator/velocity-rebalancer.ts";
 
-export const STRAGGLER_SLA_SECONDS = 300; // 5 minutes boundary
-export const PROGRESS_SILENCE_THRESHOLD_SECONDS = 120; // 2 minutes progress heartbeat boundary
+export const STRAGGLER_SLA_SECONDS = 300;
+export const PROGRESS_SILENCE_THRESHOLD_SECONDS = 120;
 export const TASK_STRAGGLER_OVERBURDEN_DEFECT = "TASK_STRAGGLER_OVERBURDEN_DEFECT" as const;
 
 export interface MonitoredTask {
   readonly id: string;
   readonly agent_id?: string | undefined;
   readonly status: "PENDING" | "RUNNING" | "LEASED" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
-  readonly claimed_at: string | number; // ISO string or timestamp in ms
+  readonly claimed_at: string | number;
   readonly last_progress?: string | number | undefined;
   readonly last_progress_at?: string | number | undefined;
   readonly scope_files?: readonly string[] | undefined;
@@ -32,6 +32,7 @@ export interface StragglerWatchdogOptions {
   readonly defectsFilePath?: string | undefined;
   readonly minParallelism?: number | undefined;
   readonly maxParallelism?: number | undefined;
+  readonly quotaPercentage?: number | undefined;
 }
 
 export interface StragglerWatchdogReport {
@@ -80,8 +81,6 @@ export function assessTaskStraggler(
       lastProgressRaw !== undefined ? parseTimestampMs(lastProgressRaw) : claimedAtMs;
     const silenceSeconds = Math.max(0, (nowMs - lastProgressMs) / 1000);
 
-    // If recent progress was reported within 120s, the task is active and not a straggler
-    // Resolves: hb-s7-coordinator-diagnosed-live-agent-as-dead
     if (silenceSeconds <= progressGraceSeconds) {
       return {
         task_id: task.id,
@@ -107,6 +106,7 @@ export function assessTaskStraggler(
         maxParallelism: options?.maxParallelism,
         scopeFiles,
         parentTaskId: task.id,
+        quotaPercentage: options?.quotaPercentage,
       });
     }
 
@@ -201,6 +201,14 @@ export function checkActiveTaskStragglers(
   tasks: readonly MonitoredTask[],
   nowMs: number = Date.now(),
   options?: StragglerWatchdogOptions | undefined,
+): StragglerWatchdogReport {
+  return evaluateActiveTasks(tasks, nowMs, options);
+}
+
+export function auditStragglers(
+  tasks: readonly MonitoredTask[],
+  options?: StragglerWatchdogOptions | undefined,
+  nowMs: number = Date.now(),
 ): StragglerWatchdogReport {
   return evaluateActiveTasks(tasks, nowMs, options);
 }

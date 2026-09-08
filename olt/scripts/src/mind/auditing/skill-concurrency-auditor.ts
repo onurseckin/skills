@@ -34,6 +34,7 @@ export interface ConcurrencyAuditOptions {
   readonly totalSlots?: number | undefined;
   readonly activeSlots?: number | undefined;
   readonly activeSupervisorCount?: number | undefined;
+  readonly quotaPercentage?: number | undefined;
 }
 
 export function auditConcurrencySaturation(
@@ -61,6 +62,7 @@ export function auditConcurrencySaturation(
   const optimalPlan = calculateBrentDecomposition({
     workUnits: totalWorkUnits,
     spanLength,
+    quotaPercentage: options?.quotaPercentage,
   });
 
   const optimalConcurrency = options?.totalSlots ?? optimalPlan.optimal_parallelism;

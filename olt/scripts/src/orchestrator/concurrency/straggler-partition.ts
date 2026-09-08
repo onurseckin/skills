@@ -6,12 +6,9 @@ import type {
   StragglingTask,
 } from "./types.ts";
 
-export const STRAGGLER_SLA_SECONDS = 300; // 5-minute straggler SLA threshold
+export const STRAGGLER_SLA_SECONDS = 300;
 export const STRAGGLER_SLA_MS = STRAGGLER_SLA_SECONDS * 1000;
 
-/**
- * Checks whether a task has breached the 5-minute (300s) SLA threshold.
- */
 export function isTaskStraggling(
   task: StragglingTask,
   elapsedSeconds?: number,
@@ -31,9 +28,6 @@ export function isTaskStraggling(
   return elapsed >= slaThresholdSeconds;
 }
 
-/**
- * Rebalances an individual straggling task by applying Brent decomposition.
- */
 export function rebalanceStragglerTask(
   task: StragglingTask,
   options?: RebalanceStragglerOptions | undefined,
@@ -49,6 +43,7 @@ export function rebalanceStragglerTask(
     scopeFiles,
     parentTaskId: task.id,
     targetDurationSeconds: options?.targetDurationSeconds,
+    quotaPercentage: options?.quotaPercentage,
   });
 
   const spawnedSubtasks = plan.sub_partitions.map((partition) => ({
@@ -73,10 +68,6 @@ export function decomposeStragglingTask(
   return rebalanceStragglerTask(task, options);
 }
 
-/**
- * Partitions a pool of tasks into on-schedule vs 5-minute stragglers,
- * decomposing and isolating stragglers into an async lane to prevent wave blockage.
- */
 export function partitionStragglers(
   tasks: readonly StragglingTask[],
   options?: RebalanceStragglerOptions | undefined,

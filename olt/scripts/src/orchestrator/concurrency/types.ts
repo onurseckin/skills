@@ -18,6 +18,7 @@ export interface RebalanceStragglerOptions {
   readonly maxParallelism?: number | undefined;
   readonly targetDurationSeconds?: number | undefined;
   readonly slaThresholdSeconds?: number | undefined;
+  readonly quotaPercentage?: number | undefined;
 }
 
 export interface StragglingTask {
