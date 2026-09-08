@@ -250,19 +250,15 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
   }
 
   const notify =
-    (env.CHATROOM_NOTIFY_COMMAND !== undefined
+    env.CHATROOM_NOTIFY_COMMAND !== undefined
       ? parseNullableString(env.CHATROOM_NOTIFY_COMMAND)
-      : undefined) ??
-    (layer3.notify_command !== undefined
-      ? parseNullableString(layer3.notify_command)
-      : undefined) ??
-    (layer2.notify_command !== undefined
-      ? parseNullableString(layer2.notify_command)
-      : undefined) ??
-    (layer1.notify_command !== undefined
-      ? parseNullableString(layer1.notify_command)
-      : undefined) ??
-    null;
+      : layer3.notify_command !== undefined
+        ? parseNullableString(layer3.notify_command)
+        : layer2.notify_command !== undefined
+          ? parseNullableString(layer2.notify_command)
+          : layer1.notify_command !== undefined
+            ? parseNullableString(layer1.notify_command)
+            : null;
 
   const rawPoll =
     parseInteger(env.CHATROOM_POLL_INTERVAL_MS) ??

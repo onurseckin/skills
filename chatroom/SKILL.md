@@ -49,7 +49,7 @@ Every host harness MUST materialize a dedicated, always-live communicator agent 
 
 ## 4. Command Reference
 
-Chatroom exposes nine deterministic CLI commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/cli.ts`):
+Chatroom exposes deterministic CLI commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/cli.ts`):
 
 | Command        | Primary Flags                                                                         | Description                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -64,16 +64,121 @@ Chatroom exposes nine deterministic CLI commands via the `chat` binary (or `bun 
 | `chat:doctor`  | `--room <id>`, `--fix`, `--json`                                                      | Audits state consistency, detects torn lines, reclaims stale locks, and verifies receipts.                                   |
 | `chat:rooms`   | `--mine`, `--as <id>`, `--json`                                                       | Lists discoverable rooms, optionally filtering to rooms where identity is a member.                                          |
 | `chat:inspect` | `--room <id>`, `--since <seq>`, `--type <kind>`, `--limit <n>`, `--json`              | Non-mutating inspection of room log envelopes with optional sequence and type filters.                                       |
+| `chat:on`      | `--room <id>`, `--as <id>`, `--command "<cmd>"`, `--policy <path>`                    | Registers notify_command into policy and immediately ensures the room daemon is running.                                     |
+| `chat:off`     | `--room <id>`, `--as <id>`, `--policy <path>`                                         | Removes notify_command from policy.                                                                                          |
 
 ---
 
-## 5. Non-Security Boundary Contract
+## 5. Configuration & Notification Delivery
+
+Chatroom daemon and supervisor behaviors are governed by tiered policies resolved in cascading order:
+
+1. **Environment Variables** (e.g., `CHATROOM_NOTIFY_COMMAND`, `CHATROOM_RUNTIME_COMMAND`) — highest precedence.
+2. **Repository Policy** (`<repo>/.chatroom/policy.json`).
+3. **User Policy** (`~/.agents/chatroom/policy.json`).
+4. **Shipped Policy Defaults** (`chatroom/policy.json`).
+
+### Notification Command (`notify_command`)
+
+In the shipped default policy, `"notify_command"` is `null`. Because notification targets and webhook endpoints are operator- and environment-specific, **operators must configure a notification command** to receive proactive push notifications for incoming room messages and daemon respawn events.
+
+#### Configuring `notify_command`
+
+Operators configure `notify_command` via either of two approaches:
+
+1. **CLI Registration (`chat:on`):**
+
+   ```bash
+   chat on --room <room> --as <member> --command "<cmd>"
+   ```
+
+   This command persists `<cmd>` to the active policy (repository-local `.chatroom/policy.json` or user-level `~/.agents/chatroom/policy.json`) and ensures the room daemon is running. To unregister, run:
+
+   ```bash
+   chat off --room <room> --as <member>
+   ```
+
+2. **Environment Variable (`CHATROOM_NOTIFY_COMMAND`):**
+   ```bash
+   export CHATROOM_NOTIFY_COMMAND="<cmd>"
+   ```
+   The `CHATROOM_NOTIFY_COMMAND` environment variable takes precedence over all policy files. When set, leading and trailing whitespace is trimmed. If an empty string or whitespace-only value is provided, it is treated as `null` (disabling notifications), even if an underlying policy file defines a command.
+
+#### Notification Command Examples
+
+When notifications trigger, the configured command is executed in a subshell with a JSON array passed directly to standard input (`stdin`).
+
+- **Webhook HTTP POST (`curl`):**
+  Pipe incoming JSON payloads to a remote alerting webhook or bridge:
+
+  ```bash
+  curl -s -X POST -H "Content-Type: application/json" -d @- https://hooks.example.com/alerts
+  ```
+
+- **macOS Desktop Banner (`osascript`):**
+  Display a desktop alert notification:
+
+  ```bash
+  osascript -e 'display notification "Chatroom event received" with title "Chatroom"'
+  ```
+
+- **Custom Script (stdin JSON reader):**
+  Run an executable or script that processes the JSON array on stdin:
+  ```bash
+  /usr/local/bin/agent-notify.sh
+  ```
+  Or a Python script reading from standard input:
+  ```bash
+  python3 ~/.agents/notify.py
+  ```
+  Inside the script:
+  ```python
+  import json, sys
+
+  payload = json.load(sys.stdin)
+  for item in payload:
+      print(f"Notification received: {item.get('type') or item.get('reason')}")
+  ```
+
+#### Respawn Notification Payload Format
+
+When a room daemon exits unexpectedly or stops heartbeating, the supervisor automatically revives it. If `notify_command` is configured, the supervisor immediately dispatches a respawn recovery notification over stdin as a single-element JSON array:
+
+```json
+[
+  {
+    "type": "respawn",
+    "reason": "respawn",
+    "pid": 48291,
+    "room": "backend-core",
+    "reader": "agent-lead",
+    "respawns_this_hour": 1,
+    "ts": "2026-09-07T17:45:00.000Z",
+    "message": "daemon respawned, run chat mine to recover context"
+  }
+]
+```
+
+Payload attributes:
+
+- `type`: `"respawn"` — discriminator identifying this notification as a supervisor respawn alert.
+- `reason`: `"respawn"` — trigger reason for the event.
+- `pid`: Process ID of the revived daemon process (or null if unavailable).
+- `room`: Room identifier.
+- `reader`: Member identity of the daemon reader.
+- `respawns_this_hour`: Count of supervisor respawns recorded for this room and reader in the trailing 60 minutes.
+- `ts`: ISO 8601 UTC timestamp of the respawn event.
+- `message`: Diagnostic guidance string instructing the agent or operator to inspect state and recover context.
+
+---
+
+## 6. Non-Security Boundary Contract
 
 Chatroom room keys and message logs are stored as plaintext files in the user's home directory. The handshake and HMAC signatures serve as a **blunder-prevention guard and typo check**, ensuring agents do not accidentally interact with the wrong room. It is not an authorization boundary against filesystem-local actors. No command may deny a local actor access to data readable via direct filesystem inspection.
 
 ---
 
-## 6. Technical References Index
+## 7. Technical References Index
 
 For detailed specifications, consult the reference documents:
 
