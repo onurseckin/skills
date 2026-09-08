@@ -1,8 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
-import type { CommandSpec } from "../../../cli/registry/types.ts";
 import type { EvidenceClass } from "../../../core/contracts/index.ts";
+import { HarnessError } from "../../../core/errors/index.ts";
+
+export interface CommandSpec {
+  readonly name: string;
+  readonly aliases: readonly string[];
+  readonly [key: string]: unknown;
+}
 
 const req = createRequire(import.meta.url);
 
@@ -12,8 +18,6 @@ function getFindCommand(): (invocation: string) => CommandSpec | undefined {
   };
   return mod.findCommand;
 }
-import { HarnessError } from "../../../core/errors/index.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../../core/shared/paths.ts";
 
 export type { EvidenceClass } from "../../../core/contracts/index.ts";
 

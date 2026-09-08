@@ -1,10 +1,10 @@
-import type { GateCoverageProbeResult } from "../types.ts";
+import type { GateCoverageProbeResult } from "../index.ts";
 import {
   isIdentifier,
   isNonblank,
+  isRecord,
   isRepoRelativePath,
-} from "../../../../requirements/predicates.ts";
-import { isRecord } from "../../../../requirements/predicates.ts";
+} from "../../../../requirements/index.ts";
 import { NOOP_COMMANDS } from "./tasks-advanced.ts";
 
 export function probeGateCoverageViolations(state: unknown): GateCoverageProbeResult {

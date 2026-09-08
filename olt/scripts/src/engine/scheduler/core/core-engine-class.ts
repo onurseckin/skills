@@ -20,16 +20,18 @@ import {
   type ScriptBackedDiagnosticsOptions,
   type ScriptBackedDiagnosticsResult,
   runScriptBackedDiagnostics,
-} from "../diagnostics/diagnostics.ts";
+} from "../diagnostics/index.ts";
 import { type WatchdogRecord, registerWatchdog } from "../../../authority/watchdog/index.ts";
 import { dependencyMap } from "../../../graph/dependency-map.ts";
-import { type DoctorOptions } from "../../../reporting/doctor.ts";
-import { type Clock, systemClock, type TransactionPort } from "../../../workflow/types.ts";
+import { type DoctorOptions } from "../../../reporting/doctor/index.ts";
+import { type Clock, systemClock, type TransactionPort } from "../../../workflow/index.ts";
 import { hasActiveOwnership } from "../conflict/conflicts.ts";
 import {
   type MultiDomainBatchOptions,
   type MultiDomainBatchResult,
   evaluateMultiDomainBatch,
+} from "../dispatch/multi-domain-batch.ts";
+import {
   type MultiDomainValidatorDispatchOptions,
   type MultiDomainValidatorDispatchResult,
   dispatchMultiDomainValidators,

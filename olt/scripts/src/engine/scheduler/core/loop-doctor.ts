@@ -1,5 +1,5 @@
 import type { DoctorErrorResolutionAudit } from "./types.ts";
-import { isNonblank } from "../../../requirements/predicates.ts";
+import { isNonblank } from "../../../requirements/index.ts";
 import { verifyIntegrity } from "../../store/index.ts";
 import { boundedEvidenceCause } from "./tasks/tasks.ts";
 

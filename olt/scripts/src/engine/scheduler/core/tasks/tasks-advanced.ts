@@ -2,10 +2,10 @@ import type {
   ScopeCollisionProbeResult,
   ScopeCollisionHazard,
   WorkSpanHealthAudit,
-} from "../types.ts";
+} from "../index.ts";
 import { computeWorkSpanMetrics } from "../../topology/dynamic-metrics.ts";
 import { dependencyMap } from "../../../../graph/dependency-map.ts";
-import { isRecord } from "../../../../requirements/predicates.ts";
+import { isRecord } from "../../../../requirements/index.ts";
 import { scopeConflict, resourceConflict } from "../../conflict/conflicts.ts";
 import type { ScheduledTask } from "../../conflict/rank.ts";
 

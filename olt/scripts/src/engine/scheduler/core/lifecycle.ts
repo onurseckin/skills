@@ -14,8 +14,8 @@ import { probeDoctorErrorResolution } from "./loop-doctor.ts";
 import { parseTimestamp } from "../../../authority/watchdog/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { type BehavioralFinding } from "../../../reporting/behavioral-auditor/index.ts";
-import { type DoctorOptions, runDoctor } from "../../../reporting/doctor.ts";
-import { isRecord } from "../../../requirements/predicates.ts";
+import { type DoctorOptions, runDoctor } from "../../../reporting/doctor/index.ts";
+import { isRecord } from "../../../requirements/index.ts";
 
 export function determineTopLeader(state: unknown): SupervisoryTopLeader {
   if (isRecord(state) && Array.isArray(state.agents)) {

@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { EvidenceClass } from "../../../core/contracts/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../../core/shared/paths.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../../core/shared/index.ts";
 import type { MindObservationRecord, MindSourceDefinition, MindSourceId } from "./types.ts";
 import {
   MIND_DISCOVERY_SOURCES,

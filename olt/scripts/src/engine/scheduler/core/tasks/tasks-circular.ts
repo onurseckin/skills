@@ -1,7 +1,7 @@
-import type { CircularDependenciesProbeResult } from "../types.ts";
+import type { CircularDependenciesProbeResult } from "../index.ts";
 import { graphParts } from "../../../../graph/parts.ts";
 import { dependencyData } from "../../../../graph/topology.ts";
-import { isRecord } from "../../../../requirements/predicates.ts";
+import { isRecord } from "../../../../requirements/index.ts";
 
 export function probeCircularDependencies(state: unknown): CircularDependenciesProbeResult {
   const cycles: string[][] = [];

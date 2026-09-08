@@ -5,7 +5,7 @@ import type {
 } from "./types.ts";
 import { isJsonObject } from "../../../core/contracts/index.ts";
 import { auditBehavioralHealth } from "../../../reporting/behavioral-auditor/index.ts";
-import { isRecord } from "../../../requirements/predicates.ts";
+import { isRecord } from "../../../requirements/index.ts";
 import { boundedEvidenceCause } from "./tasks/tasks.ts";
 
 export function probePlanEnhancementNeeds(state: unknown): PlanEnhancementAudit {

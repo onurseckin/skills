@@ -15,9 +15,8 @@ import {
   type WatchdogRecord,
 } from "../../../authority/watchdog/index.ts";
 import { type TaskStatus } from "../../../core/contracts/index.ts";
-import { transition } from "../../../workflow/task-state.ts";
-import { type TransactionPort } from "../../../workflow/types.ts";
-import { isRecord } from "../../../requirements/predicates.ts";
+import { transition, type TransactionPort } from "../../../workflow/index.ts";
+import { isRecord } from "../../../requirements/index.ts";
 
 export function auditGraphHealth(
   state: unknown,

@@ -2,9 +2,9 @@ import {
   type OrphanedTasksProbeResult,
   type StaleLeasesProbeResult,
   type StaleLeaseInfo,
-} from "../types.ts";
+} from "../index.ts";
 import { parseTimestamp } from "../../../../authority/watchdog/index.ts";
-import { isRecord } from "../../../../requirements/predicates.ts";
+import { isRecord } from "../../../../requirements/index.ts";
 
 export function boundedEvidenceCause(error: unknown): string {
   if (typeof error === "string") return error.slice(0, 240);

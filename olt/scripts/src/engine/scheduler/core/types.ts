@@ -1,6 +1,6 @@
 import type { WatchdogRecord } from "../../../authority/watchdog/index.ts";
 import type { TaskStatus } from "../../../core/contracts/index.ts";
-import type { Clock } from "../../../workflow/types.ts";
+import type { Clock } from "../../../workflow/index.ts";
 
 export interface GraphHealthIssue {
   readonly probe:

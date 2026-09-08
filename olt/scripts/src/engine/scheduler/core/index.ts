@@ -1,11 +1,14 @@
 export { probeOrphanedTasks, probeStaleLeases } from "./tasks/tasks.ts";
-
 export { probeCircularDependencies } from "./tasks/tasks-circular.ts";
+export { probeGateCoverageViolations } from "./tasks/tasks-coverage.ts";
+export {
+  NOOP_COMMANDS,
+  probeScopeCollisionHazards,
+  probeWorkSpanParallelizationHealth,
+} from "./tasks/tasks-advanced.ts";
 export { auditGraphHealth, auditSupervisoryWatchdog, recoverStaleTasks } from "./state.ts";
 
 export { probeDoctorErrorResolution } from "./loop-doctor.ts";
-
-export { probeGateCoverageViolations } from "./tasks/tasks-coverage.ts";
 
 export {
   probePlanEnhancementNeeds,
@@ -25,12 +28,6 @@ export type {
   PulseTickOptions,
   PulseTickResult,
 } from "../feedback/pulse-types.ts";
-
-export {
-  NOOP_COMMANDS,
-  probeScopeCollisionHazards,
-  probeWorkSpanParallelizationHealth,
-} from "./tasks/tasks-advanced.ts";
 
 export {
   determineTopLeader,
