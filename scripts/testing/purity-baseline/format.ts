@@ -6,6 +6,7 @@ export interface PurityBaselineEntry {
   readonly file: string;
   readonly rule: string;
   readonly count: number;
+  readonly reason?: string | undefined;
 }
 
 export interface PurityBaseline {

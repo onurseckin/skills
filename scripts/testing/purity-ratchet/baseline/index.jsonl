@@ -1,4 +1,7 @@
 {"schema":"olt-purity-baseline/v1"}
+{"file":"chatroom/scripts/tests/cli/guards/sandbox-containment-guard.test.ts","rule":"no-physical-fs-call","count":34,"reason":"containment auditor: asserts against the live filesystem and a mkdtemp sandbox by design; a VirtualMemoryFS rewrite makes this test vacuous"}
+{"file":"chatroom/scripts/tests/cli/guards/sandbox-containment-guard.test.ts","rule":"no-physical-fs-import","count":1,"reason":"containment auditor: asserts against the live filesystem and a mkdtemp sandbox by design; a VirtualMemoryFS rewrite makes this test vacuous"}
+{"file":"chatroom/scripts/tests/cli/guards/sandbox-containment-guard.test.ts","rule":"no-physical-tmpdir-import","count":1,"reason":"containment auditor: asserts against the live filesystem and a mkdtemp sandbox by design; a VirtualMemoryFS rewrite makes this test vacuous"}
 {"file":"tests/agents/wave5-telemetry-healing.test.ts","rule":"no-physical-fs-import","count":1}
 {"file":"tests/agents/wave5-telemetry-healing.test.ts","rule":"no-physical-fs-method","count":14}
 {"file":"tests/auto-defect-logging.test.ts","rule":"no-physical-fs-call","count":9}

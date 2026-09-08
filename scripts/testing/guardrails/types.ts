@@ -1,8 +1,3 @@
-/**
- * @file types.ts
- * Type definitions for the Test Purity Guardrail system.
- */
-
 export type PurityViolationCategory = "filesystem" | "subprocess" | "ast_scan" | "anti_pattern";
 
 export type PurityAuditScope = "repository" | "staged" | "explicit";
@@ -24,6 +19,7 @@ export interface PurityExceedance {
   readonly rule: string;
   readonly observed: number;
   readonly allowed: number;
+  readonly reason?: string;
 }
 
 export interface PurityTolerance {

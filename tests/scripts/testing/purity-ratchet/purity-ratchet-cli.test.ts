@@ -14,6 +14,7 @@ import {
 import type { PurityAuditSnapshot } from "../../../../scripts/testing/purity-ratchet/index.ts";
 import {
   DEFAULT_PURITY_BASELINE,
+  parseBaseline,
   serializeBaseline,
 } from "../../../../scripts/testing/purity-ratchet/index.ts";
 
@@ -180,6 +181,66 @@ describe("purity ratchet CLI runs (in-memory virtual)", () => {
     expect(stdout).toContain(
       '{"file":"tests/alpha.test.ts","rule":"no-physical-fs-call","count":2}',
     );
+  });
+
+  test("preserves human reason attributes byte-for-byte across baseline regeneration", async () => {
+    const reason1 = "sandbox containment: live fs required by design";
+    const reason2 = "subprocess auditor: unmocked binary execution";
+    const reason3 = "tmpdir probe: physical isolation testing";
+    const resolvedReason = "historical violation now fixed";
+
+    vfs.writeFileSync(
+      join(root, "reasoned-baseline.jsonl"),
+      serializeBaseline([
+        { file: "tests/alpha.test.ts", rule: "no-physical-fs-call", count: 2, reason: reason1 },
+        {
+          file: "tests/beta.test.ts",
+          rule: "no-unmocked-subprocess-call",
+          count: 1,
+          reason: reason2,
+        },
+        {
+          file: "tests/gamma.test.ts",
+          rule: "no-physical-tmpdir-import",
+          count: 1,
+          reason: reason3,
+        },
+        {
+          file: "tests/resolved.test.ts",
+          rule: "no-physical-fs-call",
+          count: 1,
+          reason: resolvedReason,
+        },
+        { file: "tests/unreasoned.test.ts", rule: "no-physical-fs-call", count: 1 },
+      ]),
+    );
+
+    const activeViolations = [
+      violation("tests/alpha.test.ts", "no-physical-fs-call"),
+      violation("tests/alpha.test.ts", "no-physical-fs-call"),
+      violation("tests/beta.test.ts", "no-unmocked-subprocess-call"),
+      violation("tests/gamma.test.ts", "no-physical-tmpdir-import"),
+      violation("tests/unreasoned.test.ts", "no-physical-fs-call"),
+    ];
+
+    stdout = "";
+    const code = await main(
+      ["--mode", "ratchet", "--baseline", "reasoned-baseline.jsonl", "--format", "jsonl"],
+      root,
+      { audit: () => snapshotOf(activeViolations) },
+    );
+
+    expect(code).toBe(0);
+    const regenerated = parseBaseline(stdout);
+    const reasonedEntries = regenerated.entries.filter((entry) => entry.reason !== undefined);
+    expect(reasonedEntries).toHaveLength(3);
+    expect(regenerated.entries.find((e) => e.file === "tests/alpha.test.ts")?.reason).toBe(reason1);
+    expect(regenerated.entries.find((e) => e.file === "tests/beta.test.ts")?.reason).toBe(reason2);
+    expect(regenerated.entries.find((e) => e.file === "tests/gamma.test.ts")?.reason).toBe(reason3);
+    expect(
+      regenerated.entries.find((e) => e.file === "tests/unreasoned.test.ts")?.reason,
+    ).toBeUndefined();
+    expect(regenerated.entries.find((e) => e.file === "tests/resolved.test.ts")).toBeUndefined();
   });
 
   test("fails a strict run while the backlog is non-empty", async () => {

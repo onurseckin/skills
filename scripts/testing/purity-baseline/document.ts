@@ -1,7 +1,7 @@
 import { PURITY_BASELINE_SCHEMA } from "./format.ts";
 import type { PurityBaseline, PurityBaselineEntry } from "./format.ts";
 
-const ENTRY_KEYS = ["file", "rule", "count"];
+const ENTRY_KEYS = ["file", "rule", "count", "reason"];
 
 export function baselineFailure(message: string): never {
   throw new Error(`Invalid purity baseline: ${message}`);
@@ -39,7 +39,13 @@ function validateEntry(value: unknown, ordinal: number): PurityBaselineEntry {
   if (typeof count !== "number") baselineFailure(`line ${ordinal} has an invalid count`);
   if (!Number.isSafeInteger(count)) baselineFailure(`line ${ordinal} has an invalid count`);
   if (count < 1) baselineFailure(`line ${ordinal} has an invalid count`);
-  return { file, rule, count };
+  const reason = record["reason"];
+  if (reason !== undefined) {
+    if (typeof reason !== "string" || reason.trim().length === 0) {
+      baselineFailure(`line ${ordinal} has an invalid reason`);
+    }
+  }
+  return { file, rule, count, ...(reason !== undefined ? { reason } : {}) };
 }
 
 export function compareEntries(left: PurityBaselineEntry, right: PurityBaselineEntry): number {
@@ -86,7 +92,14 @@ export function serializeBaseline(entries: readonly PurityBaselineEntry[]): stri
   const sorted = [...entries].sort(compareEntries);
   const lines = [JSON.stringify({ schema: PURITY_BASELINE_SCHEMA })];
   for (const entry of sorted) {
-    lines.push(JSON.stringify({ file: entry.file, rule: entry.rule, count: entry.count }));
+    lines.push(
+      JSON.stringify({
+        file: entry.file,
+        rule: entry.rule,
+        count: entry.count,
+        ...(entry.reason !== undefined ? { reason: entry.reason } : {}),
+      }),
+    );
   }
   return `${lines.join("\n")}\n`;
 }

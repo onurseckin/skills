@@ -23,7 +23,11 @@ export type {
   PurityRatchetReport,
 } from "./purity-ratchet-contracts.ts";
 
-export { checkPurityRatchet, DEFAULT_PURITY_BASELINE } from "./purity-ratchet-engine.ts";
+export {
+  carryOverReasons,
+  checkPurityRatchet,
+  DEFAULT_PURITY_BASELINE,
+} from "./purity-ratchet-engine.ts";
 
 export {
   renderJsonlBaseline,

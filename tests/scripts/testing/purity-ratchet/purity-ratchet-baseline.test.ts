@@ -46,6 +46,31 @@ describe("purity ratchet baseline document parsing", () => {
     ]);
   });
 
+  test("round-trips entries with human reasons preserving them byte-for-byte", () => {
+    const reason = "containment auditor: asserts against live fs by design";
+    const entries = [
+      {
+        file: "tests/sandbox.test.ts",
+        rule: "no-physical-fs-call",
+        count: 34,
+        reason,
+      },
+      { file: "tests/clean.test.ts", rule: "no-physical-fs-import", count: 1 },
+    ];
+    const serialized = serializeBaseline(entries);
+    const parsed = parseBaseline(serialized);
+
+    expect(parsed.entries).toEqual([
+      { file: "tests/clean.test.ts", rule: "no-physical-fs-import", count: 1 },
+      {
+        file: "tests/sandbox.test.ts",
+        rule: "no-physical-fs-call",
+        count: 34,
+        reason,
+      },
+    ]);
+  });
+
   test("rejects a document with a missing or stale schema header", () => {
     expect(() => parseBaseline("")).toThrow("stale or missing schema");
     expect(() => parseBaseline('{"schema":"olt-purity-baseline/v0"}\n')).toThrow(

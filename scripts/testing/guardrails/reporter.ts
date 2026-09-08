@@ -1,8 +1,3 @@
-/**
- * @file reporter.ts
- * Formats purity audit results for terminal output and markdown documentation.
- */
-
 import { EMPTY_PURITY_ALLOWANCE, partitionByAllowance } from "./allowance.ts";
 import type {
   PurityAllowance,
@@ -38,8 +33,12 @@ function formatExceedanceLines(tolerance?: PurityTolerance): readonly string[] {
   if (tolerance.exceedances.length === 0) return [];
   const lines = ["", "[purity-guard] Over the committed baseline allowance:"];
   for (const exceedance of tolerance.exceedances) {
+    const reasonSuffix =
+      exceedance.reason !== undefined && exceedance.reason.length > 0
+        ? `: ${exceedance.reason}`
+        : "";
     lines.push(
-      `  - ${exceedance.file} [${exceedance.rule}]: observed ${exceedance.observed} > allowed ${exceedance.allowed}`,
+      `  - ${exceedance.file} [${exceedance.rule}]: observed ${exceedance.observed} > allowed ${exceedance.allowed}${reasonSuffix}`,
     );
   }
   return lines;

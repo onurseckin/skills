@@ -37,7 +37,7 @@ export function createSyncFsSpies(
       vfs.mkdirSync(t, typeof o === "boolean" ? { recursive: o } : o);
       return undefined as unknown as string;
     }
-    return orig.mkdirSync(t, o);
+    throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
   });
 
   spy(
@@ -45,7 +45,11 @@ export function createSyncFsSpies(
     (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView, o?: fs.WriteFileOptions) => {
       if (typeof p === "number") {
         const entry = openDescriptors.get(p);
-        if (!entry) return orig.writeFileSync(p, d, o);
+        if (!entry) {
+          throw new Error(
+            `[VFS_SAFETY] Disallowed mutating fs call on non-virtual descriptor: ${p}`,
+          );
+        }
         vfs.writeFileSync(entry.path, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
         return;
       }
@@ -67,14 +71,16 @@ export function createSyncFsSpies(
         if (typeof mode === "number") setCustomMode(target, mode);
         return;
       }
-      return orig.writeFileSync(target, d, o);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${target}`);
     },
   );
 
   spy("appendFileSync", (p: fs.PathOrFileDescriptor, d: string | Uint8Array) => {
     if (typeof p === "number") {
       const entry = openDescriptors.get(p);
-      if (!entry) return orig.appendFileSync(p, d);
+      if (!entry) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual descriptor: ${p}`);
+      }
       const cur = vfs.existsSync(entry.path) ? vfs.readFileSync(entry.path, "utf8") : "";
       vfs.writeFileSync(
         entry.path,
@@ -91,7 +97,7 @@ export function createSyncFsSpies(
       );
       return;
     }
-    return orig.appendFileSync(p, d);
+    throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${target}`);
   });
 
   spy("readFileSync", (p: fs.PathOrFileDescriptor, o?: unknown) => {
@@ -177,7 +183,7 @@ export function createSyncFsSpies(
       if (vfs.existsSync(target)) vfs.rmSync(target, { recursive: o?.recursive, force: o?.force });
       return;
     }
-    return orig.rmSync(target, o);
+    throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${target}`);
   });
 
   spy("unlinkSync", (p: fs.PathLike) => {
@@ -186,18 +192,20 @@ export function createSyncFsSpies(
       if (vfs.existsSync(target)) vfs.rmSync(target, { force: true });
       return;
     }
-    return orig.unlinkSync(target);
+    throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${target}`);
   });
 
   spy("chmodSync", (p: fs.PathLike, m: fs.Mode) => {
     const t = norm(String(p));
     if (vfs.existsSync(t) || isVirtualPath(t)) setCustomMode(t, typeof m === "number" ? m : 0o644);
-    else orig.chmodSync(t, m);
+    else throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
   });
 
   spy("utimesSync", (p: fs.PathLike) => {
     const t = norm(String(p));
-    if (!vfs.existsSync(t) && !isVirtualPath(t)) orig.utimesSync(t, Date.now(), Date.now());
+    if (!vfs.existsSync(t) && !isVirtualPath(t)) {
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
+    }
   });
 
   spy("fsyncSync", () => {});
@@ -216,7 +224,7 @@ export function createSyncFsSpies(
       transferCustomMode(s, d);
       return;
     }
-    orig.renameSync(s, d);
+    throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
   });
 
   spy("mkdtempSync", (prefix: string) => {

@@ -1,8 +1,3 @@
-/**
- * @file purity-guard.ts
- * Main entry point and CLI for test purity guardrail audits.
- */
-
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -14,40 +9,96 @@ import type {
   PurityAuditOptions,
   PurityAuditRequest,
   PurityAuditResult,
+  PurityAuditScope,
   PurityViolation,
 } from "./types.ts";
 
-export function getStagedTestFiles(): string[] {
+export interface ExtendedPurityAuditOptions extends PurityAuditOptions {
+  readonly reportOnly?: boolean | undefined;
+  readonly scope?: PurityAuditScope | undefined;
+  readonly rootDir?: string | undefined;
+}
+
+export function getStagedTestFiles(reportOnly = false): string[] {
   try {
     const res = spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf-8" });
+    const pattern = reportOnly ? /\.(ts|tsx)$/ : /\.(test|spec)\.(ts|tsx)$/;
     return (res.stdout ?? "")
       .split("\n")
       .map((line) => line.trim())
-      .filter((file) => /\.(test|spec)\.(ts|tsx)$/.test(file) && existsSync(file));
+      .filter((file) => pattern.test(file) && existsSync(file));
   } catch {
     return [];
   }
 }
 
-export function getAllTestFiles(dir = "tests"): string[] {
+const IGNORED_DISCOVERY_DIRS = new Set([
+  "node_modules",
+  "dist",
+  "coverage",
+  "scratch",
+  "artifacts",
+  "capsules",
+  "runtime",
+]);
+
+export function findTestDirectories(dir = "."): string[] {
   if (!existsSync(dir)) return [];
   const results: string[] = [];
+  let entries;
   try {
-    const entries = readdirSync(dir, { withFileTypes: true });
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to read directory '${dir}': ${message}`);
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith(".") || IGNORED_DISCOVERY_DIRS.has(entry.name)) {
+      continue;
+    }
+    const full = dir === "." ? entry.name : join(dir, entry.name);
+    if (entry.name === "tests" || entry.name === "test") {
+      results.push(full);
+    } else {
+      results.push(...findTestDirectories(full));
+    }
+  }
+  return results.sort();
+}
+
+export function getAllTestFiles(dir?: string, reportOnly = false): string[] {
+  if (dir !== undefined) {
+    if (!existsSync(dir)) return [];
+    const results: string[] = [];
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to read directory '${dir}': ${message}`);
+    }
+    const pattern = reportOnly ? /\.(ts|tsx)$/ : /\.(test|spec)\.(ts|tsx)$/;
     for (const entry of entries) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
-        results.push(...getAllTestFiles(full));
-      } else if (/\.(test|spec)\.(ts|tsx)$/.test(entry.name)) {
+        results.push(...getAllTestFiles(full, reportOnly));
+      } else if (pattern.test(entry.name)) {
         results.push(full);
       }
     }
-  } catch {}
-  return results;
+    return results;
+  }
+  const testDirs = findTestDirectories();
+  const allFiles: string[] = [];
+  for (const testDir of testDirs) {
+    allFiles.push(...getAllTestFiles(testDir, reportOnly));
+  }
+  return allFiles;
 }
 
 export function resolveAuditRequest(
-  optionsOrFiles?: PurityAuditOptions | string[],
+  optionsOrFiles?: ExtendedPurityAuditOptions | string[],
 ): PurityAuditRequest {
   if (Array.isArray(optionsOrFiles)) {
     return { scope: "explicit", files: [...optionsOrFiles] };
@@ -55,15 +106,17 @@ export function resolveAuditRequest(
   if (optionsOrFiles?.files !== undefined) {
     return { scope: "explicit", files: [...optionsOrFiles.files] };
   }
-  if (optionsOrFiles?.stagedOnly === true) {
-    return { scope: "staged", files: getStagedTestFiles() };
+  const reportOnly = Boolean(optionsOrFiles?.reportOnly);
+  if (optionsOrFiles?.stagedOnly === true || optionsOrFiles?.scope === "staged") {
+    return { scope: "staged", files: getStagedTestFiles(reportOnly) };
   }
-  return { scope: "repository", files: getAllTestFiles("tests") };
+  const targetDir = optionsOrFiles?.rootDir;
+  return { scope: "repository", files: getAllTestFiles(targetDir, reportOnly) };
 }
 
 export function resolveAllowance(
   request: PurityAuditRequest,
-  optionsOrFiles?: PurityAuditOptions | string[],
+  optionsOrFiles?: ExtendedPurityAuditOptions | string[],
 ): PurityAllowance {
   const options = Array.isArray(optionsOrFiles) ? undefined : optionsOrFiles;
   const strict = options?.strict === true;
@@ -73,7 +126,7 @@ export function resolveAllowance(
 }
 
 export function auditTestPuritySync(
-  optionsOrFiles?: PurityAuditOptions | string[],
+  optionsOrFiles?: ExtendedPurityAuditOptions | string[],
 ): PurityAuditResult {
   const request = resolveAuditRequest(optionsOrFiles);
   const allowance = resolveAllowance(request, optionsOrFiles);
@@ -92,17 +145,26 @@ export function auditTestPuritySync(
     }
   }
 
-  return buildAuditResult(
+  const rawResult = buildAuditResult(
     scannedCount,
     allViolations,
     request.scope,
     request.files.length,
     allowance,
   );
+
+  const isReportOnly = !Array.isArray(optionsOrFiles) && Boolean(optionsOrFiles?.reportOnly);
+  if (isReportOnly) {
+    return {
+      ...rawResult,
+      passed: true,
+    };
+  }
+  return rawResult;
 }
 
 export async function auditTestPurity(
-  optionsOrFiles?: PurityAuditOptions | string[],
+  optionsOrFiles?: ExtendedPurityAuditOptions | string[],
 ): Promise<PurityAuditResult> {
   return auditTestPuritySync(optionsOrFiles);
 }
@@ -122,12 +184,14 @@ export async function main(argvArgs: string[] = process.argv.slice(2)): Promise<
   const isStaged = argvArgs.includes("--staged");
   const isAll = argvArgs.includes("--all");
   const isStrict = argvArgs.includes("--strict");
+  const isReportOnly = argvArgs.includes("--report-only");
   const specificFiles = argvArgs.filter((arg) => !arg.startsWith("-"));
 
-  const options: PurityAuditOptions = {
+  const options: ExtendedPurityAuditOptions = {
     stagedOnly: isStaged,
     all: isAll,
     strict: isStrict,
+    reportOnly: isReportOnly,
     files: specificFiles.length > 0 ? specificFiles : undefined,
   };
 
