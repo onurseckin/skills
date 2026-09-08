@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { acquireTestLock, type TestLockOptions } from "../../../../../scripts/testing/index.ts";
 import {
   inferActorRole,
   inspectShellEval,
@@ -30,6 +31,33 @@ export interface ShieldedCommandOptions {
   readonly cwd?: string | undefined;
   readonly env?: Record<string, string> | undefined;
   readonly actorRole?: string | undefined;
+  readonly enforceConcurrencyLock?: boolean | undefined;
+  readonly lockOptions?: TestLockOptions | undefined;
+}
+
+export function acquireBroadTestLock(
+  cmd: readonly string[],
+  options?: TestLockOptions,
+): () => void {
+  const isBroad = isWholeSuiteTestRun(cmd);
+  return acquireTestLock(isBroad, cmd, options);
+}
+
+export async function guardBroadTestExecution<T>(
+  cmd: readonly string[],
+  action: () => Promise<T> | T,
+  options?: TestLockOptions,
+): Promise<{ executed: boolean; result?: T | undefined; bypassedLock: boolean }> {
+  const isBroad = isWholeSuiteTestRun(cmd);
+  if (!isBroad) {
+    return { executed: true, result: await action(), bypassedLock: true };
+  }
+  const releaseLock = acquireTestLock(true, cmd, options);
+  try {
+    return { executed: true, result: await action(), bypassedLock: false };
+  } finally {
+    releaseLock();
+  }
 }
 
 export function verifyCommandAuthorization(
@@ -81,7 +109,24 @@ export async function executeShieldedCommand(
     };
   }
 
+  let releaseLock: (() => void) | undefined;
+  if (options.enforceConcurrencyLock || isAnyTestRun(cmd)) {
+    releaseLock = acquireBroadTestLock(cmd, options.lockOptions);
+  }
+
   return new Promise((resolvePromise) => {
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (releaseLock) {
+        try {
+          releaseLock();
+        } catch {}
+        releaseLock = undefined;
+      }
+    };
+
     const firstArg = cmd[0] ?? "";
     const restArgs = cmd.slice(1);
     const proc = spawn(firstArg, restArgs, {
@@ -102,6 +147,7 @@ export async function executeShieldedCommand(
       });
     }
     proc.on("error", (err: Error) => {
+      cleanup();
       resolvePromise({
         success: false,
         stdout,
@@ -112,6 +158,7 @@ export async function executeShieldedCommand(
       });
     });
     proc.on("close", (code: number | null) => {
+      cleanup();
       const exitCode = code !== null ? code : 1;
       resolvePromise({ success: exitCode === 0, stdout, stderr, exitCode, authorized: true });
     });

@@ -146,147 +146,259 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/cli",
-      "observed": 13,
+      "observed": 14,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/cli/commands",
-      "observed": 130,
+      "observed": 132,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
-      "path": "olt/scripts/src/cli/registry",
-      "observed": 32,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "olt/scripts/src/graph",
-      "observed": 36,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "olt/scripts/src/health",
-      "observed": 17,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "olt/scripts/src/installer",
-      "observed": 24,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "olt/scripts/src/mind",
+      "path": "olt/scripts/src/cli/formatters",
       "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
-      "path": "olt/scripts/src/orchestrator",
-      "observed": 30,
+      "path": "olt/scripts/src/cli/registry",
+      "observed": 33,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
-      "path": "olt/scripts/src/packets",
-      "observed": 52,
+      "path": "olt/scripts/src/core",
+      "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
-      "path": "olt/scripts/src/reporting",
-      "observed": 32,
+      "path": "olt/scripts/src/core/epistemic",
+      "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
-      "path": "olt/scripts/src/reporting/doctor",
+      "path": "olt/scripts/src/engine/runner/core",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/engine/runner/execution",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/engine/runner/process",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/graph",
       "observed": 37,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
+      "path": "olt/scripts/src/health",
+      "observed": 18,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/installer",
+      "observed": 25,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/mind",
+      "observed": 12,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/orchestrator",
+      "observed": 31,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/packets",
+      "observed": 53,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/reporting",
+      "observed": 33,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/reporting/doctor",
+      "observed": 38,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/requirements",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
       "path": "olt/scripts/src/summary/graph",
-      "observed": 21,
+      "observed": 22,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/summary/markdown",
-      "observed": 13,
+      "observed": 14,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/telemetry",
-      "observed": 14,
+      "observed": 15,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/workflow/branch",
+      "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/workflow/lease",
-      "observed": 13,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "olt/scripts/src/workflow/review",
-      "observed": 13,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "olt/scripts/src/workflow/worktree",
       "observed": 14,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
+      "path": "olt/scripts/src/workflow/review",
+      "observed": 14,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "olt/scripts/src/workflow/worktree",
+      "observed": 15,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/cli/commands/system/orchestration",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/cli/commands/tasks/management",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/engine/scheduler",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
       "path": "tests/mind/archival",
-      "observed": 16,
+      "observed": 17,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "tests/mind/defects",
-      "observed": 13,
+      "observed": 14,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/mind/lifecycle/suspended-animation",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/mind/proposals",
+      "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "tests/reporting",
-      "observed": 21,
+      "observed": 22,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "tests/reporting/doctor",
-      "observed": 20,
+      "observed": 21,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/scripts/modularity",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/telemetry/collectors",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/testing/runner",
+      "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },

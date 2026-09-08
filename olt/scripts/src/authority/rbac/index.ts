@@ -1,6 +1,8 @@
 export {
   verifyCommandAuthorization,
   executeShieldedCommand,
+  acquireBroadTestLock,
+  guardBroadTestExecution,
   type CommandAuthResult,
   type CommandExecResult,
   type ShieldedCommandOptions,
@@ -8,12 +10,21 @@ export {
 
 export {
   inferActorRole,
+  inferRoleFromActorId,
   isAnyTestRun,
   isCoordinatorRole,
   isFileMutationCommand,
+  isShieldedMutationCommand,
   isSupervisorOrValidatorRole,
   isUnauthorizedGitMutation,
   isWholeSuiteTestRun,
+  isWholeSuiteTestCommand,
   isTestFileArgument,
   extractGitSubcommand,
+  inspectShellEval,
+  isBroadTestRun,
+  requiresBroadTestLock,
+  canBypassBroadTestLock,
+  isTargetedTestRun,
+  isPermittedCliTool,
 } from "./command-predicates.ts";

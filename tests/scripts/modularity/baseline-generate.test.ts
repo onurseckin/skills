@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import * as childProcess from "node:child_process";
+import { describe, expect, spyOn, test } from "bun:test";
 import {
   assertNoPhantomPaths,
   buildBaselineDocument,
@@ -65,9 +66,18 @@ describe("modularity baseline generator", () => {
   });
 
   test("generateBaseline with source=tree rejects dirty working tree", async () => {
-    await expect(generateBaseline(".", "tree")).rejects.toThrow(
-      /Cannot generate modularity baseline from dirty working tree with source="tree"/,
-    );
+    const spy = spyOn(childProcess, "spawnSync").mockReturnValue({
+      status: 0,
+      stdout: " M modified-file.ts\n",
+      stderr: "",
+    } as never);
+    try {
+      await expect(generateBaseline(".", "tree")).rejects.toThrow(
+        /Cannot generate modularity baseline from dirty working tree with source="tree"/,
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test("assertNoPhantomPaths validates file and directory existence", () => {

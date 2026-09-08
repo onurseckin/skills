@@ -22,6 +22,7 @@ export {
   diskLockStore,
   type LockStore,
   type TestLockData,
+  type TestLockOptions,
 } from "./mutex/index.ts";
 
 export {

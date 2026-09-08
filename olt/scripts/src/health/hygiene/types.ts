@@ -65,6 +65,7 @@ export const DEFAULT_ALLOWED_SCRIPTS_DIRS: ReadonlySet<string> = new Set([
   "dev",
   "check",
   "ops",
+  "git",
 ]);
 
 export const DEFAULT_ALLOWED_SCRIPTS_FILES: ReadonlySet<string> = new Set([

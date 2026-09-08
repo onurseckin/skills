@@ -23,7 +23,23 @@ const GIT_FLAGS_WITH_PARAM = new Set([
 
 export function isTestFileArgument(arg: string): boolean {
   if (arg.startsWith("-")) return false;
-  return arg.includes(".test.") || arg.includes(".spec.") || /\.(test|spec)\.[tj]sx?$/u.test(arg);
+  const clean = (arg.split(":")[0] ?? arg).trim();
+  if (clean.length === 0) return false;
+  if (
+    clean === "tests" ||
+    clean === "tests/" ||
+    clean === "." ||
+    clean === "./" ||
+    clean === "src" ||
+    clean === "src/"
+  ) {
+    return false;
+  }
+  return (
+    clean.includes(".test.") ||
+    clean.includes(".spec.") ||
+    /(\.(test|spec)\.[cm]?[jt]sx?|([/_]test|^test)[^/]*\.py|_test\.py|_spec\.rb)$/iu.test(clean)
+  );
 }
 
 export function extractGitSubcommand(
@@ -51,28 +67,56 @@ export function extractGitSubcommand(
 
 export function isWholeSuiteTestRun(cmd: readonly string[]): boolean {
   if (cmd.length === 0) return false;
-  const first = (cmd[0] ?? "").toLowerCase();
+  const first = (cmd[0] ?? "").toLowerCase().split(/[\\/]/).pop() ?? "";
   const second = (cmd[1] ?? "").toLowerCase();
+  const third = (cmd[2] ?? "").toLowerCase();
 
-  if (first === "vitest" || first === "jest") return true;
-  if (first === "npx" && (second === "vitest" || second === "jest")) return true;
+  if (first === "vitest" || first === "jest" || first === "pytest") {
+    return !cmd.slice(1).some((arg) => isTestFileArgument(arg));
+  }
+  if (first === "npx" && (second === "vitest" || second === "jest" || second === "pytest")) {
+    return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
+  }
+  if ((first === "python" || first === "python3") && second === "-m" && third === "pytest") {
+    return !cmd.slice(3).some((arg) => isTestFileArgument(arg));
+  }
   if (["npm", "pnpm", "yarn"].includes(first)) {
     if (
       second === "test" ||
       second === "t" ||
-      (second === "run" && (cmd[2] ?? "").toLowerCase() === "test")
+      second === "test:all" ||
+      second.startsWith("test:")
     ) {
-      return true;
+      return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
+    }
+    if (
+      second === "run" &&
+      (third === "test" || third === "t" || third === "test:all" || third.startsWith("test:"))
+    ) {
+      return !cmd.slice(3).some((arg) => isTestFileArgument(arg));
     }
   }
   if (first === "bun") {
-    if (second === "test") return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
-    if (second === "run" && (cmd[2] ?? "").toLowerCase() === "test") {
+    if (second === "test" || second === "test:all" || second.startsWith("test:")) {
+      return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
+    }
+    if (
+      second === "run" &&
+      (third === "test" || third === "t" || third === "test:all" || third.startsWith("test:"))
+    ) {
       return !cmd.slice(3).some((arg) => isTestFileArgument(arg));
     }
   }
   if (first === "bun-test") {
     return !cmd.slice(1).some((arg) => isTestFileArgument(arg));
+  }
+  if (first === "cargo") {
+    if (second === "test" || second === "t" || second.startsWith("test:")) {
+      return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
+    }
+    if (second === "run" && (third === "test" || third === "t" || third.startsWith("test:"))) {
+      return !cmd.slice(3).some((arg) => isTestFileArgument(arg));
+    }
   }
   return false;
 }
@@ -144,32 +188,46 @@ export function isFileMutationCommand(cmd: readonly string[]): boolean {
   return false;
 }
 
-export function isAnyTestRun(cmd: readonly string[]): boolean {
-  if (cmd.length === 0) return false;
-  const first = (cmd[0] ?? "").toLowerCase();
+export function canBypassBroadTestLock(cmd: readonly string[]): boolean {
+  if (cmd.length === 0 || isWholeSuiteTestRun(cmd)) return false;
+
+  const first = (cmd[0] ?? "").toLowerCase().split(/[\\/]/).pop() ?? "";
   const second = (cmd[1] ?? "").toLowerCase();
+  const third = (cmd[2] ?? "").toLowerCase();
 
   if (first === "vitest" || first === "jest" || first === "pytest") return true;
   if (first === "npx" && (second === "vitest" || second === "jest" || second === "pytest")) {
+    return true;
+  }
+  if ((first === "python" || first === "python3") && second === "-m" && third === "pytest") {
     return true;
   }
   if (["npm", "pnpm", "yarn", "cargo"].includes(first)) {
     if (
       second === "test" ||
       second === "t" ||
-      (second === "run" && (cmd[2] ?? "").toLowerCase() === "test")
+      second === "test:all" ||
+      second.startsWith("test:") ||
+      (second === "run" && (third === "test" || third === "t" || third.startsWith("test:")))
     ) {
       return true;
     }
   }
   if (
     first === "bun" &&
-    (second === "test" || (second === "run" && (cmd[2] ?? "").toLowerCase() === "test"))
+    (second === "test" ||
+      second === "test:all" ||
+      second.startsWith("test:") ||
+      (second === "run" && (third === "test" || third === "t" || third.startsWith("test:"))))
   ) {
     return true;
   }
   if (first === "bun-test") return true;
   return cmd.some((arg) => isTestFileArgument(arg));
+}
+
+export function isAnyTestRun(cmd: readonly string[]): boolean {
+  return isWholeSuiteTestRun(cmd) || canBypassBroadTestLock(cmd);
 }
 
 export const SUPERVISOR_OR_VALIDATOR_ROLES = new Set([
@@ -285,3 +343,19 @@ export function inspectShellEval(
   }
   return null;
 }
+
+export const isBroadTestRun = isWholeSuiteTestRun;
+export const requiresBroadTestLock = isWholeSuiteTestRun;
+export const isTargetedTestRun = canBypassBroadTestLock;
+
+export function isPermittedCliTool(cmd: readonly string[] | string): boolean {
+  const tokens = typeof cmd === "string" ? cmd.trim().split(/\s+/u).filter(Boolean) : cmd;
+  if (tokens.length === 0) return false;
+  return (
+    !isFileMutationCommand(tokens) && !isUnauthorizedGitMutation(tokens) && !isAnyTestRun(tokens)
+  );
+}
+
+export const isWholeSuiteTestCommand = isWholeSuiteTestRun;
+export const isShieldedMutationCommand = isFileMutationCommand;
+export const inferRoleFromActorId = inferActorRole;

@@ -65,4 +65,6 @@ export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
   ".idea",
   ".expo",
   ".next",
+  "agy-switch-helper",
+  "chatroom",
 ]);

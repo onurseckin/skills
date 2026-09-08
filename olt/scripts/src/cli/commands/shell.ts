@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
   closeSync,
@@ -22,6 +22,8 @@ import { findRepoRoot, resolveEvidenceDir, resolveScratchDir } from "../../core/
 import { runExecCommand } from "./run-ops.ts";
 import type { CommandRecord } from "../../core/contracts/index.ts";
 import { getProfileForRole } from "../../sentinel/profiles/index.ts";
+import { acquireMutexLock, isBroadScopeTest } from "../../engine/runner/index.ts";
+import { persistStandaloneReceipt as persistStandaloneReceiptHelper } from "./shell-receipt.ts";
 
 export interface ShellExecutionResult {
   readonly markdown: string;
@@ -47,6 +49,8 @@ interface ShellCommandDependencies {
   readonly renameSync: typeof renameSync;
   readonly unlinkSync: typeof unlinkSync;
   readonly resolveEvidenceDir: typeof resolveEvidenceDir;
+  readonly acquireMutexLock: typeof acquireMutexLock;
+  readonly isBroadScopeTest: typeof isBroadScopeTest;
 }
 
 const defaultShellCommandDependencies: ShellCommandDependencies = {
@@ -61,6 +65,8 @@ const defaultShellCommandDependencies: ShellCommandDependencies = {
   renameSync: (oldP, newP) => renameSync(oldP, newP),
   unlinkSync: (p) => unlinkSync(p),
   resolveEvidenceDir: (...args) => resolveEvidenceDir(...args),
+  acquireMutexLock: (repoRoot, argv) => acquireMutexLock(repoRoot, argv),
+  isBroadScopeTest: (argv) => isBroadScopeTest(argv),
 };
 
 let shellCommandDependencies = defaultShellCommandDependencies;
@@ -75,8 +81,14 @@ export function setShellCommandDependenciesForTesting(
   };
 }
 
-function failureMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+function formatLockContentionDiagnostic(commandStr: string, details?: string): string {
+  const detailSuffix = details ? ` (${details})` : "";
+  return (
+    `[TEST_CONCURRENCY_LOCK_CONTENTION] Broad test execution serialized for command: '${commandStr}'. ` +
+    `Another agent or process currently holds the broad test execution mutex${detailSuffix}. ` +
+    `Untargeted broad/coverage test runs require single-agent concurrency. ` +
+    `To avoid contention and run concurrently, use targeted file-specific test runs (e.g. 'bun test <file.test.ts>').`
+  );
 }
 
 export function persistStandaloneReceipt(
@@ -84,83 +96,7 @@ export function persistStandaloneReceipt(
   receiptPath: string,
   receiptBody: string,
 ): void {
-  const dependencies = shellCommandDependencies;
-  const temporaryReceiptPath = join(evidenceDir, `.shell-receipt-${randomUUID()}.tmp`);
-  let receiptFd: number | undefined;
-  let evidenceDirFd: number | undefined;
-  let renamed = false;
-
-  try {
-    receiptFd = dependencies.openSync(temporaryReceiptPath, "wx", 0o600);
-    const receiptBytes = Buffer.from(receiptBody, "utf-8");
-    let written = 0;
-    while (written < receiptBytes.length) {
-      const bytesWritten = dependencies.writeSync(
-        receiptFd,
-        receiptBytes,
-        written,
-        receiptBytes.length - written,
-        written,
-      );
-      if (bytesWritten <= 0) {
-        throw new HarnessError("INTEGRITY", "receipt persistence made no forward write progress");
-      }
-      written += bytesWritten;
-    }
-    dependencies.fsyncSync(receiptFd);
-    dependencies.closeSync(receiptFd);
-    receiptFd = undefined;
-
-    dependencies.renameSync(temporaryReceiptPath, receiptPath);
-    renamed = true;
-
-    evidenceDirFd = dependencies.openSync(evidenceDir, "r");
-    dependencies.fsyncSync(evidenceDirFd);
-    dependencies.closeSync(evidenceDirFd);
-    evidenceDirFd = undefined;
-
-    if (!dependencies.existsSync(receiptPath)) {
-      throw new HarnessError(
-        "INTEGRITY",
-        "atomic receipt rename did not produce its final evidence path",
-      );
-    }
-  } catch (error) {
-    if (receiptFd !== undefined) {
-      try {
-        dependencies.closeSync(receiptFd);
-      } catch {
-        // The original persistence error remains the authoritative failure.
-      }
-    }
-    if (evidenceDirFd !== undefined) {
-      try {
-        dependencies.closeSync(evidenceDirFd);
-      } catch {
-        // The original persistence error remains the authoritative failure.
-      }
-    }
-
-    if (!renamed) {
-      let cleanupFailure = "";
-      try {
-        if (dependencies.existsSync(temporaryReceiptPath)) {
-          dependencies.unlinkSync(temporaryReceiptPath);
-        }
-      } catch (cleanupError) {
-        cleanupFailure = `; temporary receipt cleanup failed: ${failureMessage(cleanupError)}`;
-      }
-      throw new HarnessError(
-        "INTEGRITY",
-        `receipt persistence failed before atomic rename: ${failureMessage(error)}${cleanupFailure}`,
-      );
-    }
-
-    throw new HarnessError(
-      "INTEGRITY",
-      `receipt persistence outcome uncertain after atomic rename: ${failureMessage(error)}`,
-    );
-  }
+  persistStandaloneReceiptHelper(evidenceDir, receiptPath, receiptBody, shellCommandDependencies);
 }
 
 export async function shellCommand(
@@ -202,11 +138,29 @@ export async function shellCommand(
         `[ROLE_ASSERTION_MISMATCH] --role '${explicitRole}' does not match durable role '${runMetadata.role}'.`,
       );
     }
-    const runResult = await shellCommandDependencies.runExecCommand(
-      { ...flags, run: loaded.runRoot, ...(rawCwd === undefined ? {} : { cwd: rawCwd }) },
-      _context,
-      remainder,
-    );
+    let runResult: Record<string, unknown>;
+    try {
+      runResult = await shellCommandDependencies.runExecCommand(
+        { ...flags, run: loaded.runRoot, ...(rawCwd === undefined ? {} : { cwd: rawCwd }) },
+        _context,
+        remainder,
+      );
+    } catch (error) {
+      if (
+        (error instanceof HarnessError && error.code === "LOCK_TIMEOUT") ||
+        (typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code: unknown }).code === "LOCK_TIMEOUT")
+      ) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        throw new HarnessError(
+          "LOCK_TIMEOUT",
+          formatLockContentionDiagnostic(remainder.join(" "), errorMsg),
+        );
+      }
+      throw error;
+    }
     const record = runResult.command as unknown as CommandRecord;
     const logs = record.logs;
     if (!logs) {
@@ -292,13 +246,43 @@ export async function shellCommand(
 
   const startTime = Date.now();
   const commandStr = remainder.join(" ");
+  const argv = [...remainder];
+
+  let cleanupLock: (() => void) | undefined;
+  if (shellCommandDependencies.isBroadScopeTest(argv)) {
+    try {
+      cleanupLock = shellCommandDependencies.acquireMutexLock(repoRoot, argv);
+    } catch (error) {
+      if (
+        (error instanceof HarnessError && error.code === "LOCK_TIMEOUT") ||
+        (typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code: unknown }).code === "LOCK_TIMEOUT")
+      ) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        throw new HarnessError(
+          "LOCK_TIMEOUT",
+          formatLockContentionDiagnostic(commandStr, errorMsg),
+        );
+      }
+      throw error;
+    }
+  }
 
   // 3. Standalone direct execution (outside capsule)
-  const child = spawnSync(remainder[0]!, remainder.slice(1), {
-    cwd,
-    encoding: "utf-8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
+  let child: ReturnType<typeof spawnSync>;
+  try {
+    child = spawnSync(remainder[0]!, remainder.slice(1), {
+      cwd,
+      encoding: "utf-8",
+      maxBuffer: 10 * 1024 * 1024,
+    });
+  } finally {
+    if (cleanupLock) {
+      cleanupLock();
+    }
+  }
 
   const durationMs = Date.now() - startTime;
   const exitCode = typeof child.status === "number" ? child.status : 1;
