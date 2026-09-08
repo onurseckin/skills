@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { acquireTestLock, type TestLockOptions } from "../../../../../scripts/testing/index.ts";
+import { acquireTestLock, type TestLockOptions } from "../../testing/index.ts";
 import {
   inferActorRole,
   inspectShellEval,

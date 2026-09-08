@@ -70,9 +70,12 @@ const isTestEnv =
 const inMemLocks = new Map<string, FullSuiteTestLockPayload | "corrupt">();
 const inMemSummaries = new Map<string, { summary: TestSummaryRecord; mtime: number }>();
 
+import { resetLockStore } from "./broad-test-lock.ts";
+
 export function resetConcurrencyLockStore(): void {
   inMemLocks.clear();
   inMemSummaries.clear();
+  resetLockStore();
 }
 export function setInMemoryLockPayload(
   path: string,
@@ -310,20 +313,12 @@ function resolveCommitSha(): string | null {
   }
 }
 
-export function createTestSummaryRecord(params: {
-  readonly passed_count: number;
-  readonly failed_count: number;
-  readonly skipped_count?: number | undefined;
-  readonly duration_ms?: number | undefined;
-  readonly coverage_percentage?: number | null | undefined;
-  readonly commit_sha?: string | null | undefined;
-  readonly test_files_count?: number | undefined;
-  readonly scope?: "full" | "scoped" | string | undefined;
-  readonly agent_id?: string | undefined;
-  readonly timestamp_utc?: string | undefined;
-  readonly timestamp_local?: string | undefined;
-  readonly details?: Readonly<Record<string, unknown>> | undefined;
-}): TestSummaryRecord {
+export function createTestSummaryRecord(
+  params: Partial<TestSummaryRecord> & {
+    readonly passed_count: number;
+    readonly failed_count: number;
+  },
+): TestSummaryRecord {
   const now = new Date();
   return {
     timestamp_utc: params.timestamp_utc ?? now.toISOString(),
@@ -413,19 +408,21 @@ export async function getLatestTestSummary(
 export function formatTestSummaryMarkdown(summary: TestSummaryRecord): string {
   const isPass = summary.passed_count > 0 && summary.failed_count === 0;
   const status = isPass ? "✅ PASSED" : summary.failed_count > 0 ? "❌ FAILED" : "⚠️ NO_TESTS";
-  const lines = [
-    `### Test Execution Summary: \`${summary.scope}\``,
-    `- **Status**: ${status}`,
-    `- **Passed**: ${summary.passed_count}`,
-    `- **Failed**: ${summary.failed_count}`,
-    `- **Skipped**: ${summary.skipped_count}`,
-    `- **Duration**: ${summary.duration_ms}ms`,
-    `- **Coverage**: ${summary.coverage_percentage !== null ? `${summary.coverage_percentage.toFixed(1)}%` : "N/A"}`,
-    `- **Files Audited**: ${summary.test_files_count}`,
-    `- **Commit SHA**: ${summary.commit_sha ? `\`${summary.commit_sha.slice(0, 8)}\`` : "N/A"}`,
-    `- **Timestamp (UTC)**: \`${summary.timestamp_utc}\``,
-    `- **Timestamp (Local)**: \`${summary.timestamp_local}\``,
-  ];
-  if (summary.agent_id) lines.push(`- **Recorded By**: \`${summary.agent_id}\``);
-  return lines.join("\n");
+  const cov =
+    summary.coverage_percentage !== null ? `${summary.coverage_percentage.toFixed(1)}%` : "N/A";
+  const sha = summary.commit_sha ? `\`${summary.commit_sha.slice(0, 8)}\`` : "N/A";
+  const rec = summary.agent_id ? `\n- **Recorded By**: \`${summary.agent_id}\`` : "";
+  return `### Test Execution Summary: \`${summary.scope}\`\n- **Status**: ${status}\n- **Passed**: ${summary.passed_count}\n- **Failed**: ${summary.failed_count}\n- **Skipped**: ${summary.skipped_count}\n- **Duration**: ${summary.duration_ms}ms\n- **Coverage**: ${cov}\n- **Files Audited**: ${summary.test_files_count}\n- **Commit SHA**: ${sha}\n- **Timestamp (UTC)**: \`${summary.timestamp_utc}\`\n- **Timestamp (Local)**: \`${summary.timestamp_local}\`${rec}`;
 }
+
+export {
+  acquireTestLock,
+  createMemoryLockStore,
+  diskLockStore,
+  getActiveLockStore,
+  resetLockStore,
+  setLockStore,
+  type LockStore,
+  type TestLockData,
+  type TestLockOptions,
+} from "./broad-test-lock.ts";
