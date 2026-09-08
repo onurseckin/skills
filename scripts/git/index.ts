@@ -12,3 +12,15 @@ export {
   runCommitMsgGuard,
   stripGitCommentary,
 } from "./commit-msg-guard.ts";
+export {
+  FAIL_CLOSED_ERROR_MESSAGE,
+  STANDARD_HOOK_NAMES,
+  buildGitHookTemplate,
+  computeIsHookTemplateMain,
+  hardenGitHooksDirectory,
+  hardenHookFile,
+  hardenHookScript,
+  installGitHook,
+  isHookFailingClosed,
+  runHookHardener,
+} from "./hook-template.ts";

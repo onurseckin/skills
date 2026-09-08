@@ -1,1 +1,1 @@
-export const scriptsGitSuite = ["commit-msg-guard"] as const;
+export const scriptsGitSuite = ["commit-msg-guard", "hook-template"] as const;
