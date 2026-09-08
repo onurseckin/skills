@@ -15,6 +15,22 @@ export interface TierResult {
 
 export abstract class BaseTieredCollector implements TelemetryCollector {
   public abstract readonly platformId: string;
+  private lastResult?: PlatformProbeResult | undefined;
+
+  public get latestResult(): PlatformProbeResult | undefined {
+    return this.lastResult;
+  }
+
+  public readCurrentQuota(): number | undefined {
+    if (this.lastResult) {
+      for (const m of this.lastResult.metrics) {
+        if (typeof m.remainingPercentage === "number") {
+          return m.remainingPercentage;
+        }
+      }
+    }
+    return undefined;
+  }
 
   public async probe(): Promise<PlatformProbeResult> {
     const errors: Error[] = [];
@@ -43,7 +59,7 @@ export abstract class BaseTieredCollector implements TelemetryCollector {
         ...metric,
         rawPayload: projectRawRecord(metric.rawPayload),
       }));
-      return {
+      const probeRes: PlatformProbeResult = {
         platformId: this.platformId,
         isDetected: true,
         primaryTierUsed: result.sourceTier,
@@ -52,10 +68,12 @@ export abstract class BaseTieredCollector implements TelemetryCollector {
         errors,
         reason: result.reason,
       };
+      this.lastResult = probeRes;
+      return probeRes;
     }
 
     const terminalReason = this.getTerminalReason ? await this.getTerminalReason() : undefined;
-    return {
+    const probeRes: PlatformProbeResult = {
       platformId: this.platformId,
       isDetected: false,
       primaryTierUsed: null,
@@ -64,6 +82,8 @@ export abstract class BaseTieredCollector implements TelemetryCollector {
       errors,
       reason: terminalReason,
     };
+    this.lastResult = probeRes;
+    return probeRes;
   }
 
   protected getTerminalReason?(): Promise<string | undefined> | string | undefined;

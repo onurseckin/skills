@@ -27,6 +27,8 @@ import {
 import type { ReadyEntry } from "../engine/scheduler/index.ts";
 import type { DeadAgentEvent } from "./dead-agent-detector.ts";
 import type { BehavioralForensicsReport, CompanionPairingResult } from "./types.ts";
+import { bootstrapTelemetryQuota } from "./lifecycle/index.ts";
+
 
 export interface TaskDispatchInput {
   readonly taskId: string;
@@ -106,6 +108,7 @@ export class RunSupervisor {
   private sessionReclaimedCount = 0;
 
   public constructor(private readonly options: RunSupervisorOptions) {
+    bootstrapTelemetryQuota();
     this.port = workflowPort(options.runRoot);
     this.clock = options.clock ?? systemClock;
     this.sleepFn = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));

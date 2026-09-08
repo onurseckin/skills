@@ -16,6 +16,7 @@ import {
 import { formatCliError, propagateCliExitCode, setupSignalTraps } from "./src/cli/signals/index.ts";
 import { PolicyDiscoveryEngine } from "./src/engine/policy-discovery.ts";
 import { findRepoRoot, resolveSkillHomeRepo } from "./src/core/shared/paths.ts";
+import { bootstrapTelemetryQuota } from "./src/orchestrator/lifecycle/index.ts";
 
 const loggedErrors = new WeakSet<object>();
 
@@ -210,6 +211,7 @@ async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
 }
 
 export async function main(argv: readonly string[]): Promise<void> {
+  bootstrapTelemetryQuota();
   try {
     try {
       const repoRoot = findRepoRoot();

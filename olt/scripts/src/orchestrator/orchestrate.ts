@@ -10,6 +10,7 @@ import { planInitCommand } from "../cli/commands/plan.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../core/shared/paths.ts";
 import { PolicyDiscoveryEngine } from "../engine/policy-discovery.ts";
 import type { RepoPolicy } from "../policy/types/index.ts";
+import { bootstrapTelemetryQuota } from "./lifecycle/index.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
@@ -38,6 +39,7 @@ export async function orchestrateCommand(
   flags: Flags,
   context: CommandContext = {},
 ): Promise<Record<string, unknown>> {
+  bootstrapTelemetryQuota();
   const repo = textFlag(flags, "repo", false) ?? process.cwd();
   let repoRoot: string;
   try {

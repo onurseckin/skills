@@ -29,6 +29,8 @@ import type {
   WatchdogEvent,
 } from "./types.ts";
 import { OrchestratorWatchdog } from "./watchdog.ts";
+import { bootstrapTelemetryQuota } from "./lifecycle/index.ts";
+
 
 export interface TrackOptions {
   readonly trackId: string;
@@ -79,6 +81,7 @@ export class AutonomousLoopRunner {
     | undefined;
 
   public constructor(options: LoopRunnerOptions) {
+    bootstrapTelemetryQuota();
     if (!options.baseRunId?.trim() || !options.repoPath?.trim() || !options.initialPrompt?.trim()) {
       throw new HarnessError(
         "INVALID_ARGUMENT",

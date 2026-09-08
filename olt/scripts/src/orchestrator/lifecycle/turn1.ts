@@ -2,8 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { agentIdToRole, agentIdToTier, roleToTier } from "../../authority/thread/index.ts";
+import { bootstrapTelemetryQuota } from "./bootstrap.ts";
 
 export function enforceTurn1OrchestratorInit(runRoot: string, orchId: string): void {
+  bootstrapTelemetryQuota();
   if (typeof runRoot !== "string" || !runRoot.trim()) {
     throw new HarnessError("INVALID_ARGUMENT", "runRoot must be a non-empty string");
   }

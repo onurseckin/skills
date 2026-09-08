@@ -1,10 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import {
+  bootstrapTelemetryQuota,
   calculateBrentConcurrency,
   calculateBrentDecomposition,
   calculateDynamicWaveCapacity,
+  sampleTelemetryQuota,
+  setActiveTelemetryCollector,
   setTelemetryQuotaProvider,
-} from "../../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
+} from "../../../olt/scripts/src/orchestrator/concurrency/index.ts";
+import { assessTaskStraggler, type MonitoredTask } from "../../../olt/scripts/src/watchdog/index.ts";
+import { AntigravityCollector, type TelemetryCollector } from "../../../olt/scripts/src/telemetry/index.ts";
 import { createSampleCapsuleSpecs, createSampleTaskSpecs } from "./fixture.ts";
 import { CONCURRENCY_SUITES } from "./index.ts";
 
@@ -157,4 +162,100 @@ describe("Domain 20: Brent Work/Span Dynamic Concurrency Scaling (P = ceil(W / S
 
     setTelemetryQuotaProvider(undefined);
   });
+
+  test("bootstrap quota provider: throttles calculateBrentConcurrency and assessTaskStraggler when collector reports 8% vs 85%", () => {
+    let mockQuota = 8;
+    const collector: TelemetryCollector = {
+      platformId: "antigravity",
+      get currentQuota() {
+        return mockQuota;
+      },
+      probe: async () => ({
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "quota",
+            canonicalProvider: "google",
+            windowType: "minute",
+            remainingPercentage: mockQuota,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+      readCurrentQuota: () => mockQuota,
+    };
+
+    bootstrapTelemetryQuota(collector);
+
+    expect(calculateBrentConcurrency(18, 2, 2, 9)).toBe(1);
+
+    const now = 1700000500000;
+    const task: MonitoredTask = {
+      id: "task-heavy-bootstrap-8",
+      agent_id: "agent-1",
+      status: "RUNNING",
+      claimed_at: now - 350_000,
+      last_progress: now - 200_000,
+      scope_files: Array.from({ length: 18 }, (_, i) => `f${i}.ts`),
+      work_units: 18,
+      span_length: 2,
+    };
+    const assessment8 = assessTaskStraggler(task, now, {
+      minParallelism: 2,
+      maxParallelism: 9,
+    });
+    expect(assessment8.is_straggler).toBe(true);
+    expect(assessment8.recommended_action).toBe("DECOMPOSE_PARALLEL");
+    expect(assessment8.decomposition_plan?.optimal_parallelism).toBe(1);
+    expect(assessment8.decomposition_plan?.sub_partitions.length).toBe(1);
+
+    mockQuota = 85;
+    expect(calculateBrentConcurrency(18, 2, 2, 9)).toBe(9);
+
+    const assessment85 = assessTaskStraggler(task, now, {
+      minParallelism: 2,
+      maxParallelism: 9,
+    });
+    expect(assessment85.is_straggler).toBe(true);
+    expect(assessment85.recommended_action).toBe("DECOMPOSE_PARALLEL");
+    expect(assessment85.decomposition_plan?.optimal_parallelism).toBe(9);
+    expect(assessment85.decomposition_plan?.sub_partitions.length).toBe(9);
+
+    setActiveTelemetryCollector(undefined);
+    setTelemetryQuotaProvider(undefined);
+  });
+
+  test("bootstrap quota provider: BaseTieredCollector reports 8% then 85% via probe and throttles concurrency", async () => {
+    let mockRemaining = 8;
+    const mockEnv = {
+      exec: async (cmd: string, args: readonly string[]) => {
+        if (cmd === "agy" && args[0] === "quota") {
+          return {
+            stdout: JSON.stringify({ remaining_percentage: mockRemaining }),
+            stderr: "",
+            exitCode: 0,
+          };
+        }
+        return null;
+      },
+    };
+    const tieredCollector = new AntigravityCollector(mockEnv);
+    bootstrapTelemetryQuota(tieredCollector);
+
+    await sampleTelemetryQuota(tieredCollector);
+    expect(calculateBrentConcurrency(18, 2, 2, 9)).toBe(1);
+
+    mockRemaining = 85;
+    await sampleTelemetryQuota(tieredCollector);
+    expect(calculateBrentConcurrency(18, 2, 2, 9)).toBe(9);
+
+    setActiveTelemetryCollector(undefined);
+    setTelemetryQuotaProvider(undefined);
+  });
 });
+

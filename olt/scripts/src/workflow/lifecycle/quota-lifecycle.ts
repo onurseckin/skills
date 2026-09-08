@@ -11,6 +11,11 @@ import {
 } from "../../telemetry/collectors/index.ts";
 import { formatPreciseProgressBar, TelemetryNormalizationEngine } from "../../telemetry/engine.ts";
 import type { UnifiedTelemetryReport } from "../../telemetry/types.ts";
+import {
+  bootstrapTelemetryQuota,
+  updateCachedTelemetryQuota,
+} from "../../orchestrator/lifecycle/index.ts";
+
 
 export interface ProbeLifecycleQuotaOptions {
   readonly host?: string | undefined;
@@ -72,6 +77,8 @@ export async function probeLiveQuotaTelemetry(
     });
 
     const lowestQuota = evaluation.lowestRemainingQuota;
+    updateCachedTelemetryQuota(lowestQuota);
+    bootstrapTelemetryQuota();
     const badge = formatQuotaBadge(lowestQuota);
     const warning = evaluation.isTriggered
       ? `Quota circuit breaker triggered (${lowestQuota !== null ? `${lowestQuota.toFixed(1)}%` : "unknown"} <= ${thresholdPercentage}%)`

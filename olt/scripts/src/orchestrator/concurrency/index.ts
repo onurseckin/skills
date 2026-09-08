@@ -35,3 +35,12 @@ export {
   resolveMeasuredQuotaPercentage,
   setTelemetryQuotaProvider,
 } from "../../telemetry/circuit-breaker.ts";
+export {
+  bootstrapTelemetryQuota,
+  getActiveTelemetryCollector,
+  readCurrentQuota,
+  sampleTelemetryQuota,
+  setActiveTelemetryCollector,
+  updateCachedTelemetryQuota,
+} from "../lifecycle/index.ts";
+

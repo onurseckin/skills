@@ -108,3 +108,14 @@ export {
   type WatchdogMonitorResult,
   type WatchdogTimeoutKind,
 } from "./process-timeout/index.ts";
+
+export {
+  assessTaskStraggler,
+  assessTaskStragglerStatus,
+  checkActiveTaskStragglers,
+  evaluateActiveTasks,
+  type MonitoredTask,
+  type StragglerAssessment,
+  type StragglerWatchdogOptions,
+} from "./straggler-watchdog.ts";
+
