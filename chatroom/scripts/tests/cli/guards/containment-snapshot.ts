@@ -73,7 +73,7 @@ export function snapshotDaemonProcesses(
       cmd.includes("cli.ts daemon") ||
       cmd.includes("chatroom daemon") ||
       cmd.includes("chat daemon") ||
-      cmd.includes("harness.ts daemon");
+      cmd.includes("main.ts daemon");
     if (isDaemon && (roomMatch === undefined || cmd.includes(roomMatch))) {
       matchedPids.push(pid);
     }

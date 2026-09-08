@@ -107,7 +107,7 @@ export const joinSpec: CommandSpec = {
 
 export const saySpec: CommandSpec = {
   name: "chat:say",
-  aliases: ["say"],
+  aliases: ["say", "send"],
   summary: "post a message",
   description: "Appends a message to the shared room log.",
   flags: [
@@ -324,6 +324,10 @@ export function findCommand(name: string): CommandSpec | undefined {
         return command;
       }
     }
+  }
+  if (normalized.startsWith("chatroom:")) {
+    const withoutPrefix = normalized.slice("chatroom:".length);
+    return findCommand(withoutPrefix) ?? findCommand("chat:" + withoutPrefix);
   }
   return undefined;
 }

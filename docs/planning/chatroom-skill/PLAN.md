@@ -94,7 +94,7 @@ chatroom/
 │   ├── host-provisioning.md       # per-host provisioning receipts and verification
 │   └── defect-prevention.md       # D1–D10, the invariant that kills each, and its test id
 └── scripts/
-    ├── harness.ts                 # CLI entry point (the `chat` binary target)
+    ├── cli.ts                     # CLI entry point (the `chatroom` binary target)
     ├── index.ts
     ├── package.json
     ├── tsconfig.json
@@ -203,8 +203,8 @@ installed, `chatroom` must still work; a shared package would create an install-
 `join(home, ".agents", "skills", "olt")`; it is generalized to iterate a skill list
 `["olt", "chatroom"]`, deploying each source directory to `~/.agents/skills/<name>` and symlinking it
 into each entry of `getAssistantSkillDirs(home)`. The global binary logic in `scripts/sync/olt-bin.ts`
-is mirrored to produce a `chat` binary that shells to
-`~/.agents/skills/chatroom/scripts/harness.ts`. **This is the only change permitted outside
+is mirrored to produce a `chatroom` binary that shells to
+`~/.agents/skills/chatroom/cli.ts`. **This is the only change permitted outside
 `chatroom/`.**
 
 The runtime data root `~/.agents/chatroom/` is created lazily by `chat:init`; it is deliberately _not_
@@ -1359,8 +1359,8 @@ Later layers win, key by key:
 
 | field                     | default                                        | notes                                                 |
 | ------------------------- | ---------------------------------------------- | ----------------------------------------------------- |
-| `runtime_command`         | auto-probed                                    | how to invoke the harness                             |
-| `harness_path`            | `~/.agents/skills/chatroom/scripts/harness.ts` |                                                       |
+| `runtime_command`         | auto-probed                                    | how to invoke the CLI                                 |
+| `cli_path`                | `~/.agents/skills/chatroom/cli.ts`             |                                                       |
 | `notify_command`          | `null`                                         | optional host push; failure never gates an ack        |
 | `poll_interval_ms`        | 750                                            | floor 250                                             |
 | `heartbeat_interval_ms`   | 5000                                           |                                                       |
@@ -1408,7 +1408,7 @@ stale-lock reclaim), both of which the daemon consumes through injected ports ra
 > called handler functions directly, bypassing the entry point.
 
 **Contract:** _every one of the nine commands MUST have at least one test that executes through the
-real CLI entry point_ — `chatroom/scripts/harness.ts:main(argv)` — passing a full argv array, exactly
+real CLI entry point_ — `chatroom/cli.ts:main(argv)` — passing a full argv array, exactly
 as a shell would. Not `readCommand(flags, ctx, [])`. The full path: argv parse → spec lookup →
 `assertFlags` → handler.
 

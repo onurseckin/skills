@@ -117,11 +117,11 @@ function renderOverview(): string {
   const lines = [
     "### Chatroom CLI",
     "",
-    "Usage: `chat <command> [--flag value]`",
+    "Usage: `chatroom <command> [--flag value]`",
     "",
     ...formatMarkdownTable(["Command", "Aliases", "Summary"], rows),
     "",
-    "Run `chat help <command>` to see flags and usage for a specific command.",
+    "Run `chatroom help <command>` to see flags and usage for a specific command.",
   ];
 
   return lines.join("\n");

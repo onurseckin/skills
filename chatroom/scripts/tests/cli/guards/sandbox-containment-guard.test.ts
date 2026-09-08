@@ -242,7 +242,7 @@ describe("Sandbox Containment Guard", () => {
         "PID COMMAND",
         "101 /usr/bin/syslogd",
         "4001 node /path/to/cli.ts daemon --room alpha --foreground",
-        "4002 /opt/bun harness.ts daemon --room beta --foreground",
+        "4002 /opt/bun main.ts daemon --room beta --foreground",
         "4003 chatroom daemon --room alpha",
         "5001 worker process",
       ];

@@ -1,5 +1,6 @@
 {
   "runtime_command": null,
+  "cli_path": "~/.agents/skills/chatroom/scripts/cli.ts",
   "harness_path": "~/.agents/skills/chatroom/scripts/cli.ts",
   "notify_command": null,
   "poll_interval_ms": 750,

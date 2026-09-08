@@ -321,14 +321,15 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
         room,
         reader,
         ts: new Date(ports.now?.() ?? Date.now()).toISOString(),
-        message: "daemon respawned, run chat mine to recover context",
+        message: "daemon respawned, run chatroom mine to recover context",
       },
       options.notifyOptions,
     ).catch(() => {});
   }
   const command = resolved.runtime_command;
+  const daemonTarget = resolved.cli_path ?? resolved.harness_path;
   const baseArgs =
-    `${resolved.harness_path} daemon --room ${room} --as ${reader} --foreground`.split(" ");
+    `${daemonTarget} daemon --room ${room} --as ${reader} --foreground`.split(" ");
   const args =
     options.pollIntervalMs !== undefined
       ? [...baseArgs, "--poll-interval", String(options.pollIntervalMs)]

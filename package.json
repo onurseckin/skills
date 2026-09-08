@@ -2,6 +2,10 @@
   "name": "@onurseckin/skills",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "chatroom": "./chatroom/cli.ts",
+    "chat": "./chatroom/cli.ts"
+  },
   "description": "Personal collection of autonomous agent skills for AI assistants",
   "keywords": [
     "agent-skills",

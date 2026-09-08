@@ -5,6 +5,7 @@ import { basename, dirname, join } from "node:path";
 
 export interface ChatroomPolicy {
   readonly runtime_command: string;
+  readonly cli_path: string;
   readonly harness_path: string;
   readonly notify_command: string | null;
   readonly poll_interval_ms: number;
@@ -213,36 +214,40 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
 
   const resolvedRuntime = runtime.trim();
 
-  const rawHarness =
+  const rawCli =
+    parseString(env.CHATROOM_CLI_PATH) ??
     parseString(env.CHATROOM_HARNESS_PATH) ??
+    parseString(layer3.cli_path) ??
     parseString(layer3.harness_path) ??
+    parseString(layer2.cli_path) ??
     parseString(layer2.harness_path) ??
+    parseString(layer1.cli_path) ??
     parseString(layer1.harness_path) ??
     join(home, ".agents", "skills", "chatroom", "scripts", "cli.ts");
 
-  let harness = rawHarness.startsWith("~/")
-    ? join(home, rawHarness.slice(2))
-    : rawHarness === "~"
+  let cliPath = rawCli.startsWith("~/")
+    ? join(home, rawCli.slice(2))
+    : rawCli === "~"
       ? home
-      : rawHarness;
+      : rawCli;
 
   const exists = options.ports?.existsSync ?? existsSync;
-  if (!exists(harness)) {
+  if (!exists(cliPath)) {
     const localCli = join(repo, "chatroom", "scripts", "cli.ts");
     if (exists(localCli)) {
-      harness = localCli;
+      cliPath = localCli;
     } else {
       const rootCli = join(repo, "chatroom", "cli.ts");
       if (exists(rootCli)) {
-        harness = rootCli;
+        cliPath = rootCli;
       } else {
-        const localHarness = join(repo, "chatroom", "scripts", "harness.ts");
-        if (exists(localHarness)) {
-          harness = localHarness;
+        const localIndex = join(repo, "chatroom", "scripts", "index.ts");
+        if (exists(localIndex)) {
+          cliPath = localIndex;
         } else {
-          const rootHarness = join(repo, "chatroom", "harness.ts");
-          if (exists(rootHarness)) {
-            harness = rootHarness;
+          const rootIndex = join(repo, "chatroom", "index.ts");
+          if (exists(rootIndex)) {
+            cliPath = rootIndex;
           }
         }
       }
@@ -342,7 +347,8 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
 
   return {
     runtime_command: resolvedRuntime,
-    harness_path: harness,
+    cli_path: cliPath,
+    harness_path: cliPath,
     notify_command: notify,
     poll_interval_ms: pollInterval,
     heartbeat_interval_ms: heartbeatInterval,

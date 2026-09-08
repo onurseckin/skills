@@ -151,7 +151,7 @@ describe("daemon respawn wake notification and pure projection", () => {
     expect(payload?.reason).toBe("respawn");
     expect(payload?.room).toBe(room);
     expect(payload?.reader).toBe(reader);
-    expect(payload?.message).toBe("daemon respawned, run chat mine to recover context");
+    expect(payload?.message).toBe("daemon respawned, run chatroom mine to recover context");
     expect(typeof payload?.ts).toBe("string");
     expect(Number.isNaN(Date.parse(payload?.ts ?? ""))).toBe(false);
   });
@@ -205,7 +205,7 @@ describe("daemon respawn wake notification and pure projection", () => {
     const filesAfter = collectFilePaths(vfs, roomDir(room));
     expect(filesAfter.length).toBeGreaterThan(0);
 
-    const forbiddenPhrase = "daemon respawned, run chat mine to recover context";
+    const forbiddenPhrase = "daemon respawned, run chatroom mine to recover context";
     for (const filePath of filesAfter) {
       const content = vfs.readFileSync(filePath, "utf8");
       expect(content).not.toContain(forbiddenPhrase);
@@ -354,7 +354,7 @@ describe("daemon respawn wake notification and pure projection", () => {
       room,
       reader,
       ts: new Date().toISOString(),
-      message: "daemon respawned, run chat mine to recover context",
+      message: "daemon respawned, run chatroom mine to recover context",
     });
     expect(nullResult).toBeNull();
   });
