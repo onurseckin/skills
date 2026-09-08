@@ -8,7 +8,11 @@ import {
 } from "../../policy/index.ts";
 import { checkCognitiveValidatorCommandLock } from "./command-lock-engine.ts";
 import { checkPushbackQuotas } from "./pushback-quotas-engine.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export interface PolicyDoctorCheckOptions {
   readonly repoRoot?: string | undefined;
@@ -192,7 +196,7 @@ export function checkPolicyDoctor(options: PolicyDoctorCheckOptions = {}): Docto
   );
   findings.push(...unauthorizedFindings);
 
-  const passed = findings.filter((f) => f.severity === "ERROR").length === 0;
+  const passed = computeDoctorEnginePassed(findings);
 
   return {
     engine: "checkPolicyDoctor",

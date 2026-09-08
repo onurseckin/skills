@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { isProcessAlive } from "./lock-cleaner.ts";
-import type { DoctorDiagnosticFinding } from "./types.ts";
+import { computeDoctorEnginePassed, type DoctorDiagnosticFinding } from "./types.ts";
+
 import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import {
   cleanupTrackWorktree,
@@ -254,9 +255,7 @@ export function checkWorktreeHealth(
 
   const cleanupFailed = findings.some((f) => f.code === "WORKTREE_CLEANUP_FAILED");
   const isHealthy = autoHeal ? !cleanupFailed : issues.length === 0;
-  const isPassed = autoHeal
-    ? !cleanupFailed
-    : findings.filter((f) => f.severity === "ERROR").length === 0;
+  const isPassed = autoHeal ? !cleanupFailed : computeDoctorEnginePassed(findings);
 
   return {
     name: "worktree_health",

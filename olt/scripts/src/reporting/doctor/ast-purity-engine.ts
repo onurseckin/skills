@@ -2,10 +2,11 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
-import type {
-  AstPurityFinding,
-  DoctorCheckEngineResult,
-  DoctorDiagnosticFinding,
+import {
+  computeDoctorEnginePassed,
+  type AstPurityFinding,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
 } from "./types.ts";
 
 export type { AstPurityFinding };
@@ -164,7 +165,7 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
     }
     return {
       engine: "checkAstPurity",
-      passed: findings.length === 0,
+      passed: computeDoctorEnginePassed(findings),
       findings,
     };
   }
@@ -210,7 +211,7 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
 
   return {
     engine: "checkAstPurity",
-    passed: findings.length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

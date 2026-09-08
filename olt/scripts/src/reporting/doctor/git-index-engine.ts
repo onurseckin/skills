@@ -2,7 +2,11 @@ import { existsSync, statSync, unlinkSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { isProcessAlive } from "./lock-cleaner.ts";
-import type { DoctorDiagnosticFinding, GitIndexIntegrityReport } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorDiagnosticFinding,
+  type GitIndexIntegrityReport,
+} from "./types.ts";
 
 export interface GitIndexCheckOptions {
   readonly repoRoot?: string | undefined;
@@ -113,7 +117,7 @@ export function checkGitIndexIntegrity(
     }
   } catch {}
 
-  const healthy = findings.filter((f) => f.severity === "ERROR").length === 0;
+  const healthy = computeDoctorEnginePassed(findings);
 
   return {
     healthy,

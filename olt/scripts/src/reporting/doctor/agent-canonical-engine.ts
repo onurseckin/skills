@@ -3,7 +3,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import * as yaml from "js-yaml";
 import { inferRoleFromAgentId, matchesBoundaryPrefix } from "../../authority/index.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export interface AgentCanonicalAlignmentOptions {
   readonly repoRoot?: string | undefined;
@@ -142,7 +146,7 @@ export function checkAgentCanonicalAlignment(
     }
     return {
       engine: "checkAgentCanonicalAlignment",
-      passed: findings.length === 0,
+      passed: computeDoctorEnginePassed(findings),
       findings,
     };
   }
@@ -184,7 +188,7 @@ export function checkAgentCanonicalAlignment(
 
   return {
     engine: "checkAgentCanonicalAlignment",
-    passed: findings.length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

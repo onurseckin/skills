@@ -2,7 +2,12 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { verifyEnvelopeHmac } from "../../communication/mailbox/envelope.ts";
 import type { MailboxEnvelope } from "../../communication/types.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
+
 import {
   checkQuarantine,
   healCorruptedCursor,
@@ -65,7 +70,7 @@ export function checkMailboxDiskActivity(oltDir: string): DoctorCheckEngineResul
   }
   return {
     engine: "checkMailboxDiskActivity",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }
@@ -199,9 +204,10 @@ export function checkMailboxHealth(
   if (options.autoHeal) autoHealList.push(...pruneOrphanedMailboxes(options));
   const res: DoctorCheckResult = {
     engine: "checkMailboxHealth",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
     ...(autoHealList.length > 0 ? { autoHealed: autoHealList } : {}),
   };
+
   return Object.assign(Promise.resolve(res), res);
 }

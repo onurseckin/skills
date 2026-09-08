@@ -1,6 +1,10 @@
 import { createRequire } from "node:module";
 import { COMMAND_DOMAINS, type CommandSpec } from "../../cli/registry/types.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 const req = createRequire(import.meta.url);
 
@@ -109,7 +113,7 @@ export function checkCliRegistryTaxonomy(
 
   return {
     engine: "checkCliRegistryTaxonomy",
-    passed: findings.length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

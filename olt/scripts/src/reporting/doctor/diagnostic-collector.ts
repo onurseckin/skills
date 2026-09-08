@@ -16,9 +16,11 @@ import {
   checkTier0CompanionsHealth,
   checkAntiStagnationDoctor,
   checkPlanQualityAndAgentUtilization,
+  computeDoctorEnginePassed,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
 } from "./engines.ts";
+
 import { checkAgentCanonicalAlignment } from "./agent-canonical-engine.ts";
 
 export interface DiagnosticCollectionOptions {
@@ -139,16 +141,17 @@ export function collectDiagnosticEngines(
 
   const engine10 = safeRunEngine("checkRepositoryHygiene", () => {
     const h = checkRepositoryHygiene({ repoRoot: repository });
+    const findings: DoctorDiagnosticFinding[] = h.violations.map((v) => ({
+      code: v.violationType,
+      severity: v.severity,
+      engine: "checkRepositoryHygiene",
+      message: v.message,
+      details: { path: v.path, violationType: v.violationType },
+    }));
     return {
       engine: "checkRepositoryHygiene",
-      passed: h.passed,
-      findings: h.violations.map((v) => ({
-        code: v.violationType,
-        severity: v.severity,
-        engine: "checkRepositoryHygiene",
-        message: v.message,
-        details: { path: v.path, violationType: v.violationType },
-      })),
+      passed: computeDoctorEnginePassed(findings),
+      findings,
     };
   });
 
@@ -156,15 +159,26 @@ export function collectDiagnosticEngines(
     const r = checkGitIndexIntegrity({ repoRoot: repository });
     return {
       engine: "checkGitIndexIntegrity",
-      passed: r.healthy,
+      passed: computeDoctorEnginePassed(r.findings),
       findings: r.findings,
     };
   });
 
   const activeAgentIds = Array.isArray(state?.agents)
     ? (state.agents as readonly unknown[])
-        .map((a: any) => (typeof a === "string" ? a : (a?.id ?? a?.agentId)))
-        .filter(Boolean)
+        .map((a) => {
+          if (typeof a === "string") return a;
+          if (a && typeof a === "object") {
+            const rec = a as Record<string, unknown>;
+            return typeof rec.id === "string"
+              ? rec.id
+              : typeof rec.agentId === "string"
+                ? rec.agentId
+                : undefined;
+          }
+          return undefined;
+        })
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
     : undefined;
   const engine12 = safeRunEngine("checkMailboxHealth", () =>
     checkMailboxHealth({ repoRoot: repository, activeAgentIds, state }),
@@ -174,7 +188,7 @@ export function collectDiagnosticEngines(
     const r = checkWorktreeHealth({ repoRoot: repository });
     return {
       engine: "checkWorktreeHealth",
-      passed: r.healthy,
+      passed: computeDoctorEnginePassed(r.findings),
       findings: r.findings,
     };
   });

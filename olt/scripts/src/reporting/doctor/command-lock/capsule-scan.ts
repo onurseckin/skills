@@ -1,6 +1,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../index.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "../types.ts";
+
 import { checkCognitiveValidatorCommandLock } from "./audit.ts";
 
 function processCapsuleDirectory(
@@ -47,7 +52,7 @@ export function checkCommandLockIntegrity(oltDir: string): DoctorCheckEngineResu
     processCapsuleDirectory(baseDir, findings);
     return {
       engine: "checkCommandLockIntegrity",
-      passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+      passed: computeDoctorEnginePassed(findings),
       findings,
     };
   }
@@ -73,7 +78,7 @@ export function checkCommandLockIntegrity(oltDir: string): DoctorCheckEngineResu
   }
   return {
     engine: "checkCommandLockIntegrity",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

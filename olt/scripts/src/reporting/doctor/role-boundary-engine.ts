@@ -1,5 +1,9 @@
 import { inferRoleFromAgentId } from "../../authority/thread/index.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export interface RoleBoundaryInterlockOptions {
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;
@@ -212,7 +216,7 @@ export function checkRoleBoundaryInterlock(
 
   return {
     engine: "checkRoleBoundaryInterlock",
-    passed: findings.length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

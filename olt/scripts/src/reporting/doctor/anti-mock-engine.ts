@@ -1,10 +1,11 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import type {
-  AntiMockMutationCheckOptions,
-  CounterfactualCheckRecord,
-  DoctorCheckEngineResult,
-  DoctorDiagnosticFinding,
+import {
+  computeDoctorEnginePassed,
+  type AntiMockMutationCheckOptions,
+  type CounterfactualCheckRecord,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
 } from "./types.ts";
 
 export type { AntiMockMutationCheckOptions, CounterfactualCheckRecord };
@@ -16,7 +17,6 @@ function isTrivialPositiveAssertion(line: string): {
   readonly isTrivial: boolean;
   readonly name: string;
 } {
-  // Negative matchers (.not.toBe, .not.toEqual) represent inequality proofs and must not be flagged
   if (/\.not\s*\.\s*(?:toBe|toEqual)/u.test(line)) {
     return { isTrivial: false, name: "" };
   }
@@ -92,7 +92,7 @@ export function checkAntiMockMutation(
     }
     return {
       engine: "checkAntiMockMutation",
-      passed: findings.length === 0,
+      passed: computeDoctorEnginePassed(findings),
       findings,
     };
   }
@@ -143,7 +143,7 @@ export function checkAntiMockMutation(
 
   return {
     engine: "checkAntiMockMutation",
-    passed: findings.length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

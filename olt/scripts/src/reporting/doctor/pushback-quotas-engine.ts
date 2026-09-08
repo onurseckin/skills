@@ -1,6 +1,10 @@
 import type { RepoPolicy } from "../../policy/types/index.ts";
 import { inspectRepoPolicy } from "../../policy/repo-policy.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export const MIN_ADVERSARIAL_PROBES = 5;
 export const MANDATORY_COGNITIVE_PUSHBACKS = 5;
@@ -221,7 +225,7 @@ export function checkPushbackQuotas(
 
   return {
     engine: "checkPushbackQuotas",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

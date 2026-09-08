@@ -2,7 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { evaluatePlanEpistemicReadiness } from "../../mind/planning/engine/index.ts";
 import { auditPlanGranularity, type TaskGranularityInput } from "../../mind/auditing/index.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export interface PlanQualityCheckOptions {
   readonly runRoot?: string | undefined;
@@ -286,7 +290,7 @@ export function checkPlanQualityAndAgentUtilization(
 
   return {
     engine: "checkPlanQualityAndAgentUtilization",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

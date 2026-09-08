@@ -91,3 +91,16 @@ export interface AntiMockMutationCheckOptions {
   readonly timeoutMs?: number | undefined;
   readonly counterfactualRecords?: readonly CounterfactualCheckRecord[] | undefined;
 }
+
+export function isDoctorFindingBlocking(
+  finding: Pick<DoctorDiagnosticFinding, "severity"> | { readonly severity: string },
+): boolean {
+  const s = String(finding.severity).toUpperCase();
+  return s === "ERROR" || s === "CRITICAL" || s === "HIGH";
+}
+
+export function computeDoctorEnginePassed(
+  findings: readonly (Pick<DoctorDiagnosticFinding, "severity"> | { readonly severity: string })[],
+): boolean {
+  return !findings.some(isDoctorFindingBlocking);
+}

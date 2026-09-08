@@ -1,5 +1,9 @@
 import { purgeOrphanedScratch, scanRootHygiene } from "../../health/hygiene/index.ts";
-import type { RepositoryHygieneFinding, RepositoryHygieneResult } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type RepositoryHygieneFinding,
+  type RepositoryHygieneResult,
+} from "./types.ts";
 
 export interface RepositoryHygieneOptions {
   readonly repoRoot?: string | undefined;
@@ -24,7 +28,7 @@ export function checkRepositoryHygiene(
   }));
   const scrubbedFiles = res.quarantinedFiles.filter((q) => q.success).map((q) => q.relativePath);
   return {
-    passed: res.passed,
+    passed: computeDoctorEnginePassed(violations),
     violations,
     scrubbedFiles,
   };

@@ -1,4 +1,9 @@
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
+
 import type { ElementThemePair } from "../theme/types.ts";
 
 export interface DualChannelUiCheckOptions {
@@ -131,7 +136,7 @@ export function checkDualChannelUi(
 
   return {
     engine: "checkDualChannelUi",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

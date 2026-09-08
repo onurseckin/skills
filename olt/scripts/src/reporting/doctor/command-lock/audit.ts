@@ -1,4 +1,9 @@
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../index.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "../types.ts";
+
 import { isBadGit, isWholeSuite, parseArgv } from "./classifiers.ts";
 import { isImplementerRole, isValidatorRole } from "./roles.ts";
 import type { CognitiveValidatorCommandLockOptions } from "./types.ts";
@@ -200,5 +205,9 @@ export function checkCognitiveValidatorCommandLock(
       }
     }
   }
-  return { engine: "checkCognitiveValidatorCommandLock", passed: findings.length === 0, findings };
+  return {
+    engine: "checkCognitiveValidatorCommandLock",
+    passed: computeDoctorEnginePassed(findings),
+    findings,
+  };
 }

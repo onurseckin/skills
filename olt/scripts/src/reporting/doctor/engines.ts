@@ -102,6 +102,11 @@ import {
   checkPlanQualityAndAgentUtilization,
   type PlanQualityCheckOptions,
 } from "./plan-quality-engine.ts";
+import {
+  checkAgentCanonicalAlignment,
+  type AgentCanonicalAlignmentOptions,
+} from "./agent-canonical-engine.ts";
+import { isDoctorFindingBlocking, computeDoctorEnginePassed } from "./types.ts";
 
 export {
   checkPlanningDag,
@@ -139,9 +144,12 @@ export {
   checkAntiStagnationDoctor,
   auditAntiStagnationHealth,
   checkPlanQualityAndAgentUtilization,
+  checkAgentCanonicalAlignment,
   checkPreCompletionDiagnostics,
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
+  isDoctorFindingBlocking,
+  computeDoctorEnginePassed,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
   MIND_CHARTER_INVARIANTS,
@@ -155,6 +163,7 @@ export type {
   CounterfactualCheckRecord,
   AntiBatchingIsolationOptions,
   DualChannelUiCheckOptions,
+  AgentCanonicalAlignmentOptions,
   CognitiveValidatorCommandLockOptions,
   RoleBoundaryInterlockOptions,
   PushbackQuotasCheckOptions,

@@ -7,7 +7,11 @@ import {
   populateNodesMap,
   resolveTier,
 } from "./planning-dag-helpers.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export { extractDependencyId, extractDependencyList };
 
@@ -95,7 +99,7 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
           activeWorktrees: options.activeWorktreeCount ?? activeWorktrees,
         },
       });
-      return { engine: "checkPlanningDag", passed: false, findings };
+      return { engine: "checkPlanningDag", passed: computeDoctorEnginePassed(findings), findings };
     }
   }
 
@@ -174,7 +178,7 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
 
   return {
     engine: "checkPlanningDag",
-    passed: findings.filter((f: DoctorDiagnosticFinding) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

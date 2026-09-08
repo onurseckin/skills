@@ -4,6 +4,9 @@ import {
   runDoctor,
   formatDoctorReport,
   tierDoctorIssues,
+  computeDoctorEnginePassed,
+  checkDualChannelUi,
+  checkAgentCanonicalAlignment,
   type DoctorCheckEngineResult,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
@@ -27,6 +30,13 @@ const UNIFIED_DOCTOR_ENGINES: readonly string[] = [
   "checkPolicyDoctor",
   "checkRepositoryHygiene",
   "checkGitIndexIntegrity",
+  "checkMailboxHealth",
+  "checkWorktreeHealth",
+  "checkCliRegistryTaxonomy",
+  "checkTier0CompanionsHealth",
+  "checkAntiStagnationDoctor",
+  "checkPlanQualityAndAgentUtilization",
+  "checkAgentCanonicalAlignment",
 ];
 
 export const doctorUnifiedSuiteName =
@@ -86,6 +96,13 @@ describe(doctorUnifiedSuiteName, () => {
     );
     expect(unstructured).toEqual([]);
 
+    const inconsistentVerdict = UNIFIED_DOCTOR_ENGINES.filter((name) => {
+      const res = engines[name];
+      if (!res) return true;
+      return res.passed !== computeDoctorEnginePassed(res.findings);
+    });
+    expect(inconsistentVerdict).toEqual([]);
+
     const reported = new Set(Object.keys(engines));
     const misattributed = UNIFIED_DOCTOR_ENGINES.filter((name) =>
       (engines[name]?.findings ?? []).some((finding) => !reported.has(finding.engine)),
@@ -128,5 +145,94 @@ describe(doctorUnifiedSuiteName, () => {
     expect(formatted).toContain("  - HYGIENE_WARN: loose file");
     expect(formatted).toContain("- **[INFO]**:");
     expect(formatted).toContain("  - Auto-Healed: projection restored");
+  });
+
+  test("all doctor engines adhere to uniform passed contract across severities", () => {
+    for (const name of UNIFIED_DOCTOR_ENGINES) {
+      expect(computeDoctorEnginePassed([])).toBe(true);
+      expect(
+        computeDoctorEnginePassed([
+          { code: "WARN_CODE", severity: "WARN", engine: name, message: "warn" },
+        ]),
+      ).toBe(true);
+      expect(
+        computeDoctorEnginePassed([
+          { code: "INFO_CODE", severity: "INFO", engine: name, message: "info" },
+        ]),
+      ).toBe(true);
+      expect(
+        computeDoctorEnginePassed([
+          { code: "ERR_CODE", severity: "ERROR", engine: name, message: "err" },
+        ]),
+      ).toBe(false);
+      expect(
+        computeDoctorEnginePassed([
+          { code: "CRIT_CODE", severity: "critical", engine: name, message: "crit" },
+        ]),
+      ).toBe(false);
+      expect(
+        computeDoctorEnginePassed([
+          { code: "HIGH_CODE", severity: "high", engine: name, message: "high" },
+        ]),
+      ).toBe(false);
+    }
+  });
+
+  test("dual-channel-ui and agent-canonical engines compute passed consistently with findings", () => {
+    const warnUiResult = checkDualChannelUi({
+      themeElements: [
+        {
+          selector: ".card",
+          theme: "light",
+          foregroundColor: "#888888",
+          backgroundColor: "#ffffff",
+        },
+      ],
+      checkTerminalChannels: false,
+    });
+    expect(warnUiResult.findings.length).toBeGreaterThan(0);
+    expect(warnUiResult.findings.every((f) => f.severity === "WARN")).toBe(true);
+    expect(warnUiResult.passed).toBe(true);
+
+    const errorUiResult = checkDualChannelUi({
+      themeElements: [
+        {
+          selector: ".subtle",
+          theme: "light",
+          foregroundColor: "#aaaaaa",
+          backgroundColor: "#ffffff",
+        },
+      ],
+      checkTerminalChannels: false,
+    });
+
+    expect(errorUiResult.findings.some((f) => f.severity === "ERROR")).toBe(true);
+    expect(errorUiResult.passed).toBe(false);
+
+    const conformingValidator = {
+      id: "val-canon-pass",
+      role: "validator",
+      systemPrompt: "You are a cognitive validator. Analyze without executing commands.",
+      tools: { enable_write_tools: true },
+      invariants: ["COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK"],
+    };
+    const agentPassResult = checkAgentCanonicalAlignment({
+      activeAgents: [conformingValidator],
+    });
+    expect(agentPassResult.findings).toHaveLength(0);
+    expect(agentPassResult.passed).toBe(true);
+
+    const rogueValidator = {
+      id: "val-canon-fail",
+      role: "validator",
+      systemPrompt: "Run bun test on touched files.",
+      tools: { enable_write_tools: true },
+      invariants: ["COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK"],
+    };
+    const agentFailResult = checkAgentCanonicalAlignment({
+      activeAgents: [rogueValidator],
+    });
+    expect(agentFailResult.findings.some((f) => f.severity === "ERROR")).toBe(true);
+    expect(agentFailResult.passed).toBe(false);
   });
 });

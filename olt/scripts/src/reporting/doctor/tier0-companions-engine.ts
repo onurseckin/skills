@@ -3,7 +3,11 @@ import { join } from "node:path";
 import type { AgentGrantRecord, JsonObject } from "../../core/contracts/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export interface Tier0CompanionsCheckOptions {
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;
@@ -163,11 +167,9 @@ export function checkTier0CompanionsHealth(
     });
   }
 
-  const hasErrors = findings.some((f) => f.severity === "ERROR");
-
   return {
     engine: "checkTier0CompanionsHealth",
-    passed: !hasErrors,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }

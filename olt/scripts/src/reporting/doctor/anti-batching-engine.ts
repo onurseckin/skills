@@ -1,4 +1,8 @@
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 export interface AntiBatchingIsolationOptions {
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;
@@ -121,7 +125,7 @@ export function checkAntiBatchingIsolation(
 
   return {
     engine: "checkAntiBatchingIsolation",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: computeDoctorEnginePassed(findings),
     findings,
   };
 }
