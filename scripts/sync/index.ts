@@ -253,6 +253,7 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
       console.log(formatPruneReport(Object.values(pruneResults)));
     }
     const oltBinaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
+    const chatroomBinaryResult = ensureGlobalChatroomBinary({ ...options, homeDir: home });
     const chatBinaryResult = ensureGlobalChatBinary({ ...options, homeDir: home });
     const shellResult = ensurePathInShellRc({ ...options, homeDir: home });
 
@@ -272,6 +273,9 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
         );
       }
       console.log(`✓ Global binary: ${oltBinaryResult.binaryPath} (${oltBinaryResult.status}).`);
+      console.log(
+        `✓ Global binary: ${chatroomBinaryResult.binaryPath} (${chatroomBinaryResult.status}).`,
+      );
       console.log(`✓ Global binary: ${chatBinaryResult.binaryPath} (${chatBinaryResult.status}).`);
       if (shellResult.modified) {
         console.log(`✓ Shell PATH: Configured in ${shellResult.targetRc}.`);
@@ -289,6 +293,7 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
       skills: skillResults,
       binaries: {
         olt: oltBinaryResult,
+        chatroom: chatroomBinaryResult,
         chat: chatBinaryResult,
       },
       prune: pruneResults,

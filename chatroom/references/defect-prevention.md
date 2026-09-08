@@ -121,7 +121,7 @@ Chatroom eliminates all ten defects by structural construction. This document ca
 ### 3.9 Defect D9: Divergent CLI Flag Registration
 
 - **Forensic Evidence:** Command handlers frequently added options (such as `--format json`) that were never registered in the `CommandSpec.flags` registry. Because unit tests invoked handler functions directly rather than routing through the CLI parser, this was undetected until runtime CLI execution.
-- **Chatroom Structural Guarantee:** Every command has a real CLI test executing through `chatroom/scripts/harness.ts:main(argv)`. An AST meta-test verifies that every flag read by a handler is registered in the spec, and every registered flag is consumed by its handler.
+- **Chatroom Structural Guarantee:** Every command has a real CLI test executing through `chatroom/scripts/cli.ts:main(argv)`. An AST meta-test verifies that every flag read by a handler is registered in the spec, and every registered flag is consumed by its handler.
 - **Regression Test:** `defect_D9_every_flag_registered`
 
 ---

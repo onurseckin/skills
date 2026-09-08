@@ -26,8 +26,8 @@
     "scripts/sync/**/*.ts",
     "scripts/testing/**/*.ts",
     "chatroom/scripts/src/**/*.ts",
-    "chatroom/scripts/harness.ts",
-    "chatroom/harness.ts",
+    "chatroom/scripts/cli.ts",
+    "chatroom/cli.ts",
     "chatroom/scripts/index.ts",
     "scripts/modularity/**/*.ts",
     "scripts/git/**/*.ts"

@@ -97,4 +97,4 @@ export type {
   WorkItemType,
 } from "./scripts/index.ts";
 
-export { main } from "./harness.ts";
+export { main } from "./cli.ts";

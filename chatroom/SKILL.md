@@ -49,7 +49,7 @@ Every host harness MUST materialize a dedicated, always-live communicator agent 
 
 ## 4. Command Reference
 
-Chatroom exposes nine deterministic CLI commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/harness.ts`):
+Chatroom exposes nine deterministic CLI commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/cli.ts`):
 
 | Command        | Primary Flags                                                                         | Description                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |

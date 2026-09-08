@@ -58,7 +58,7 @@ Corrupt cursors, manifests, or indices throw `CURSOR_CORRUPT` immediately. The s
 
 ## 2. Complete Command Table
 
-Chatroom exposes nine deterministic commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/harness.ts`):
+Chatroom exposes nine deterministic commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/cli.ts`):
 
 | Command       | Arguments / Flags    | Type / Default                                               | Required | Purpose                                                    |
 | ------------- | -------------------- | ------------------------------------------------------------ | -------- | ---------------------------------------------------------- |

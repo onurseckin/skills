@@ -218,7 +218,7 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
     parseString(layer3.harness_path) ??
     parseString(layer2.harness_path) ??
     parseString(layer1.harness_path) ??
-    join(home, ".agents", "skills", "chatroom", "scripts", "harness.ts");
+    join(home, ".agents", "skills", "chatroom", "scripts", "cli.ts");
 
   let harness = rawHarness.startsWith("~/")
     ? join(home, rawHarness.slice(2))
@@ -228,13 +228,23 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
 
   const exists = options.ports?.existsSync ?? existsSync;
   if (!exists(harness)) {
-    const localHarness = join(repo, "chatroom", "scripts", "harness.ts");
-    if (exists(localHarness)) {
-      harness = localHarness;
+    const localCli = join(repo, "chatroom", "scripts", "cli.ts");
+    if (exists(localCli)) {
+      harness = localCli;
     } else {
-      const rootHarness = join(repo, "chatroom", "harness.ts");
-      if (exists(rootHarness)) {
-        harness = rootHarness;
+      const rootCli = join(repo, "chatroom", "cli.ts");
+      if (exists(rootCli)) {
+        harness = rootCli;
+      } else {
+        const localHarness = join(repo, "chatroom", "scripts", "harness.ts");
+        if (exists(localHarness)) {
+          harness = localHarness;
+        } else {
+          const rootHarness = join(repo, "chatroom", "harness.ts");
+          if (exists(rootHarness)) {
+            harness = rootHarness;
+          }
+        }
       }
     }
   }

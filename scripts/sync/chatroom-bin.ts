@@ -14,6 +14,7 @@ import { logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
 
 export interface EnsureBinaryOptions {
   targetBinDir?: string | undefined;
+  cliPath?: string | undefined;
   harnessPath?: string | undefined;
   homeDir?: string | undefined;
 }
@@ -31,14 +32,14 @@ export function orDefault<T>(value: T | undefined, fallback: T): T {
   return fallback;
 }
 
-export function buildChatBinaryContent(harnessPath: string): string {
+export function buildChatBinaryContent(cliPath: string): string {
   return `#!/usr/bin/env bash
 set -e
 
-GLOBAL_HARNESS="${harnessPath}"
+GLOBAL_CLI="${cliPath}"
 
-if [ ! -f "\${GLOBAL_HARNESS}" ]; then
-  echo "Error: Chatroom global harness not found at \${GLOBAL_HARNESS}." >&2
+if [ ! -f "\${GLOBAL_CLI}" ]; then
+  echo "Error: Chatroom global entry point not found at \${GLOBAL_CLI}." >&2
   echo "Run 'bun run sync' in your skills repository to deploy." >&2
   exit 1
 fi
@@ -59,12 +60,12 @@ else
   exit 1
 fi
 
-exec "\${BUN_BIN}" "\${GLOBAL_HARNESS}" "$@"
+exec "\${BUN_BIN}" "\${GLOBAL_CLI}" "$@"
 `;
 }
 
-export function buildChatroomBinaryContent(harnessPath: string): string {
-  return buildChatBinaryContent(harnessPath);
+export function buildChatroomBinaryContent(cliPath: string): string {
+  return buildChatBinaryContent(cliPath);
 }
 
 function atomicallyWriteExecutable(targetPath: string, content: string): void {
@@ -84,16 +85,16 @@ function atomicallyWriteExecutable(targetPath: string, content: string): void {
   }
 }
 
-export function ensureGlobalChatBinary(options?: EnsureBinaryOptions): EnsureBinaryResult {
+function ensureBinaryEntry(binaryName: string, options?: EnsureBinaryOptions): EnsureBinaryResult {
   const home = orDefault(options?.homeDir, homedir());
   const targetBinDir = orDefault(options?.targetBinDir, join(home, ".local", "bin"));
-  const binaryPath = join(targetBinDir, "chat");
-  const harnessTarget = orDefault(
-    options?.harnessPath,
-    "${HOME}/.agents/skills/chatroom/harness.ts",
+  const binaryPath = join(targetBinDir, binaryName);
+  const cliTarget = orDefault(
+    options?.cliPath,
+    orDefault(options?.harnessPath, "${HOME}/.agents/skills/chatroom/cli.ts"),
   );
 
-  const expectedContent = buildChatBinaryContent(harnessTarget);
+  const expectedContent = buildChatroomBinaryContent(cliTarget);
 
   mkdirSync(targetBinDir, { recursive: true });
 
@@ -124,15 +125,15 @@ export function ensureGlobalChatBinary(options?: EnsureBinaryOptions): EnsureBin
   const bunBinDir = join(home, ".bun", "bin");
   if (existsSync(bunBinDir)) {
     try {
-      const bunChatPath = join(bunBinDir, "chat");
-      const symlinkStatus = smartEnsureSymlink(binaryPath, bunChatPath, {
+      const bunBinaryPath = join(bunBinDir, binaryName);
+      const symlinkStatus = smartEnsureSymlink(binaryPath, bunBinaryPath, {
         allowedRoots: [bunBinDir],
         allowGitRepositoryDeletion: true,
         onAudit: logDestructiveOp,
       });
       bunBinaryCreated = symlinkStatus === "created";
     } catch (err) {
-      console.warn(`[sync] Could not link ${join(bunBinDir, "chat")}:`, err);
+      console.warn(`[sync] Could not link ${join(bunBinDir, binaryName)}:`, err);
     }
   }
 
@@ -144,5 +145,12 @@ export function ensureGlobalChatBinary(options?: EnsureBinaryOptions): EnsureBin
 }
 
 export function ensureGlobalChatroomBinary(options?: EnsureBinaryOptions): EnsureBinaryResult {
-  return ensureGlobalChatBinary(options);
+  const primaryResult = ensureBinaryEntry("chatroom", options);
+  ensureBinaryEntry("chat", options);
+  return primaryResult;
+}
+
+export function ensureGlobalChatBinary(options?: EnsureBinaryOptions): EnsureBinaryResult {
+  ensureBinaryEntry("chatroom", options);
+  return ensureBinaryEntry("chat", options);
 }

@@ -1,6 +1,6 @@
 {
   "runtime_command": null,
-  "harness_path": "~/.agents/skills/chatroom/scripts/harness.ts",
+  "harness_path": "~/.agents/skills/chatroom/scripts/cli.ts",
   "notify_command": null,
   "poll_interval_ms": 750,
   "heartbeat_interval_ms": 5000,

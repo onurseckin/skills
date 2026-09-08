@@ -17,6 +17,6 @@
     "target": "ES2024",
     "types": ["node", "bun-types"]
   },
-  "include": ["../harness.ts", "index.ts", "src/**/*.ts"],
+  "include": ["../cli.ts", "index.ts", "src/**/*.ts"],
   "exclude": ["tests"]
 }
