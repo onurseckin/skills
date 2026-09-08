@@ -152,6 +152,86 @@ describe("baseline comparison", () => {
     expect(result.baselineDelta.worsened.length).toBe(0);
   });
 
+  test("accepts shrinking cycle with new intermediate nodes", () => {
+    const base: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts,src/c.ts,src/d.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const shrunkWithNewNode: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts,src/e.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const result = compareBaseline(base, shrunkWithNewNode);
+    expect(result.passed).toBe(true);
+    expect(result.baselineDelta.worsened.length).toBe(0);
+    expect(result.baselineDelta.added.length).toBe(0);
+  });
+
+  test("rejects growing cycle as worsened", () => {
+    const base: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const grown: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts,src/c.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const result = compareBaseline(base, grown);
+    expect(result.passed).toBe(false);
+    expect(result.baselineDelta.worsened.length).toBe(1);
+    expect(result.baselineDelta.worsened[0]?.path).toBe("src/a.ts");
+  });
+
+  test("marks disappearing cycle as resolved", () => {
+    const base: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "dependency_cycle",
+          path: "src/a.ts",
+          observed: "src/a.ts,src/b.ts",
+          detail: "cycle",
+        },
+      ],
+    };
+    const disappeared: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [],
+    };
+    const result = compareBaseline(base, disappeared);
+    expect(result.passed).toBe(true);
+    expect(result.baselineDelta.resolved.length).toBe(1);
+    expect(result.baselineDelta.resolved[0]?.path).toBe("src/a.ts");
+  });
+
   test("rejects an added violation and duplicate baseline identity", () => {
     expect(
       compareBaseline(baseline(300), {
