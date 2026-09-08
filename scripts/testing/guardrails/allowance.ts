@@ -88,5 +88,5 @@ export function partitionByAllowance(
 
 export function allowanceAppliesTo(scope: PurityAuditScope, strict: boolean): boolean {
   if (strict) return false;
-  return scope === "staged" || scope === "explicit";
+  return scope === "staged" || scope === "explicit" || scope === "repository";
 }
