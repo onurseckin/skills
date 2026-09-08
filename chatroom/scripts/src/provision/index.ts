@@ -8,6 +8,8 @@ export {
 
 export {
   generateCommunicatorAgent,
+  generateCommunicator,
+  resolveDisplayTitle,
   type GenerateCommunicatorOptions,
   type GenerateCommunicatorResult,
 } from "./generate.ts";

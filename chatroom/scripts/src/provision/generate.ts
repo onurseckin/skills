@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { SupportedHost } from "./detect.ts";
+import { ProvisionError, type SupportedHost } from "./detect.ts";
 
 export interface GenerateCommunicatorOptions {
   readonly host: SupportedHost;
@@ -130,6 +130,9 @@ function generateCursorArtifact(
 export function generateCommunicatorAgent(
   options: GenerateCommunicatorOptions,
 ): GenerateCommunicatorResult {
+  if (!options.room || options.room.trim().length === 0) {
+    throw new ProvisionError("INVALID_ROOM", "Room name must be a non-empty string");
+  }
   const home = options.homeDir ?? homedir();
   const repo = options.repoRoot ?? process.cwd();
   const agentName = `communicator_${options.room}`;
@@ -145,10 +148,15 @@ export function generateCommunicatorAgent(
   } else if (options.host === "codex") {
     artifactPath = join(home, ".codex", "agents", `communicator-${options.room}.toml`);
     generateCodexArtifact(agentName, displayTitle, artifactPath);
-  } else {
+  } else if (options.host === "cursor") {
     artifactPath = join(home, ".cursor", "agents", `communicator-${options.room}.md`);
     generateCursorArtifact(agentName, displayTitle, artifactPath);
+  } else {
+    throw new ProvisionError("UNSUPPORTED_HOST", `Unsupported host: ${String(options.host)}`);
   }
 
   return { agentName, artifactPath };
 }
+
+export const generateCommunicator = generateCommunicatorAgent;
+export { resolveDisplayTitle };
