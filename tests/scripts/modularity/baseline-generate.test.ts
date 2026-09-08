@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
+  assertNoPhantomPaths,
   buildBaselineDocument,
   compareViolations,
   generateBaseline,
 } from "../../../scripts/modularity/baseline/generate.ts";
 import type { Violation } from "../../../scripts/modularity/core/index.ts";
 import { readHeadBlobs } from "../../../scripts/modularity/inventory/index.ts";
-import {
-  assertNoPhantomPaths,
-  loadBaseline,
-  type ModularityBaseline,
-} from "../../../scripts/modularity/policy/index.ts";
+import { loadBaseline, type ModularityBaseline } from "../../../scripts/modularity/policy/index.ts";
 
 describe("modularity baseline generator", () => {
   test("compareViolations orders violations deterministically", () => {
@@ -187,5 +184,126 @@ describe("modularity baseline generator", () => {
     const headBlobs = await readHeadBlobs(".");
     const baseline = await loadBaseline(".", "scripts/modularity/baseline/index.json");
     expect(() => assertNoPhantomPaths(baseline, headBlobs)).not.toThrow();
+  });
+
+  test("assertNoPhantomPaths catches phantom observed target in facade_bypass", () => {
+    const mockBlobs = [
+      { path: "olt/scripts/src/cli/commands/task-ops.ts" },
+      { path: "olt/scripts/src/cli/registry/types.ts" },
+    ];
+
+    const validBaseline: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "facade_bypass",
+          path: "olt/scripts/src/cli/commands/task-ops.ts",
+          observed: "olt/scripts/src/cli/registry/types.ts",
+          detail: "Cross-directory import must target the destination index.ts facade.",
+        },
+      ],
+    };
+    expect(() => assertNoPhantomPaths(validBaseline, mockBlobs)).not.toThrow();
+
+    const phantomObservedBaseline: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "facade_bypass",
+          path: "olt/scripts/src/cli/commands/task-ops.ts",
+          observed: "olt/scripts/src/cli/does-not-exist.ts",
+          detail: "Cross-directory import must target the destination index.ts facade.",
+        },
+      ],
+    };
+    expect(() => assertNoPhantomPaths(phantomObservedBaseline, mockBlobs)).toThrow(
+      /phantom path\(s\) not found in audited blob set: bypass target "olt\/scripts\/src\/cli\/does-not-exist\.ts" in "olt\/scripts\/src\/cli\/commands\/task-ops\.ts"/,
+    );
+  });
+
+  test("assertNoPhantomPaths accepts Set<string> of blob paths and detects phantom target", () => {
+    const headBlobs = new Set([
+      "olt/scripts/src/cli/commands/task-ops.ts",
+      "olt/scripts/src/cli/registry/types.ts",
+    ]);
+
+    const validBaseline: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "facade_bypass",
+          path: "olt/scripts/src/cli/commands/task-ops.ts",
+          observed: "olt/scripts/src/cli/registry/types.ts",
+          detail: "Cross-directory import must target the destination index.ts facade.",
+        },
+      ],
+    };
+    expect(() => assertNoPhantomPaths(validBaseline, headBlobs)).not.toThrow();
+
+    const phantomBaseline: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "facade_bypass",
+          path: "olt/scripts/src/cli/commands/task-ops.ts",
+          observed: "olt/scripts/src/cli/does-not-exist.ts",
+          detail: "Cross-directory import must target the destination index.ts facade.",
+        },
+      ],
+    };
+    expect(() => assertNoPhantomPaths(phantomBaseline, headBlobs)).toThrow(
+      /bypass target "olt\/scripts\/src\/cli\/does-not-exist\.ts"/,
+    );
+  });
+
+  test("assertNoPhantomPaths does not treat numeric metrics or literal prose as paths", () => {
+    const mockBlobs = [
+      { path: "src/core/a.ts" },
+      { path: "src/core/index.ts" },
+      { path: "olt/references/cli-capabilities/manifest.json" },
+    ];
+
+    const baselineWithProseAndMetrics: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        { rule: "line_limit", path: "src/core/a.ts", observed: 500, limit: 400, detail: "long" },
+        { rule: "directory_fanout", path: "src/core", observed: 25, limit: 10, detail: "fanout" },
+        { rule: "export_star", path: "src/core/a.ts", observed: 3, detail: "export star" },
+        {
+          rule: "missing_facade",
+          path: "src/core",
+          observed: "missing index.ts",
+          detail: "needs facade",
+        },
+        {
+          rule: "generated_catalog",
+          path: "olt/references/cli-capabilities/manifest.json",
+          observed: "missing index.json",
+          detail: "catalog index",
+        },
+      ],
+    };
+
+    expect(() => assertNoPhantomPaths(baselineWithProseAndMetrics, mockBlobs)).not.toThrow();
+  });
+
+  test("assertNoPhantomPaths catches phantom observed path in root_no_growth", () => {
+    const mockBlobs = [{ path: "existing.ts" }];
+
+    const phantomBaseline: ModularityBaseline = {
+      schema: "olt-modularity-baseline/v1",
+      violations: [
+        {
+          rule: "root_no_growth",
+          path: "existing.ts",
+          observed: "phantom-root.ts",
+          detail: "Root path is not in the approved conventional set.",
+        },
+      ],
+    };
+
+    expect(() => assertNoPhantomPaths(phantomBaseline, mockBlobs)).toThrow(
+      /phantom path\(s\) not found in audited blob set: root path "phantom-root\.ts" in "existing\.ts"/,
+    );
   });
 });

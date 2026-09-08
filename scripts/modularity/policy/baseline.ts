@@ -182,6 +182,31 @@ export async function loadBaseline(
   }
 }
 
+interface PathBearingRuleContract {
+  readonly extractPaths: (observed: number | string) => readonly string[];
+  readonly describePhantom: (targetPath: string, violation: Violation) => string;
+}
+
+const PATH_BEARING_RULE_CONTRACTS: Readonly<
+  Partial<Record<ViolationRule, PathBearingRuleContract>>
+> = {
+  facade_bypass: {
+    extractPaths: (observed) =>
+      typeof observed === "string" && observed.length > 0 ? [observed] : [],
+    describePhantom: (target, violation) => `bypass target "${target}" in "${violation.path}"`,
+  },
+  dependency_cycle: {
+    extractPaths: (observed) =>
+      typeof observed === "string" && observed.length > 0 ? observed.split(",") : [],
+    describePhantom: (node, violation) => `cycle node "${node}" in "${violation.path}"`,
+  },
+  root_no_growth: {
+    extractPaths: (observed) =>
+      typeof observed === "string" && observed.length > 0 ? [observed] : [],
+    describePhantom: (target, violation) => `root path "${target}" in "${violation.path}"`,
+  },
+};
+
 export function assertNoPhantomPaths(
   baseline: ModularityBaseline,
   blobs: readonly { path: string }[] | Iterable<string>,
@@ -207,10 +232,11 @@ export function assertNoPhantomPaths(
       phantomPaths.push(`"${violation.path}" (${violation.rule})`);
       continue;
     }
-    if (violation.rule === "dependency_cycle" && typeof violation.observed === "string") {
-      for (const node of violation.observed.split(",")) {
-        if (!knownPaths.has(node)) {
-          phantomPaths.push(`cycle node "${node}" in "${violation.path}"`);
+    const contract = PATH_BEARING_RULE_CONTRACTS[violation.rule];
+    if (contract !== undefined) {
+      for (const target of contract.extractPaths(violation.observed)) {
+        if (!knownPaths.has(target)) {
+          phantomPaths.push(contract.describePhantom(target, violation));
         }
       }
     }
