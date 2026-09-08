@@ -60,6 +60,7 @@ export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
   "docker",
   "src",
   ".claude",
+  ".agents",
   ".turbo",
   ".vscode",
   ".idea",
