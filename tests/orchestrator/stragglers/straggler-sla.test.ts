@@ -109,4 +109,66 @@ describe("Domain 20: 5-Minute Straggler SLA Partitioning", () => {
     expect(task.elapsed_seconds).toBe(350);
     expect(STRAGGLERS_SUITES.length).toBe(6);
   });
+
+  test("when quota > 10%, standard straggler decomposition concurrency is used", () => {
+    const straggler: StragglingTask = {
+      id: "task-heavy-nominal",
+      scope_files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts"],
+      work_units: 6,
+      span_length: 1,
+    };
+
+    const rebalanced = rebalanceStragglerTask(straggler, {
+      minParallelism: 2,
+      maxParallelism: 6,
+      quotaPercentage: 50,
+    });
+
+    expect(rebalanced.decomposition_plan.optimal_parallelism).toBe(6);
+    expect(rebalanced.spawned_subtasks.length).toBe(6);
+  });
+
+  test("when quota <= 10% (e.g. 8%), straggler decomposition concurrency is throttled to 1", () => {
+    const straggler: StragglingTask = {
+      id: "task-heavy-throttled",
+      scope_files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts"],
+      work_units: 6,
+      span_length: 1,
+    };
+
+    const rebalanced = rebalanceStragglerTask(straggler, {
+      minParallelism: 2,
+      maxParallelism: 6,
+      quotaPercentage: 8,
+    });
+
+    expect(rebalanced.decomposition_plan.optimal_parallelism).toBe(1);
+    expect(rebalanced.spawned_subtasks.length).toBe(1);
+
+    const taskWithQuota: StragglingTask = {
+      id: "task-internal-quota",
+      scope_files: ["a.ts", "b.ts", "c.ts"],
+      work_units: 3,
+      span_length: 1,
+      quota_percentage: 8,
+    };
+    const rebalancedInternal = rebalanceStragglerTask(taskWithQuota);
+    expect(rebalancedInternal.decomposition_plan.optimal_parallelism).toBe(1);
+    expect(rebalancedInternal.spawned_subtasks.length).toBe(1);
+  });
+
+  test("partitionStragglers throttles all stragglers to 1 under low quota", () => {
+    const tasks: StragglingTask[] = [
+      { id: "task-s1", elapsed_seconds: 350, work_units: 10, span_length: 1 },
+      { id: "task-s2", elapsed_seconds: 400, work_units: 10, span_length: 1 },
+    ];
+
+    const report = partitionStragglers(tasks, { quotaPercentage: 8 });
+    expect(report.stragglerTasks.length).toBe(2);
+    expect(report.rebalancedPackages.length).toBe(2);
+    for (const pkg of report.rebalancedPackages) {
+      expect(pkg.decomposition_plan.optimal_parallelism).toBe(1);
+      expect(pkg.spawned_subtasks.length).toBe(1);
+    }
+  });
 });

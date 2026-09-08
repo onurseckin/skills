@@ -137,6 +137,124 @@ export function checkQuotaCircuitBreaker(
   };
 }
 
+let globalTelemetryQuotaProvider:
+  | (() => number | null | undefined | QuotaState | UnifiedTelemetryReport | unknown)
+  | undefined;
+
+export function setTelemetryQuotaProvider(
+  provider:
+    | (() => number | null | undefined | QuotaState | UnifiedTelemetryReport | unknown)
+    | undefined,
+): void {
+  globalTelemetryQuotaProvider = provider;
+}
+
+export function getTelemetryQuotaProvider(): (
+  | (() => number | null | undefined | QuotaState | UnifiedTelemetryReport | unknown)
+  | undefined
+) {
+  return globalTelemetryQuotaProvider;
+}
+
+export function resolveMeasuredQuotaPercentage(input?: unknown): number | undefined {
+  let target = input;
+  if (target === undefined && globalTelemetryQuotaProvider !== undefined) {
+    try {
+      target = globalTelemetryQuotaProvider();
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof target === "function") {
+    try {
+      target = (target as () => unknown)();
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof target === "number") {
+    if (Number.isNaN(target) || !Number.isFinite(target)) return undefined;
+    const val = target <= 1.0 && target > 0 ? target * 100 : target;
+    return Math.max(0, Math.min(100, val));
+  }
+  if (typeof target === "object" && target !== null) {
+    const record = target as Record<string, unknown>;
+    if (Array.isArray(record["results"])) {
+      let lowest: number | null = null;
+      for (const res of record["results"] as readonly Record<string, unknown>[]) {
+        if (res && Array.isArray(res["metrics"])) {
+          for (const m of res["metrics"] as readonly Record<string, unknown>[]) {
+            if (typeof m?.["remainingPercentage"] === "number") {
+              if (lowest === null || m["remainingPercentage"] < lowest) {
+                lowest = m["remainingPercentage"];
+              }
+            }
+          }
+        }
+      }
+      if (lowest !== null) return Math.max(0, Math.min(100, lowest));
+    }
+    if (Array.isArray(record["metrics"])) {
+      let lowest: number | null = null;
+      for (const m of record["metrics"] as readonly Record<string, unknown>[]) {
+        if (typeof m?.["remainingPercentage"] === "number") {
+          if (lowest === null || m["remainingPercentage"] < lowest) {
+            lowest = m["remainingPercentage"];
+          }
+        }
+      }
+      if (lowest !== null) return Math.max(0, Math.min(100, lowest));
+    }
+    if (typeof record["remainingPercentage"] === "number") {
+      return Math.max(0, Math.min(100, record["remainingPercentage"] as number));
+    }
+    if (typeof record["quotaPercentage"] === "number") {
+      return Math.max(0, Math.min(100, record["quotaPercentage"] as number));
+    }
+    if (typeof record["quota_percentage"] === "number") {
+      return Math.max(0, Math.min(100, record["quota_percentage"] as number));
+    }
+    if (typeof record["remaining_percentage"] === "number") {
+      return Math.max(0, Math.min(100, record["remaining_percentage"] as number));
+    }
+    if (typeof record["lowestRemainingQuota"] === "number") {
+      return Math.max(0, Math.min(100, record["lowestRemainingQuota"] as number));
+    }
+    if (typeof record["remainingPercent"] === "number") {
+      return Math.max(0, Math.min(100, record["remainingPercent"] as number));
+    }
+    if (typeof record["remainingFraction"] === "number") {
+      return Math.max(0, Math.min(100, (record["remainingFraction"] as number) * 100));
+    }
+    if (
+      typeof record["remaining"] === "number" &&
+      typeof record["total"] === "number" &&
+      (record["total"] as number) > 0
+    ) {
+      return Math.max(
+        0,
+        Math.min(100, ((record["remaining"] as number) / (record["total"] as number)) * 100),
+      );
+    }
+    if (
+      typeof record["used"] === "number" &&
+      typeof record["total"] === "number" &&
+      (record["total"] as number) > 0
+    ) {
+      return Math.max(
+        0,
+        Math.min(
+          100,
+          (((record["total"] as number) - (record["used"] as number)) /
+            (record["total"] as number)) *
+            100,
+        ),
+      );
+    }
+  }
+  return undefined;
+}
+
 export class QuotaCircuitBreaker {
   private readonly defaultThreshold: number;
   private readonly defaultRecoveryThreshold: number;

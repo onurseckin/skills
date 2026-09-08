@@ -3,7 +3,11 @@ import type {
   ConcurrencyAuditResult,
   StragglerAssessment,
 } from "../preplanning/types.ts";
-import { calculateBrentDecomposition } from "../../orchestrator/velocity-rebalancer.ts";
+import {
+  calculateBrentDecomposition,
+  resolveMeasuredQuotaPercentage,
+  type QuotaState,
+} from "../../orchestrator/velocity-rebalancer.ts";
 
 export const SKILL_CONCURRENCY_UNDER_SATURATED = "SKILL_CONCURRENCY_UNDER_SATURATED" as const;
 export const UNSTAGED_STATION_DURABILITY_RISK = "UNSTAGED_STATION_DURABILITY_RISK" as const;
@@ -35,6 +39,9 @@ export interface ConcurrencyAuditOptions {
   readonly activeSlots?: number | undefined;
   readonly activeSupervisorCount?: number | undefined;
   readonly quotaPercentage?: number | undefined;
+  readonly quotaState?: QuotaState | number | undefined;
+  readonly getQuotaPercentage?: (() => number | null | undefined) | undefined;
+  readonly quotaProvider?: (() => number | null | undefined | QuotaState) | undefined;
 }
 
 export function auditConcurrencySaturation(
@@ -59,10 +66,22 @@ export function auditConcurrencySaturation(
   const spanLength = Math.max(1, options?.spanLength ?? 1);
   const minRatio = options?.minSaturationRatio ?? 0.8;
 
+  const rawQuota =
+    options?.quotaPercentage ??
+    (typeof options?.getQuotaPercentage === "function"
+      ? options.getQuotaPercentage() ?? undefined
+      : undefined) ??
+    (typeof options?.quotaProvider === "function"
+      ? options.quotaProvider() ?? undefined
+      : undefined) ??
+    options?.quotaState;
+
+  const resolvedQuota = resolveMeasuredQuotaPercentage(rawQuota);
+
   const optimalPlan = calculateBrentDecomposition({
     workUnits: totalWorkUnits,
     spanLength,
-    quotaPercentage: options?.quotaPercentage,
+    quotaPercentage: resolvedQuota,
   });
 
   const optimalConcurrency = options?.totalSlots ?? optimalPlan.optimal_parallelism;
@@ -84,7 +103,7 @@ export function auditConcurrencySaturation(
     : [];
 
   const isUnderSaturated =
-    (totalWorkUnits > 5 && activeSlots < 2) ||
+    (totalWorkUnits > 5 && activeSlots < 2 && optimalConcurrency > 1) ||
     (totalWorkUnits >= 5 && activeSlots < optimalConcurrency && saturationRatio < minRatio);
 
   if (isUnderSaturated) {

@@ -1,22 +1,23 @@
 import { createHash } from "node:crypto";
+import {
+  DEFAULT_QUOTA_THRESHOLD,
+  resolveMeasuredQuotaPercentage,
+} from "../../telemetry/circuit-breaker.ts";
 import { throttleConcurrency } from "../../telemetry/soft-drain/index.ts";
 import { partitionScopeDisjoint } from "./scope-partition.ts";
 import type { BrentConcurrencyPlan, BrentDecompositionOptions, BrentPartition } from "./types.ts";
 
 export const DEFAULT_MIN_PARALLELISM = 5;
 export const DEFAULT_MAX_PARALLELISM = 15;
-export const DEFAULT_TARGET_DURATION_SECONDS = 180; // 3 minutes (within 120s - 240s window)
+export const DEFAULT_TARGET_DURATION_SECONDS = 180;
+export const DECOMPOSITION_LOW_QUOTA_THRESHOLD = DEFAULT_QUOTA_THRESHOLD;
 
-/**
- * Computes optimal Brent dynamic concurrency: P = ceil(W / S)
- * bounded by [minParallelism, maxParallelism], throttled to 1 if quota constrained.
- */
 export function calculateBrentConcurrency(
   workUnits: number,
   spanLength = 1,
   minParallelism = DEFAULT_MIN_PARALLELISM,
   maxParallelism = DEFAULT_MAX_PARALLELISM,
-  quotaPercentage?: number,
+  quotaPercentage?: number | unknown,
 ): number {
   const w = Math.max(0, workUnits);
   const s = Math.max(1, spanLength);
@@ -30,23 +31,21 @@ export function calculateBrentConcurrency(
       ? Math.max(1, Math.min(w, theoreticalP))
       : Math.min(maxParallelism, Math.max(minParallelism, theoreticalP));
 
-  if (quotaPercentage !== undefined) {
-    p = throttleConcurrency(p, quotaPercentage);
+  const resolved = resolveMeasuredQuotaPercentage(quotaPercentage);
+  if (resolved !== undefined) {
+    p = throttleConcurrency(p, resolved, DEFAULT_QUOTA_THRESHOLD);
   }
 
   return p;
 }
 
-/**
- * Calculates dynamic wave capacity based on total work units and critical span.
- */
 export function calculateDynamicWaveCapacity(
   tasks: readonly { readonly effort?: number | undefined }[],
   criticalDepth: number,
   options?: {
     readonly minParallelism?: number | undefined;
     readonly maxParallelism?: number | undefined;
-    readonly quotaPercentage?: number | undefined;
+    readonly quotaPercentage?: number | unknown;
   },
 ): number {
   const totalEffort = tasks.reduce((sum, t) => {
@@ -61,9 +60,6 @@ export function calculateDynamicWaveCapacity(
   return calculateBrentConcurrency(totalEffort, span, minP, maxP, options?.quotaPercentage);
 }
 
-/**
- * Decomposes work into sub-partitions using Brent's Work/Span dynamic concurrency.
- */
 export function calculateBrentDecomposition(
   options: BrentDecompositionOptions,
 ): BrentConcurrencyPlan {
@@ -73,12 +69,22 @@ export function calculateBrentDecomposition(
   const maxP = options.maxParallelism ?? DEFAULT_MAX_PARALLELISM;
   const targetDuration = options.targetDurationSeconds ?? DEFAULT_TARGET_DURATION_SECONDS;
 
+  const rawQuota =
+    options.quotaPercentage ??
+    (typeof options.getQuotaPercentage === "function"
+      ? options.getQuotaPercentage() ?? undefined
+      : undefined) ??
+    (typeof options.quotaProvider === "function"
+      ? options.quotaProvider() ?? undefined
+      : undefined) ??
+    options.quotaState;
+
   const optimalParallelism = calculateBrentConcurrency(
     workUnits,
     spanLength,
     minP,
     maxP,
-    options.quotaPercentage,
+    rawQuota,
   );
 
   const scopeFiles = options.scopeFiles ?? [];

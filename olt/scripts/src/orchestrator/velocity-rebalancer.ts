@@ -1,14 +1,10 @@
-/**
- * Facade for Brent Work/Span dynamic concurrency scaling, 5-minute straggler SLA partitioning,
- * and false-serialization prevention.
- */
-
 export type {
   BrentConcurrencyPlan,
   BrentDecompositionOptions,
   BrentPartition,
   FalseSerializationReport,
   FalseSerializationViolation,
+  QuotaState,
   RebalancedTaskPackage,
   RebalanceStragglerOptions,
   StragglerPartitionReport,
@@ -20,15 +16,19 @@ export {
   calculateBrentConcurrency,
   calculateBrentDecomposition,
   calculateDynamicWaveCapacity,
+  DECOMPOSITION_LOW_QUOTA_THRESHOLD,
   decomposeStragglingTask,
   DEFAULT_MAX_PARALLELISM,
   DEFAULT_MIN_PARALLELISM,
   DEFAULT_TARGET_DURATION_SECONDS,
   detectFalseSerialization,
+  getTelemetryQuotaProvider,
   isTaskStraggling,
   partitionScopeDisjoint,
   partitionStragglers,
   rebalanceStragglerTask,
+  resolveMeasuredQuotaPercentage,
+  setTelemetryQuotaProvider,
   STRAGGLER_SLA_MS,
   STRAGGLER_SLA_SECONDS,
 } from "./concurrency/index.ts";

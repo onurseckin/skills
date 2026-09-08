@@ -223,4 +223,40 @@ describe("Skill Concurrency Auditor Coverage Suite", () => {
     expect(report.saturationRatio).toBe(1);
     expect(report.isSaturated).toBe(true);
   });
+
+  it("computes optimal concurrency from quota: nominal > 10% vs throttled <= 10%", () => {
+    const reportNominal = auditConcurrencySaturation({
+      totalWorkUnits: 10,
+      spanLength: 1,
+      quotaPercentage: 50,
+      activeSlots: 10,
+    });
+    expect(reportNominal.totalSlots).toBe(10);
+    expect(reportNominal.isSaturated).toBe(true);
+
+    const reportLow = auditConcurrencySaturation({
+      totalWorkUnits: 10,
+      spanLength: 1,
+      quotaPercentage: 8,
+      activeSlots: 1,
+    });
+    expect(reportLow.totalSlots).toBe(1);
+    expect(reportLow.isSaturated).toBe(true);
+
+    const reportFn = auditConcurrencySaturation({
+      totalWorkUnits: 10,
+      spanLength: 1,
+      getQuotaPercentage: () => 7.5,
+      activeSlots: 1,
+    });
+    expect(reportFn.totalSlots).toBe(1);
+
+    const reportState = auditConcurrencySaturation({
+      totalWorkUnits: 10,
+      spanLength: 1,
+      quotaState: { remainingPercentage: 8 },
+      activeSlots: 1,
+    });
+    expect(reportState.totalSlots).toBe(1);
+  });
 });

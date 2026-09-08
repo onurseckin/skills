@@ -5,7 +5,11 @@ import type {
   RawDefectItem,
   StragglerAssessment,
 } from "../mind/preplanning/types.ts";
-import { calculateBrentDecomposition } from "../orchestrator/velocity-rebalancer.ts";
+import {
+  calculateBrentDecomposition,
+  resolveMeasuredQuotaPercentage,
+  type QuotaState,
+} from "../orchestrator/velocity-rebalancer.ts";
 
 export const STRAGGLER_SLA_SECONDS = 300;
 export const PROGRESS_SILENCE_THRESHOLD_SECONDS = 120;
@@ -23,6 +27,9 @@ export interface MonitoredTask {
   readonly span_length?: number | undefined;
   readonly is_abandoned?: boolean | undefined;
   readonly is_dead?: boolean | undefined;
+  readonly quota_percentage?: number | undefined;
+  readonly quotaPercentage?: number | undefined;
+  readonly quota_state?: QuotaState | number | undefined;
 }
 
 export interface StragglerWatchdogOptions {
@@ -33,6 +40,9 @@ export interface StragglerWatchdogOptions {
   readonly minParallelism?: number | undefined;
   readonly maxParallelism?: number | undefined;
   readonly quotaPercentage?: number | undefined;
+  readonly quotaState?: QuotaState | number | undefined;
+  readonly getQuotaPercentage?: (() => number | null | undefined) | undefined;
+  readonly quotaProvider?: (() => number | null | undefined | QuotaState) | undefined;
 }
 
 export interface StragglerWatchdogReport {
@@ -99,6 +109,21 @@ export function assessTaskStraggler(
       const scopeFiles = task.scope_files ?? [];
       const workUnits = task.work_units ?? Math.max(1, scopeFiles.length);
 
+      const rawQuota =
+        options?.quotaPercentage ??
+        (typeof options?.getQuotaPercentage === "function"
+          ? options.getQuotaPercentage() ?? undefined
+          : undefined) ??
+        (typeof options?.quotaProvider === "function"
+          ? options.quotaProvider() ?? undefined
+          : undefined) ??
+        options?.quotaState ??
+        task.quota_percentage ??
+        task.quotaPercentage ??
+        task.quota_state;
+
+      const resolvedQuota = resolveMeasuredQuotaPercentage(rawQuota);
+
       decompositionPlan = calculateBrentDecomposition({
         workUnits,
         spanLength: task.span_length ?? 1,
@@ -106,7 +131,7 @@ export function assessTaskStraggler(
         maxParallelism: options?.maxParallelism,
         scopeFiles,
         parentTaskId: task.id,
-        quotaPercentage: options?.quotaPercentage,
+        quotaPercentage: resolvedQuota,
       });
     }
 

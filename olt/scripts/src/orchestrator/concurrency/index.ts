@@ -1,13 +1,10 @@
-/**
- * Explicit named facade for the concurrency, work/span scaling, and straggler SLA domain.
- */
-
 export type {
   BrentConcurrencyPlan,
   BrentDecompositionOptions,
   BrentPartition,
   FalseSerializationReport,
   FalseSerializationViolation,
+  QuotaState,
   RebalancedTaskPackage,
   RebalanceStragglerOptions,
   StragglerPartitionReport,
@@ -19,6 +16,7 @@ export {
   calculateBrentConcurrency,
   calculateBrentDecomposition,
   calculateDynamicWaveCapacity,
+  DECOMPOSITION_LOW_QUOTA_THRESHOLD,
   DEFAULT_MAX_PARALLELISM,
   DEFAULT_MIN_PARALLELISM,
   DEFAULT_TARGET_DURATION_SECONDS,
@@ -32,3 +30,8 @@ export {
   STRAGGLER_SLA_SECONDS,
 } from "./straggler-partition.ts";
 export { assertNoFalseSerialization, detectFalseSerialization } from "./false-serialization.ts";
+export {
+  getTelemetryQuotaProvider,
+  resolveMeasuredQuotaPercentage,
+  setTelemetryQuotaProvider,
+} from "../../telemetry/circuit-breaker.ts";

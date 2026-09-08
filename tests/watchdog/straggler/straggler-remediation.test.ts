@@ -75,6 +75,56 @@ describe("StragglerWatchdog Remediation & Defect Emission", () => {
     expect(res.decomposition_plan?.sub_partitions[0]?.subtask_id).toContain("task-heavy");
   });
 
+  it("throttles DECOMPOSE_PARALLEL concurrency when quota <= 10% vs nominal > 10%", () => {
+    const now = 1700000500000;
+    const taskOverburdened: MonitoredTask = {
+      id: "task-heavy-quota",
+      agent_id: "agent-busy",
+      status: "RUNNING",
+      claimed_at: now - 350_000,
+      last_progress: now - 200_000,
+      scope_files: ["file1.ts", "file2.ts", "file3.ts", "file4.ts"],
+      work_units: 4,
+      span_length: 2,
+    };
+
+    const resNominal = assessTaskStraggler(taskOverburdened, now, {
+      minParallelism: 2,
+      maxParallelism: 4,
+      quotaPercentage: 80,
+    });
+    expect(resNominal.decomposition_plan?.optimal_parallelism).toBe(2);
+    expect(resNominal.decomposition_plan?.sub_partitions.length).toBe(2);
+
+    const resLowQuota = assessTaskStraggler(taskOverburdened, now, {
+      minParallelism: 2,
+      maxParallelism: 4,
+      quotaPercentage: 8,
+    });
+    expect(resLowQuota.decomposition_plan?.optimal_parallelism).toBe(1);
+    expect(resLowQuota.decomposition_plan?.sub_partitions.length).toBe(1);
+
+    const taskWithInternalLowQuota: MonitoredTask = {
+      ...taskOverburdened,
+      id: "task-heavy-internal-quota",
+      quota_percentage: 7.5,
+    };
+    const resInternal = assessTaskStraggler(taskWithInternalLowQuota, now, {
+      minParallelism: 2,
+      maxParallelism: 4,
+    });
+    expect(resInternal.decomposition_plan?.optimal_parallelism).toBe(1);
+    expect(resInternal.decomposition_plan?.sub_partitions.length).toBe(1);
+
+    const resFn = assessTaskStraggler(taskOverburdened, now, {
+      minParallelism: 2,
+      maxParallelism: 4,
+      getQuotaPercentage: () => 8,
+    });
+    expect(resFn.decomposition_plan?.optimal_parallelism).toBe(1);
+    expect(resFn.decomposition_plan?.sub_partitions.length).toBe(1);
+  });
+
   it("evaluates active task lists and writes defects atomically to defects file", () => {
     const root = scratchRoot(import.meta.path, "straggler-defects");
     const defectsFile = join(root, "defects.jsonl");

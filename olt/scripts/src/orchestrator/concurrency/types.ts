@@ -1,6 +1,7 @@
 import type { BrentConcurrencyPlan, BrentPartition } from "../../mind/preplanning/types.ts";
+import type { QuotaState } from "../../telemetry/circuit-breaker.ts";
 
-export type { BrentConcurrencyPlan, BrentPartition };
+export type { BrentConcurrencyPlan, BrentPartition, QuotaState };
 
 export interface BrentDecompositionOptions {
   readonly workUnits: number;
@@ -11,6 +12,9 @@ export interface BrentDecompositionOptions {
   readonly parentTaskId?: string | undefined;
   readonly targetDurationSeconds?: number | undefined;
   readonly quotaPercentage?: number | undefined;
+  readonly quotaState?: QuotaState | number | undefined;
+  readonly getQuotaPercentage?: (() => number | null | undefined) | undefined;
+  readonly quotaProvider?: (() => number | null | undefined | QuotaState) | undefined;
 }
 
 export interface RebalanceStragglerOptions {
@@ -19,6 +23,9 @@ export interface RebalanceStragglerOptions {
   readonly targetDurationSeconds?: number | undefined;
   readonly slaThresholdSeconds?: number | undefined;
   readonly quotaPercentage?: number | undefined;
+  readonly quotaState?: QuotaState | number | undefined;
+  readonly getQuotaPercentage?: (() => number | null | undefined) | undefined;
+  readonly quotaProvider?: (() => number | null | undefined | QuotaState) | undefined;
 }
 
 export interface StragglingTask {
@@ -29,6 +36,9 @@ export interface StragglingTask {
   readonly span_length?: number | undefined;
   readonly started_at?: number | string | undefined;
   readonly elapsed_seconds?: number | undefined;
+  readonly quota_percentage?: number | undefined;
+  readonly quotaPercentage?: number | undefined;
+  readonly quota_state?: QuotaState | number | undefined;
 }
 
 export interface RebalancedTaskPackage {

@@ -1,4 +1,5 @@
 import { calculateBrentDecomposition } from "./brent-scaling.ts";
+import { resolveMeasuredQuotaPercentage } from "../../telemetry/circuit-breaker.ts";
 import type {
   RebalancedTaskPackage,
   RebalanceStragglerOptions,
@@ -35,6 +36,21 @@ export function rebalanceStragglerTask(
   const scopeFiles = task.scope_files ?? [];
   const workUnits = task.work_units ?? Math.max(1, scopeFiles.length);
 
+  const rawQuota =
+    options?.quotaPercentage ??
+    (typeof options?.getQuotaPercentage === "function"
+      ? options.getQuotaPercentage() ?? undefined
+      : undefined) ??
+    (typeof options?.quotaProvider === "function"
+      ? options.quotaProvider() ?? undefined
+      : undefined) ??
+    options?.quotaState ??
+    task.quota_percentage ??
+    task.quotaPercentage ??
+    task.quota_state;
+
+  const resolvedQuota = resolveMeasuredQuotaPercentage(rawQuota);
+
   const plan = calculateBrentDecomposition({
     workUnits,
     spanLength: task.span_length ?? 1,
@@ -43,7 +59,7 @@ export function rebalanceStragglerTask(
     scopeFiles,
     parentTaskId: task.id,
     targetDurationSeconds: options?.targetDurationSeconds,
-    quotaPercentage: options?.quotaPercentage,
+    quotaPercentage: resolvedQuota,
   });
 
   const spawnedSubtasks = plan.sub_partitions.map((partition) => ({
