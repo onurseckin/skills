@@ -131,8 +131,8 @@ export function executePreActionHook(input: ExtendedPreActionInput): PreActionRe
     if (
       command.includes("LEFTHOOK=0") ||
       command.includes("LEFTHOOK=false") ||
-      /\b--no-verify\b/.test(command) ||
-      /\b--force\b/.test(command)
+      /--no-verify(?![\w-])/.test(command) ||
+      /--force(?![\w-])/.test(command)
     ) {
       return {
         allowed: false,

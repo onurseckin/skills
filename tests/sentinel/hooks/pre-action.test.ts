@@ -86,7 +86,6 @@ describe("sentinel:pre-action hook", () => {
   });
 
   test("evaluates write scope boundary conditions across empty scopes and directory scopes", () => {
-    // Empty write scope allows implementer writing without scope confinement
     const emptyScopeResult = executePreActionHook({
       agent_id: "impl_01",
       role: "implementer",
@@ -96,7 +95,6 @@ describe("sentinel:pre-action hook", () => {
     });
     expect(emptyScopeResult.allowed).toBe(true);
 
-    // Directory prefix scope allows file inside directory
     const dirScopeAllowed = executePreActionHook({
       agent_id: "impl_01",
       role: "implementer",
@@ -106,7 +104,6 @@ describe("sentinel:pre-action hook", () => {
     });
     expect(dirScopeAllowed.allowed).toBe(true);
 
-    // Directory prefix scope blocks file in sibling directory
     const dirScopeBlocked = executePreActionHook({
       agent_id: "impl_01",
       role: "implementer",
@@ -158,6 +155,44 @@ describe("sentinel:pre-action hook", () => {
     });
     expect(bypassResult.allowed).toBe(false);
     expect(bypassResult.code).toBe("QUALITY_GATE_BYPASS_ATTEMPT");
+  });
+
+  test("blocks quality gate bypass via --no-verify and --force flags", () => {
+    const noVerifyResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: "git push --no-verify",
+    });
+    expect(noVerifyResult.allowed).toBe(false);
+    expect(noVerifyResult.code).toBe("QUALITY_GATE_BYPASS_ATTEMPT");
+
+    const noVerifyWithArgsResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: "git push --no-verify origin main",
+    });
+    expect(noVerifyWithArgsResult.allowed).toBe(false);
+    expect(noVerifyWithArgsResult.code).toBe("QUALITY_GATE_BYPASS_ATTEMPT");
+
+    const forceResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: "git push --force",
+    });
+    expect(forceResult.allowed).toBe(false);
+    expect(forceResult.code).toBe("QUALITY_GATE_BYPASS_ATTEMPT");
+
+    const forceWithArgsResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: "git push --force origin main",
+    });
+    expect(forceWithArgsResult.allowed).toBe(false);
+    expect(forceWithArgsResult.code).toBe("QUALITY_GATE_BYPASS_ATTEMPT");
   });
 
   test("CLI execute sentinel:pre-action blocks unauthorized calls with exit code 1", async () => {
