@@ -188,11 +188,22 @@ export function verifyProvisionReceipt(
     };
   }
 
+  const checkAlive = options.checkProcessAlive ?? defaultCheckProcessAlive;
+  if (!checkAlive(receipt.daemon.pid)) {
+    return {
+      valid: false,
+      code: "PROVISION_DRIFT",
+      reason: `receipt claims daemon pid ${receipt.daemon.pid}, process is dead`,
+    };
+  }
+
   const cronOptions = {
     host: receipt.host,
     room: receipt.room,
+    reader: receipt.member,
     ...(options.homeDir !== undefined ? { homeDir: options.homeDir } : {}),
     ...(options.repoRoot !== undefined ? { repoRoot: options.repoRoot } : {}),
+    checkDaemon: (): boolean => checkAlive(receipt.daemon.pid),
   };
   const cronResult = {
     mechanism: receipt.cron.mechanism,
@@ -206,15 +217,6 @@ export function verifyProvisionReceipt(
       valid: false,
       code: "PROVISION_DRIFT",
       reason: `receipt claims cron ${receipt.cron.mechanism}, registration missing or not found on host`,
-    };
-  }
-
-  const checkAlive = options.checkProcessAlive ?? defaultCheckProcessAlive;
-  if (!checkAlive(receipt.daemon.pid)) {
-    return {
-      valid: false,
-      code: "PROVISION_DRIFT",
-      reason: `receipt claims daemon pid ${receipt.daemon.pid}, process is dead`,
     };
   }
 

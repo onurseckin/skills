@@ -162,7 +162,7 @@ export function getSpoolHighestSeq(targetPath: string, ports?: SpoolPorts): numb
 export function appendSpool(
   roomId: string,
   readerId: string,
-  envelopes: readonly (Envelope | Record<string, unknown>)[],
+  envelopes: readonly Envelope[],
   options: SpoolOptions = {},
 ): SpoolAppendResult {
   const lock = spoolLockPath(roomId, readerId);
@@ -177,12 +177,11 @@ export function appendSpool(
 
     const highestSeq = getSpoolHighestSeq(targetPath, options.ports);
     let runningHighest = highestSeq;
-    const toAppend: (Envelope | Record<string, unknown>)[] = [];
+    const toAppend: Envelope[] = [];
     for (const envelope of envelopes) {
-      const seq = "seq" in envelope && typeof envelope.seq === "number" ? envelope.seq : 0;
-      if (seq > runningHighest) {
+      if (envelope.seq > runningHighest) {
         toAppend.push(envelope);
-        runningHighest = seq;
+        runningHighest = envelope.seq;
       }
     }
 

@@ -21,8 +21,14 @@ function makeEnvelope(room: string, seq: number): LogEnvelope {
       role: "tester",
       host: "virtual",
     },
-    kind: "chat",
+    kind: "message",
+    reply_to: null,
+    mentions: [],
     text: `Message ${seq}`,
+    body: {
+      schema: "text",
+      data: { text: `Message ${seq}` },
+    },
     key_fingerprint: "fp-virtual",
     sig: `sig-${seq}`,
   };

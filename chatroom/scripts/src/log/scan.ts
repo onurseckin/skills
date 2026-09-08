@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import * as nodeFs from "node:fs";
 import { join } from "node:path";
 import {
   canonicalJson,
@@ -12,6 +12,19 @@ import {
   type Envelope,
 } from "../core/index.ts";
 import { readLogIndex } from "./segments.ts";
+
+export interface FsDriver {
+  existsSync(path: string): boolean;
+  readdirSync(path: string): readonly (string | { readonly name: string })[];
+  readFileSync(path: string, encoding: string): string | Uint8Array;
+  writeFileSync(path: string, content: string | Uint8Array): void;
+  mkdirSync?(path: string, options?: { recursive?: boolean }): unknown;
+}
+
+export interface QuarantineOptions {
+  readonly fs?: FsDriver | undefined;
+  readonly baseDir?: string | undefined;
+}
 
 export type ParseLineResult =
   | { readonly success: true; readonly envelope: Envelope }
@@ -51,15 +64,21 @@ export function quarantineCorruptLine(
   line: string,
   seq?: number,
   reason?: string,
+  options?: QuarantineOptions,
 ): string {
-  const qDir = roomQuarantineDir(roomId);
-  if (existsSync(qDir)) {
-    const entries = readdirSync(qDir);
+  const fsDriver = options?.fs ?? nodeFs;
+  const qDir = roomQuarantineDir(roomId, options?.baseDir);
+  if (fsDriver.existsSync(qDir)) {
+    const rawEntries = fsDriver.readdirSync(qDir);
+    const entries = rawEntries.map((entry) => (typeof entry === "string" ? entry : entry.name));
     for (const entry of entries) {
       if (entry.endsWith(".json") && !entry.startsWith(".")) {
         const filePath = join(qDir, entry);
         try {
-          const content = safeJsonParse(readFileSync(filePath, "utf8"));
+          const raw = fsDriver.readFileSync(filePath, "utf8");
+          const content = safeJsonParse(
+            typeof raw === "string" ? raw : new TextDecoder().decode(raw),
+          );
           if (
             typeof content === "object" &&
             content !== null &&
@@ -75,10 +94,10 @@ export function quarantineCorruptLine(
 
   const now = new Date().toISOString();
   const sequenceNumber = seq ?? 0;
-  let targetPath = roomQuarantinePath(roomId, now, sequenceNumber);
-  if (existsSync(targetPath)) {
+  let targetPath = roomQuarantinePath(roomId, now, sequenceNumber, options?.baseDir);
+  if (fsDriver.existsSync(targetPath)) {
     let suffix = 1;
-    while (existsSync(targetPath)) {
+    while (fsDriver.existsSync(targetPath)) {
       const sanitizedTs = now.replace(/[:.]/g, "-");
       targetPath = join(qDir, `${sanitizedTs}-${sequenceNumber}-${suffix}.json`);
       suffix++;
@@ -92,22 +111,35 @@ export function quarantineCorruptLine(
     raw: line,
   };
 
-  writeAtomic(targetPath, canonicalJson(record));
+  if (options?.fs) {
+    if (fsDriver.mkdirSync) {
+      fsDriver.mkdirSync(qDir, { recursive: true });
+    }
+    fsDriver.writeFileSync(targetPath, canonicalJson(record));
+  } else {
+    writeAtomic(targetPath, canonicalJson(record));
+  }
   return targetPath;
 }
 
 export function readSegmentEnvelopes(
   segmentPath: string,
-  options?: { readonly roomId?: string },
+  options?: {
+    readonly roomId?: string | undefined;
+    readonly fs?: FsDriver | undefined;
+    readonly baseDir?: string | undefined;
+  },
 ): {
   readonly envelopes: readonly Envelope[];
   readonly tornLines: readonly string[];
 } {
-  if (!existsSync(segmentPath)) {
+  const fsDriver = options?.fs ?? nodeFs;
+  if (!fsDriver.existsSync(segmentPath)) {
     return { envelopes: [], tornLines: [] };
   }
 
-  const content = readFileSync(segmentPath, "utf8");
+  const raw = fsDriver.readFileSync(segmentPath, "utf8");
+  const content = typeof raw === "string" ? raw : new TextDecoder().decode(raw);
   if (content.length === 0) {
     return { envelopes: [], tornLines: [] };
   }
@@ -134,7 +166,10 @@ export function readSegmentEnvelopes(
       envelopes.push(result.envelope);
     } else {
       if (roomId !== undefined && roomId.length > 0) {
-        quarantineCorruptLine(roomId, trimmed, undefined, result.error);
+        quarantineCorruptLine(roomId, trimmed, undefined, result.error, {
+          fs: options?.fs,
+          baseDir: options?.baseDir,
+        });
       }
       tornLines.push(trimmed);
     }

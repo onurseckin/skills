@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ChatError, type Envelope } from "../core/index.ts";
-import { parseLogLine, quarantineCorruptLine } from "../log/index.ts";
+import { parseLogLine, quarantineCorruptLine, type FsDriver } from "../log/index.ts";
 import {
   assertCursorInvariants,
   computeCursorChecksum,
@@ -28,6 +28,8 @@ export interface LeaseFsPorts {
   readonly statSync?: (path: string) => LeaseFsStats | undefined;
   readonly readdirSync?: (path: string) => readonly (string | { readonly name: string })[];
   readonly readFileSync?: (path: string, encoding: string) => string | Uint8Array;
+  readonly writeFileSync?: (path: string, content: string | Uint8Array) => void;
+  readonly mkdirSync?: (path: string, options?: { recursive?: boolean }) => unknown;
 }
 
 export interface LeaseOptions {
@@ -36,6 +38,7 @@ export interface LeaseOptions {
   readonly leaseId?: string;
   readonly fs?: LeaseFsPorts;
   readonly roomId?: string;
+  readonly baseDir?: string;
 }
 
 export interface LeaseResult {
@@ -86,6 +89,7 @@ function scanFromFiles(
   limit: number,
   fsPorts?: LeaseFsPorts,
   roomId?: string,
+  baseDir?: string,
 ): Envelope[] {
   const collected: Envelope[] = [];
   let expectedSeq = fromSeq;
@@ -113,7 +117,10 @@ function scanFromFiles(
         }
       } else {
         if (roomId !== undefined && roomId.length > 0) {
-          quarantineCorruptLine(roomId, trimmed, undefined, parsed.error);
+          quarantineCorruptLine(roomId, trimmed, undefined, parsed.error, {
+            fs: fsPorts as FsDriver | undefined,
+            baseDir,
+          });
         }
       }
       if (collected.length >= limit) {
@@ -131,6 +138,7 @@ export function scanFromDirectory(
   limit: number,
   fsPorts?: LeaseFsPorts,
   roomId?: string,
+  baseDir?: string,
 ): Envelope[] {
   if (!fsExists(logDir, fsPorts)) {
     return [];
@@ -144,7 +152,7 @@ export function scanFromDirectory(
     .sort();
 
   const filePaths = files.map((file) => join(logDir, file));
-  return scanFromFiles(filePaths, fromSeq, limit, fsPorts, roomId);
+  return scanFromFiles(filePaths, fromSeq, limit, fsPorts, roomId, baseDir);
 }
 
 export function scanFromFile(
@@ -153,6 +161,7 @@ export function scanFromFile(
   limit: number,
   fsPorts?: LeaseFsPorts,
   roomId?: string,
+  baseDir?: string,
 ): Envelope[] {
   if (!fsExists(filePath, fsPorts)) {
     return [];
@@ -187,10 +196,10 @@ export function scanFromFile(
 
     segments.sort((a, b) => a.num - b.num);
     const filesToScan = [...segments.map((s) => s.path), filePath];
-    return scanFromFiles(filesToScan, fromSeq, limit, fsPorts, roomId);
+    return scanFromFiles(filesToScan, fromSeq, limit, fsPorts, roomId, baseDir);
   }
 
-  return scanFromFiles([filePath], fromSeq, limit, fsPorts, roomId);
+  return scanFromFiles([filePath], fromSeq, limit, fsPorts, roomId, baseDir);
 }
 
 export function readLeaseLogs(
@@ -199,6 +208,7 @@ export function readLeaseLogs(
   limit: number,
   fsPorts?: LeaseFsPorts,
   roomId?: string,
+  baseDir?: string,
 ): Envelope[] {
   if (Array.isArray(log)) {
     const sorted = [...log].sort((a, b) => a.seq - b.seq);
@@ -219,10 +229,10 @@ export function readLeaseLogs(
     }
     const stat = fsStat(log, fsPorts);
     if (stat?.isDirectory()) {
-      return scanFromDirectory(log, fromSeq, limit, fsPorts, roomId);
+      return scanFromDirectory(log, fromSeq, limit, fsPorts, roomId, baseDir);
     }
     if (stat?.isFile()) {
-      return scanFromFile(log, fromSeq, limit, fsPorts, roomId);
+      return scanFromFile(log, fromSeq, limit, fsPorts, roomId, baseDir);
     }
     throw new ChatError("INVALID_STATE", `Expected file or directory at '${log}'`);
   }
@@ -235,7 +245,7 @@ export function readLeaseLogs(
   }
   if ("getEnvelopes" in log && typeof log.getEnvelopes === "function") {
     const all = log.getEnvelopes();
-    return readLeaseLogs(all, fromSeq, limit, fsPorts, roomId);
+    return readLeaseLogs(all, fromSeq, limit, fsPorts, roomId, baseDir);
   }
 
   return [];
@@ -322,7 +332,14 @@ export function leaseNext(
   }
 
   const effectiveRoomId = options.roomId ?? cursor.room;
-  const rawMessages = readLeaseLogs(log, startSeq, nextLimit, options.fs, effectiveRoomId);
+  const rawMessages = readLeaseLogs(
+    log,
+    startSeq,
+    nextLimit,
+    options.fs,
+    effectiveRoomId,
+    options.baseDir,
+  );
 
   if (rawMessages.length === 0) {
     if (activeHeld.length !== cursor.held.length) {

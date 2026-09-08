@@ -17,5 +17,7 @@ export {
   readSegmentEnvelopes,
   scanContiguousRange,
   scanRange,
+  type FsDriver,
   type ParseLineResult,
+  type QuarantineOptions,
 } from "./scan.ts";

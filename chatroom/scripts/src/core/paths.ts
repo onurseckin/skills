@@ -162,13 +162,18 @@ export function roomProvisionReceiptPath(
   return join(roomProvisionDir(roomId, baseDir), `${host}.${memberId}.json`);
 }
 
-export function roomQuarantineDir(roomId: string): string {
-  return join(roomDir(roomId), "quarantine");
+export function roomQuarantineDir(roomId: string, baseDir?: string): string {
+  return join(roomDir(roomId, baseDir), "quarantine");
 }
 
-export function roomQuarantinePath(roomId: string, timestamp: string, seq: number): string {
+export function roomQuarantinePath(
+  roomId: string,
+  timestamp: string,
+  seq: number,
+  baseDir?: string,
+): string {
   const sanitizedTs = timestamp.replace(/[:.]/g, "-");
-  return join(roomQuarantineDir(roomId), `${sanitizedTs}-${seq}.json`);
+  return join(roomQuarantineDir(roomId, baseDir), `${sanitizedTs}-${seq}.json`);
 }
 
 export function roomLocksDir(roomId: string, baseDir?: string): string {
