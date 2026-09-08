@@ -1,8 +1,8 @@
-import { enforceLineLimit, formatTable } from "../../cli/formatters/line-limiter.ts";
+import { enforceLineLimit, formatTable } from "../../cli/formatters/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { isRecord } from "../../requirements/predicates.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { extractLeaseAgentId } from "../lease-agent-extractor.ts";
+import { isRecord } from "../../requirements/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
+import { extractLeaseAgentId } from "../index.ts";
 import type { DecisionAuditRow, LeaseMatrixRow, LeaseRecord } from "./types.ts";
 
 export function formatLeaseDecisions(leases: readonly (LeaseRecord | LeaseMatrixRow)[]): string {

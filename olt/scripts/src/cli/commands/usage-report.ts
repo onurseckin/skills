@@ -1,9 +1,9 @@
-import { TelemetryNormalizationEngine } from "../../telemetry/engine.ts";
+import { TelemetryNormalizationEngine } from "../../telemetry/index.ts";
 import {
   createDefaultCollectors,
   type CollectorEnvironment,
 } from "../../telemetry/collectors/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export async function usageReportCommand(
   flags: Flags,

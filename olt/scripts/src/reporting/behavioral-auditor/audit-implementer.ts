@@ -1,6 +1,6 @@
 import type { CommandRecord, JsonObject } from "../../core/contracts/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
-import type { TaskRecord, ValidationAttempt } from "../../workflow/types.ts";
+import type { TaskRecord, ValidationAttempt } from "../../workflow/index.ts";
 import { isImplementerRole } from "./predicates.ts";
 import { GRAPH_MUTATION_COMMANDS, VALIDATION_COMMANDS, type BehavioralFinding } from "./types.ts";
 

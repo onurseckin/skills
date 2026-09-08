@@ -3,12 +3,12 @@ import { basename, isAbsolute, join, resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import type { JsonObject, WorktreeConsolidationRecord } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
-import { verifyCommandRecord } from "../../engine/runner/signing/verify-command";
+import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/index.ts";
+import { verifyCommandRecord } from "../../engine/runner/signing/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { dispatchLifecycleHook } from "../../hooks/index.ts";
-import { runAndRecordCommand } from "../../integration/record-command.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { runAndRecordCommand } from "../../integration/index.ts";
+import { workflowPort } from "../../integration/index.ts";
 import {
   archiveCapsule,
   consolidateCapsules,
@@ -17,13 +17,13 @@ import {
 import { drainBacklogOnRunCompletion } from "../../mind/tasks/smart/index.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { verifyCommandAuthorization } from "../../policy/index.ts";
-import { loadRepoPolicy } from "../../policy/repo-policy.ts";
-import { ingestBrowserRun } from "../../reporting/browser-run-ingestion.ts";
-import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
-import { refreshHandoff } from "../../reporting/handoff.ts";
-import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
-import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
-import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
+import { loadRepoPolicy } from "../../policy/index.ts";
+import { ingestBrowserRun } from "../../reporting/index.ts";
+import { commandEvidenceView, commandRecordPath } from "../../reporting/index.ts";
+import { refreshHandoff } from "../../reporting/index.ts";
+import { ingestScreenshots, ingestVisualReport } from "../../reporting/index.ts";
+import type { ScreenshotRecord } from "../../reporting/index.ts";
+import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/index.ts";
 import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified/index.ts";
 import { readAgentMetadata } from "../../runtime/index.ts";
 import { generateSummarySuite } from "../../summary/formatters/index.ts";
@@ -31,24 +31,20 @@ import type { CompletionArtifactRequirements } from "../../workflow/completion/i
 import { executeAutoSyncAndCommit } from "../../workflow/completion/index.ts";
 import { completeRun } from "../../workflow/completion/index.ts";
 import { gateTally } from "../../workflow/completion/index.ts";
-import { attachGateResult } from "../../workflow/gates/attach-result.ts";
-import { finishTask } from "../../workflow/gates/finish-task.ts";
-import {
-  applicableGates,
-  taskHasPassedGate,
-  workflowGates,
-} from "../../workflow/gates/gate-policy.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
-import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
+import { attachGateResult } from "../../workflow/gates/index.ts";
+import { finishTask } from "../../workflow/gates/index.ts";
+import { applicableGates, taskHasPassedGate, workflowGates } from "../../workflow/gates/index.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
+import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/index.ts";
+import { readWorktreeLedger } from "../../workflow/worktree/index.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,
   formatRunStatusBrief,
 } from "../formatters/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { declaredToolFlags } from "../taxonomy-flags.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { declaredToolFlags } from "../index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {

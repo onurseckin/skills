@@ -1,10 +1,20 @@
-import type { RepoPolicy } from "../../policy/types/index.ts";
-import { inspectRepoPolicy } from "../../policy/repo-policy.ts";
+import { createRequire } from "node:module";
 import {
   computeDoctorEnginePassed,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
 } from "./types.ts";
+
+import type { RepoPolicy } from "../../policy/index.ts";
+
+const req = createRequire(import.meta.url);
+
+function getInspectRepoPolicy(): (repoRoot: string) => { status: string; policy?: RepoPolicy } {
+  const mod = req("../../policy/index.ts") as {
+    readonly inspectRepoPolicy: (repoRoot: string) => { status: string; policy?: RepoPolicy };
+  };
+  return mod.inspectRepoPolicy;
+}
 
 export const MIN_ADVERSARIAL_PROBES = 5;
 export const MANDATORY_COGNITIVE_PUSHBACKS = 5;
@@ -25,7 +35,7 @@ function resolveQuotas(options: PushbackQuotasCheckOptions): {
 } {
   let policy = options.policy;
   if (!policy && options.repoRoot) {
-    const inspected = inspectRepoPolicy(options.repoRoot);
+    const inspected = getInspectRepoPolicy()(options.repoRoot);
     if (inspected.status === "valid_custom" || inspected.status === "auto_detected") {
       policy = inspected.policy;
     }

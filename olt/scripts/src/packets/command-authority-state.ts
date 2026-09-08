@@ -2,8 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { RunState } from "../core/contracts/index.ts";
 import { loadRun } from "../engine/store/index.ts";
-import type { Flags } from "../cli/options.ts";
-import type { CommandSpec } from "../cli/registry/types.ts";
+import type { CommandSpec, Flags } from "./types.ts";
 import {
   isGrantBootstrapExempt,
   isMissingCapsuleBootstrapExempt,

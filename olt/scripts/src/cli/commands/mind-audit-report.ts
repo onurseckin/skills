@@ -10,9 +10,9 @@ import {
 } from "../../mind/auditing/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { listFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface MindAuditReportResult {
   readonly markdown: string;

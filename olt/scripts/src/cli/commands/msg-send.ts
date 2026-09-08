@@ -1,10 +1,10 @@
 import { resolveActiveSession } from "../../authority/session/index.ts";
 import { agentIdToRole, identifyExecutionContext } from "../../authority/thread/index.ts";
 import { dispatchPeerMessage } from "../../communication/mailbox/index.ts";
-import type { MailboxEnvelope, MailboxMessageType } from "../../communication/types.ts";
+import type { MailboxEnvelope, MailboxMessageType } from "../../communication/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface CallerContext {
   readonly authenticatedCaller?: {

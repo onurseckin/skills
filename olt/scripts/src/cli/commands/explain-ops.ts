@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { ERROR_CODES, type ErrorCode } from "../../core/errors/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findCommand } from "../registry/index.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { textFlag, type Flags } from "../index.ts";
 import {
   EXPLAIN_ENTRIES,
   type ExplainCause,

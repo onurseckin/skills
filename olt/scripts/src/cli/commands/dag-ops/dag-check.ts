@@ -1,7 +1,7 @@
 import { checkDag, type DagTaskNode } from "../../../engine/dag/index.ts";
 import { loadRun } from "../../../engine/store/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../../options.ts";
-import { resolveCapsuleRun } from "../dag-view.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../../index.ts";
+import { resolveCapsuleRun } from "../index.ts";
 import { formatDagCheckBrief } from "./formatters.ts";
 import type { DagCheckCommandResult } from "./types.ts";
 

@@ -11,8 +11,8 @@ import {
   ENHANCED_PLAN_JSON_FILE,
   ENHANCED_PLAN_SCHEMA,
   PLANNING_DIRECTORY,
-} from "../../requirements/enhanced-plan.ts";
-import type { WorkflowState } from "../../workflow/types.ts";
+} from "../../requirements/index.ts";
+import type { WorkflowState } from "../../workflow/index.ts";
 
 export interface RequirementView {
   id: string;

@@ -20,8 +20,8 @@ import {
   type TaskQueueStats,
   type TaskQueueStatus,
 } from "../../task/queue/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface SmartTaskSynthesizeResult {
   readonly markdown: string;

@@ -10,12 +10,13 @@ import { dependencyMap } from "../../graph/dependency-map.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
 import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
-import { isRecord } from "../../requirements/predicates.ts";
-import { partitionFindingsIntoScopes } from "../../workflow/scope-partitioner.ts";
-import { utc } from "../../workflow/task-state.ts";
-import type { GateRuntime, TaskRecord } from "../../workflow/types.ts";
+
+import { isRecord } from "../../requirements/index.ts";
+import { partitionFindingsIntoScopes } from "../../workflow/index.ts";
+import { utc } from "../../workflow/index.ts";
+import type { GateRuntime, TaskRecord } from "../../workflow/index.ts";
 import { formatPlanReplanBrief } from "../formatters/index.ts";
-import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { actorFlag, integerFlag, textFlag, type Flags } from "../index.ts";
 import {
   parseGateArgv,
   readPlanBindings,

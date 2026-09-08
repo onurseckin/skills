@@ -1,25 +1,25 @@
 import { applicableValidatorDomains } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import {
   ReviewProtocolEngine,
   assertReviewProtocolSatisfied,
   type ReviewChannelKind,
-} from "../../policy/review-protocol.ts";
-import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";
+} from "../../policy/index.ts";
+import { refreshHandoffOnEscalation } from "../../reporting/index.ts";
 import { isUiScope } from "../../validation/dual-channel-analyzer/index.ts";
-import { getOpenMicroCycles, markMicroCycleAddressed } from "../../workflow/review/micro-cycle.ts";
-import { probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
-import { recordReview } from "../../workflow/review/record-review.ts";
+import { getOpenMicroCycles, markMicroCycleAddressed } from "../../workflow/review/index.ts";
+import { probeRoundsRecorded } from "../../workflow/review/index.ts";
+import { recordReview } from "../../workflow/review/index.ts";
 import {
   assertRoleArtifactPresent,
   classifiesAsUiTask,
   gateReviewPayload,
   taskClassificationTexts,
-} from "../../workflow/review/role-evidence.ts";
-import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+} from "../../workflow/review/index.ts";
+import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/index.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 import {
   assertNoResolutions,
   assertOpenFindingsAnswered,

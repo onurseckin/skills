@@ -1,5 +1,5 @@
-import type { CommandContext, Flags } from "../../options.ts";
-import { reportUnifiedCommand as baseReportUnifiedCommand } from "../unified-reporting.ts";
+import type { CommandContext, Flags } from "../../index.ts";
+import { reportUnifiedCommand as baseReportUnifiedCommand } from "../index.ts";
 
 export function reportUnifiedCommand(
   flags: Flags,

@@ -1,4 +1,4 @@
-import { formatTable } from "./formatters/line-limiter.ts";
+import { formatTable } from "./formatters/index.ts";
 import {
   COMMAND_DOMAINS,
   COMMAND_REGISTRY,

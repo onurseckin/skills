@@ -1,7 +1,7 @@
-import { planCompileCommand, planReplanCommand, planStatusCommand } from "../commands/plan.ts";
-import { planApplyCommand, planClaimCommand } from "../commands/plan-apply.ts";
-import { planAuditCommand } from "../commands/plan-audit.ts";
-import { planReviewCommand, planValidateStartCommand } from "../commands/plan-validate.ts";
+import { planCompileCommand, planReplanCommand, planStatusCommand } from "../commands/index.ts";
+import { planApplyCommand, planClaimCommand } from "../commands/index.ts";
+import { planAuditCommand } from "../commands/index.ts";
+import { planReviewCommand, planValidateStartCommand } from "../commands/index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

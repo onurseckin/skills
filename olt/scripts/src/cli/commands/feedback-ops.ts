@@ -11,8 +11,8 @@ import {
   type FeedbackPriority,
   type FeedbackStatus,
 } from "../../mind/feedback/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface FeedbackListResult {
   readonly markdown: string;

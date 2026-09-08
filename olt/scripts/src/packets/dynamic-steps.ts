@@ -1,6 +1,5 @@
-import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
-import type { BranchSubTask } from "../core/contracts/index.ts";
-import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import { isJsonObject, type BranchSubTask, type JsonObject } from "../core/contracts/index.ts";
+import type { TaskRecord, WorkflowState } from "../workflow/index.ts";
 import type {
   CognitiveStepCategory,
   CognitiveStepCoverageIssue,

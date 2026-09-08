@@ -15,9 +15,9 @@ import {
   resolveMailboxPaths,
   verifyEnvelopeHmac,
 } from "../../communication/mailbox/index.ts";
-import type { MailboxEnvelope, MailboxMessageType } from "../../communication/types.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import type { MailboxEnvelope, MailboxMessageType } from "../../communication/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface ReceiptMetadata {
   readonly delivery_status: "DELIVERED" | "MARKED-READ" | "UNREAD";

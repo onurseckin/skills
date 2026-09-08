@@ -1,11 +1,15 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { verifyIntegrity, verifyCapsuleDeep } from "../../engine/store/index.ts";
-import { MINIMUM_BUN_VERSION } from "../../core/config/contracts.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import type { IntegrityIssue } from "../../core/contracts/index.ts";
-import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
+import { repositoryGitCommand } from "../../packets/index.ts";
+
+export const MINIMUM_BUN_VERSION = "1.3.0" as const;
+
+type RepositoryGitCommand = repositoryGitCommand.RepositoryGitCommand;
+const repositoryGit: RepositoryGitCommand = repositoryGitCommand.repositoryGit;
 
 export type DoctorIssueSeverity = "critical" | "cosmetic";
 

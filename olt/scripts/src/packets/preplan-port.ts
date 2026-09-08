@@ -1,7 +1,7 @@
 import type { RunState } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
 import { loadRun, transact } from "../engine/store/index.ts";
-import type { GateRuntime, TransactionPort, WorkflowState } from "../workflow/types.ts";
+import type { GateRuntime, TransactionPort, WorkflowState } from "../workflow/index.ts";
 
 function view(raw: RunState): WorkflowState {
   const graph =

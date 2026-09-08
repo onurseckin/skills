@@ -1,8 +1,8 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { recoverStale } from "../../workflow/lease/recover-stale.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import { systemClock } from "../../workflow/types.ts";
+import { recoverStale } from "../../workflow/lease/index.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { systemClock } from "../../workflow/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 
 export interface LockCleanerOptions {

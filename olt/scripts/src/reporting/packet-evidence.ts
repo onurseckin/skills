@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
-import { readCanonicalObject } from "../core/json.ts";
-import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { safeRepoPath } from "../core/paths.ts";
-import type { PacketRecord } from "../workflow/types.ts";
+import { readCanonicalObject, readRegularFileNoFollow, safeRepoPath } from "../core/index.ts";
+import type { PacketRecord } from "../workflow/index.ts";
 
 function mismatch(record: PacketRecord, metadata: Record<string, unknown>): boolean {
   return (

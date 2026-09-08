@@ -1,18 +1,18 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { refreshHandoffOnEscalation } from "../../reporting/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { tokenDigest } from "../../workflow/lease/token.ts";
-import { recordReview } from "../../workflow/review/record-review.ts";
-import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
+import { tokenDigest } from "../../workflow/lease/index.ts";
+import { recordReview } from "../../workflow/review/index.ts";
+import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/index.ts";
 import {
   DEFAULT_MAX_MICRO_CYCLES,
   formatMicroCycleFeedback,
   getLatestMicroCycle,
   recordMicroCycleCritique,
-} from "../../workflow/review/micro-cycle.ts";
+} from "../../workflow/review/index.ts";
 import { formatTaskRejectBrief } from "../formatters/index.ts";
-import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../index.ts";
 import {
   buildReviewFinding,
   nextFindingRound,
@@ -23,7 +23,7 @@ import {
   assertRoleArtifactPresent,
   classifiesAsUiTask,
   gateReviewPayload,
-} from "../../workflow/review/role-evidence.ts";
+} from "../../workflow/review/index.ts";
 import { isUiScope } from "../../validation/dual-channel-analyzer/index.ts";
 import {
   collectTaskScreenshots,
@@ -32,7 +32,7 @@ import {
   reviewPolicyFor,
 } from "./task-review-support.ts";
 
-import { ReviewProtocolEngine, type ReviewChannelKind } from "../../policy/review-protocol.ts";
+import { ReviewProtocolEngine, type ReviewChannelKind } from "../../policy/index.ts";
 
 export async function taskRejectCommand(flags: Flags): Promise<Record<string, unknown>> {
   const isMicroCycle = boolFlag(flags, "micro-cycle") || boolFlag(flags, "in-lease");

@@ -6,8 +6,8 @@ import type {
 } from "../../core/contracts/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
+import { readAgentLedger } from "../../workflow/agents/index.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
 import { auditCoordinatorCodeWriting } from "./audit-coordinator.ts";
 import { auditImplementerSelfGradingAndTopology } from "./audit-implementer.ts";
 import { auditOrchestratorDirectImplementation } from "./audit-orchestrator.ts";

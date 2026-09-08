@@ -24,7 +24,7 @@ graph TD
     C -->|Flock Lock| D[.olt/defects.jsonl]
 
     E[Implementer Execution] -->|run:exec| F[Recorded Command Ledger]
-    F -->|Actor Fallback / --skip-checks| G[task:submit Reconciliation]
+    F -->|Actor Fallback / --no-op & --reason| G[task:submit Reconciliation]
     G -->|Submission Report| H[Task Validating State]
 
     H -->|task:review| I[Cognitive Validator]
@@ -57,7 +57,7 @@ graph TD
 
 - **Actor Variance Fallback**: `resolveChecks` prioritizes exact `(task_id, actor)` command matches, but falls back to any successful command (`task_id` match, `exit_code: 0`) sorted deterministically.
 - **Gate-Free Support**: Empty gate definitions (null, empty strings, whitespace, empty array/object) cleanly resolve to empty check lists with `agent_reported` evidence class.
-- **Bypass Flags**: Explicit `--skip-checks` or `--no-checks` flags allow immediate check resolution for documentation or non-testable tasks.
+- **No-Op Submissions**: Explicit `--no-op` and `--reason` flags allow immediate check and change resolution for tasks requiring no write-scope modifications.
 
 ### 3.4 Universal CLI Flag Aliasing
 

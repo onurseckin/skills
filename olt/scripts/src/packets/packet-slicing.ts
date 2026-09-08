@@ -3,9 +3,9 @@ import type { JsonObject, JsonPrimitive, JsonValue } from "../core/contracts/ind
 import { isJsonObject } from "../core/contracts/index.ts";
 import type { AgentRole } from "../core/contracts/index.ts";
 import { isAgentRole } from "../core/contracts/index.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
-import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import type { TaskRecord, WorkflowState } from "../workflow/index.ts";
 import { buildPacket } from "./render-packet.ts";
 import type { BuiltPacket, PacketInput } from "./types.ts";
 import {

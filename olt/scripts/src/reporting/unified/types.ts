@@ -1,6 +1,5 @@
 import type { ExecutionTier } from "../../authority/thread/index.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
-import type { LeaseRecordView } from "../lease-agent-extractor.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
 import type { SugiyamaDagReport, SugiyamaWaveMetrics } from "../sugiyama-dag/index.ts";
 
 export type { SugiyamaDagReport, SugiyamaWaveMetrics };
@@ -10,7 +9,7 @@ export {
   extractLeaseRole,
   extractLeaseAttempt,
   type LeaseRecordView,
-} from "../lease-agent-extractor.ts";
+} from "../index.ts";
 
 export interface LeaseRecord {
   taskId: string;

@@ -2,7 +2,7 @@ import type { CommandLogMetadata, CommandRecord } from "../core/contracts/index.
 import type { JsonObject } from "../core/contracts/index.ts";
 import { isMechanicValidatorRole } from "../core/contracts/index.ts";
 import { readLog } from "../summary/markdown/index.ts";
-import type { WorkflowState } from "../workflow/types.ts";
+import type { WorkflowState } from "../workflow/index.ts";
 
 export const COMMAND_OUTPUT_CEILING_BYTES = 32 * 1024;
 

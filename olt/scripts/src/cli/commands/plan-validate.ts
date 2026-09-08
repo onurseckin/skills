@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { publishPlanValidatorRolePacket } from "../../packets/plan-validator-grant.ts";
 import { recordGrantInspections } from "../../packets/role-grant.ts";
-import { beginPlanValidation } from "../../workflow/plan-review/begin-plan-validation.ts";
-import { recordPlanReview } from "../../workflow/plan-review/record-plan-review.ts";
+import { beginPlanValidation } from "../../workflow/plan-review/index.ts";
+import { recordPlanReview } from "../../workflow/plan-review/index.ts";
 import { formatPlanReviewBrief, formatPlanValidateStartBrief } from "../formatters/index.ts";
-import { integerFlag, textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../index.ts";
 
 function readFindingsInput(raw: string | undefined, file: string | undefined): unknown {
   const content = raw ?? (file === undefined ? undefined : readFindingsFile(file));

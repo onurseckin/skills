@@ -5,9 +5,9 @@ import {
   type DualUiAuditResult,
   type UiViewportTier,
 } from "../../validation/ui/index.ts";
-import { classifiesAsUiTask } from "../../workflow/review/role-evidence.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { classifiesAsUiTask } from "../../workflow/review/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../index.ts";
 import {
   collectCompanionManifests,
   collectTaskScreenshots,

@@ -15,7 +15,7 @@ import { loadRoleContract } from "./role-contract.ts";
 import { criticContext } from "./critic-context.ts";
 import { validateRepositoryInspectionPair } from "./repository-inspection.ts";
 import { CONCLUSION_EXCLUSIONS, validatorTaskContract } from "./prior-round-demands.ts";
-import { pruneNonUiPayload } from "../workflow/review/role-evidence.ts";
+import { pruneNonUiPayload } from "../workflow/review/index.ts";
 import { uiDomainApplies } from "../core/contracts/index.ts";
 
 import type { AgentRole } from "../core/contracts/index.ts";

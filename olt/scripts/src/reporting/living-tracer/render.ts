@@ -1,5 +1,17 @@
-import { formatTable } from "../../cli/formatters/line-limiter.ts";
-import { readCapsuleEvents } from "../event-stream.ts";
+import { readCapsuleEvents } from "../event-stream/index.ts";
+
+function formatTable(headers: readonly string[], rows: readonly (readonly string[])[]): string[] {
+  const sanitize = (cell: string | null | undefined): string => {
+    const raw = typeof cell === "string" ? cell : String(cell ?? "");
+    return raw.replace(/\r?\n/g, " ").replace(/(?<!\\)\|/g, "\\|");
+  };
+  const cleanHeaders = headers.map(sanitize);
+  const cleanRows = rows.map((row) => row.map(sanitize));
+  const headerLine = `| ${cleanHeaders.join(" | ")} |`;
+  const separatorLine = `| ${cleanHeaders.map(() => ":---").join(" | ")} |`;
+  const rowLines = cleanRows.map((row) => `| ${row.join(" | ")} |`);
+  return [headerLine, separatorLine, ...rowLines];
+}
 import {
   formatCoordinates,
   formatStatusBadge,

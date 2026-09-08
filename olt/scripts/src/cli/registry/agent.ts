@@ -3,8 +3,8 @@ import {
   agentRegisterCommand,
   agentReleaseCommand,
   agentReportCommand,
-} from "../commands/agent-ops.ts";
-import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
+} from "../commands/index.ts";
+import { CATEGORY_FLAG_HELP } from "../index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

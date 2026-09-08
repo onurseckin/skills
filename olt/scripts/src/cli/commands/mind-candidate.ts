@@ -3,9 +3,9 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { verifyDefectWitness } from "../../mind/auditing/witness/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { findGrant, readAgentLedger } from "../../workflow/agents/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { listFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface MindCandidate extends JsonObject {
   readonly id: string;

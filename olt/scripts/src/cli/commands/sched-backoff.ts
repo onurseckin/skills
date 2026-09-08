@@ -1,7 +1,7 @@
 import { calculateBackoffWithStrategy, type BackoffStrategy } from "../../core/scheduling/index.ts";
-import { resolveTraceContext } from "../../telemetry/trace-context.ts";
-import { parseArguments } from "../arguments.ts";
-import { assertFlags, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { resolveTraceContext } from "../../telemetry/index.ts";
+import { parseArguments } from "../index.ts";
+import { assertFlags, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 const ALLOWED_SCHED_BACKOFF_FLAGS: readonly string[] = [
   "base-interval",

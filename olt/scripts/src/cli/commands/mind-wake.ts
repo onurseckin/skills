@@ -1,8 +1,8 @@
 import { HarnessError } from "../../core/errors/index.ts";
 import { buildWakeBrief } from "../../mind/proposals/brief/index.ts";
 import { reclaimDeadPulse } from "../../mind/lifecycle/index.ts";
-import { renderHandoff } from "../../reporting/handoff.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { renderHandoff } from "../../reporting/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export async function mindWakeCommand(
   flags: Flags,

@@ -4,7 +4,7 @@ import {
   policyGetCommand,
   policyInitCommand,
   policySetCommand,
-} from "../commands/policy-ops.ts";
+} from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const POLICY_COMMANDS: readonly CommandSpec[] = [

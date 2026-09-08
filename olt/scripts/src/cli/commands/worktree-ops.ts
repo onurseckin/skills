@@ -11,8 +11,8 @@ import {
   listTrackWorktrees,
   resolveRepo,
 } from "../../workflow/worktree/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 
 export function worktreeCreateCommand(flags: Flags): Record<string, unknown> {
   const tier = textFlag(flags, "tier", false);

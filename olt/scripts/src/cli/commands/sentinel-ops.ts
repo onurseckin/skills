@@ -7,7 +7,7 @@ import {
   runSentinelWatch,
   type AgentRole,
 } from "../../sentinel/index.ts";
-import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../index.ts";
 
 function requireRole(flags: Flags): AgentRole {
   const roleRaw = textFlag(flags, "role", true);

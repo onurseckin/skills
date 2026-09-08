@@ -3,7 +3,7 @@ import {
   evidenceScreenshotsCommand,
   findingGetCommand,
   reportGetCommand,
-} from "../commands/inspection-ops.ts";
+} from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const INSPECTION_COMMANDS: readonly CommandSpec[] = [

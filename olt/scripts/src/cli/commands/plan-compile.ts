@@ -16,15 +16,13 @@ import {
   assertTopologyJustified,
 } from "../../graph/topology-declaration.ts";
 import { dependencyData } from "../../graph/topology.ts";
-import {
-  compileRequirementsFromPrompt,
-  type TaskDeclaration,
-} from "../../requirements/compiler.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
-import type { AssignableTask } from "../../workflow/worktree/assign.ts";
-import { provisionWorktrees } from "../../workflow/worktree/provision.ts";
+
+import { compileRequirementsFromPrompt, type TaskDeclaration } from "../../requirements/index.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
+import type { AssignableTask } from "../../workflow/worktree/index.ts";
+import { provisionWorktrees } from "../../workflow/worktree/index.ts";
 import { formatPlanCompileBrief } from "../formatters/index.ts";
-import { actorFlag, listFlag, textFlag, type Flags } from "../options.ts";
+import { actorFlag, listFlag, textFlag, type Flags } from "../index.ts";
 import { executeDagViewCommand } from "./dag-view.ts";
 import { parseAuditAcceptance, recordAuditAcceptance, recordPlanAudit } from "./plan-audit.ts";
 import { parseGateArgv } from "./plan-replan-bindings.ts";

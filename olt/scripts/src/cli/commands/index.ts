@@ -1,16 +1,9 @@
-export {
-  agentRegisterCommand,
-  agentReportCommand,
-  agentReleaseCommand,
-  agentListCommand,
-} from "./agent-ops.ts";
+export { agentRegisterCommand, agentReportCommand } from "./agent-ops.ts";
+export { agentReleaseCommand, agentListCommand } from "./agent-ops.ts";
 export { authorityDecideCommand } from "./authority-ops.ts";
+export type { DefectStatus, RGBColor, ApcaBadgeInfo, AuditedDefect } from "./defect-audit.ts";
 export type {
-  DefectStatus,
-  RGBColor,
-  ApcaBadgeInfo,
   ApcaContrastCompliance,
-  AuditedDefect,
   DefectAuditSummary,
   DefectAuditCommandResult,
 } from "./defect-audit.ts";
@@ -18,19 +11,15 @@ export {
   calculateApcaLightnessContrast,
   getApcaBadgeInfo,
   renderApcaContrastBadge,
+} from "./defect-audit.ts";
+export {
   discoverDefectFiles,
   renderAsciiDefectTable,
   formatDefectAuditReport,
-  defectAuditCommand,
 } from "./defect-audit.ts";
-export {
-  branchOpenCommand,
-  branchClaimCommand,
-  branchSubmitCommand,
-  branchCollectCommand,
-  branchAbandonCommand,
-  branchStatusCommand,
-} from "./branch-ops.ts";
+export { defectAuditCommand } from "./defect-audit.ts";
+export { branchOpenCommand, branchClaimCommand, branchSubmitCommand } from "./branch-ops.ts";
+export { branchCollectCommand, branchAbandonCommand, branchStatusCommand } from "./branch-ops.ts";
 export { evaluateManifestFile, findManifestsInDir, captureEvalCommand } from "./capture-eval.ts";
 export {
   generateInitialConfigYaml,
@@ -49,47 +38,32 @@ export {
   loadBunfigCoverageThreshold,
   coverageCheckCommand,
 } from "./coverage-check.ts";
-export {
-  criticStartCommand,
-  criticReviewCommand,
-  criticRejectCommand,
-  criticRemediateCommand,
-} from "./critic-ops.ts";
+export { criticStartCommand, criticReviewCommand } from "./critic-ops.ts";
+export { criticRejectCommand, criticRemediateCommand } from "./critic-ops.ts";
 export type {
   DagViewOptions,
   DagWaveMetrics,
   DagNodeSummary,
   ActiveAgentInfo,
+} from "./dag-view.ts";
+export type {
   ParallelizationRecommendation,
   WaveInfo,
   DependencyForensicItem,
+} from "./dag-view.ts";
+export type {
   SerializationAnalysisItem,
   MultiCoordinatorOpportunity,
   DagViewReport,
   DagViewResult,
 } from "./dag-view.ts";
-export {
-  activeAgentBadge,
-  renderAsciiDag,
-  renderNodeBox,
-  renderVisualDag,
-  statusBadge,
-  statusGlyph,
-  findLatestCapsuleIn,
-  resolveCapsuleRun,
-  analyzeDependencyForensics,
-  analyzeSerialization,
-  analyzeMultiCoordinatorOpportunities,
-  analyzeParallelization,
-  dagViewCommand,
-  executeDagViewCommand,
-} from "./dag-view.ts";
-export {
-  dagRenderCommand,
-  executeDagRenderCommand,
-  dagTraceCommand,
-  executeDagTraceCommand,
-} from "./dag.ts";
+export { activeAgentBadge, renderAsciiDag, renderNodeBox, renderVisualDag } from "./dag-view.ts";
+export { statusBadge, statusGlyph, findLatestCapsuleIn, resolveCapsuleRun } from "./dag-view.ts";
+export { analyzeDependencyForensics, analyzeSerialization } from "./dag-view.ts";
+export { analyzeMultiCoordinatorOpportunities, analyzeParallelization } from "./dag-view.ts";
+export { dagViewCommand, executeDagViewCommand } from "./dag-view.ts";
+export { dagRenderCommand, executeDagRenderCommand } from "./dag.ts";
+export { dagTraceCommand, executeDagTraceCommand } from "./dag.ts";
 export {
   doctorCommand,
   healthCommand,
@@ -260,25 +234,24 @@ export { streamEventsCommand } from "./stream-events.ts";
 export { summaryExportCommand, summaryViewCommand } from "./summary-ops.ts";
 export { taskAbandonCommand } from "./task-abandon.ts";
 export { taskBriefCommand } from "./task-brief.ts";
-export type {
-  TypeCheckDiagnostic,
-  TypeCheckResult,
-  LintCheckResult,
-  TaskCheckSummary,
-  ResolveTargetFilesOptions,
-} from "./task-check.ts";
+export type { TypeCheckDiagnostic, TypeCheckResult, LintCheckResult } from "./task-check.ts";
+export type { TaskCheckSummary, ResolveTargetFilesOptions } from "./task-check.ts";
 export {
   SUPPORTED_EXTENSIONS,
   isSupportedSourceFile,
   collectSourceFilesRecursively,
+} from "./task-check.ts";
+export {
   resolveTargetFiles,
   findNearestTsconfig,
   performIncrementalTypecheck,
+} from "./task-check.ts";
+export {
   performAstLintCheck,
   formatTaskCheckMarkdown,
   computeTaskCheckVerdict,
-  taskCheckCommand,
 } from "./task-check.ts";
+export { taskCheckCommand } from "./task-check.ts";
 export { taskClaimCommand, taskHeartbeatCommand } from "./task-claim.ts";
 export { taskSubmitCommand, taskReleaseCommand } from "./task-ops.ts";
 export { taskProbeCommand } from "./task-probe.ts";
@@ -319,12 +292,9 @@ export {
   todoDrainCommand,
   todoSealCommand,
   todoCleanCommand,
-  mindQueueListCommand,
-  mindQueueAddCommand,
-  mindQueueDrainCommand,
-  mindQueueSealCommand,
-  mindQueueCleanCommand,
 } from "./todo/index.ts";
+export { mindQueueListCommand, mindQueueAddCommand, mindQueueDrainCommand } from "./todo/index.ts";
+export { mindQueueSealCommand, mindQueueCleanCommand } from "./todo/index.ts";
 export {
   reportUnifiedCommand,
   reportDagCommand,
@@ -361,6 +331,7 @@ export {
   policySetCommand,
   policyInitCommand,
   policyCheckDriftCommand,
+  policyAuditCommand,
 } from "./policy-ops.ts";
 export { factoryPreplanCommand, factoryStatusCommand } from "./factory-ops.ts";
 export { notifyPhaseCommand, notifyTestCommand } from "./notify-ops.ts";
@@ -394,3 +365,10 @@ export {
 } from "./hygiene-ops.ts";
 export { defectRecordCommand, defectResolveCommand, defectListCommand } from "./defect-ops.ts";
 export { mindAuditLiveCommand } from "./mind-audit-live.ts";
+export { findingFileCommand } from "./finding-ops.ts";
+export { planBrainstormCommand } from "./plan-brainstorm.ts";
+export { schedBackoffCommand, schedEvalCommand, schedJitterCommand } from "./sched-ops.ts";
+export { doctorAgentCommand } from "./doctor-agent.ts";
+export { sentinelPostActionCommand, sentinelPreActionCommand } from "./sentinel-ops.ts";
+export { sentinelTurnEndCommand, sentinelWatchCommand } from "./sentinel-ops.ts";
+export { serverCleanCommand, serverRestartCommand, serverStatusCommand } from "./server-ops.ts";

@@ -1,5 +1,5 @@
-import { shellCommand } from "../commands/shell.ts";
-import { scopeExpandCommand } from "../commands/scope-expand.ts";
+import { shellCommand } from "../commands/index.ts";
+import { scopeExpandCommand } from "../commands/index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

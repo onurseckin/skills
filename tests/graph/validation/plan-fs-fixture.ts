@@ -40,7 +40,7 @@ export function installPlanFsSpies(): void {
         );
         return;
       }
-      return owrite(path, data);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fsp, "symlink").mockImplementation(async (target, path) => {
       const s = normPlanPath(String(path));
@@ -48,7 +48,7 @@ export function installPlanFsSpies(): void {
         vPlanSymlinks.set(s, String(target));
         return;
       }
-      return osymlink(target, path);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fsp, "rm").mockImplementation(async (path) => {
       const s = normPlanPath(String(path));
@@ -60,7 +60,7 @@ export function installPlanFsSpies(): void {
         for (const d of Array.from(vPlanDirs)) if (d.startsWith(`${s}/`)) vPlanDirs.delete(d);
         return;
       }
-      return orm(path, { force: true, recursive: true });
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fsp, "lstat").mockImplementation(async (path, options?: unknown) => {
       const s = normPlanPath(String(path));

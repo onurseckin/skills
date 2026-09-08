@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs";
 import type { JsonObject } from "../../core/contracts/index.ts";
-import { atomicWriteBytes } from "../../core/durable-write.ts";
-import { readRegularFileNoFollow } from "../../core/no-follow.ts";
+import { atomicWriteBytes } from "../../core/index.ts";
+import { readRegularFileNoFollow } from "../../core/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { runFilePath } from "../../engine/store/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 /**
  * Implements defect 104: `mind:escalate` was declared in the registry and prescribed by

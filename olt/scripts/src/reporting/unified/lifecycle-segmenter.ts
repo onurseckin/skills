@@ -5,9 +5,9 @@ import {
   TIER_NAMES,
   type ExecutionTier,
 } from "../../authority/thread/index.ts";
-import { isRecord } from "../../requirements/predicates.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
-import { extractLeaseAgentId } from "../lease-agent-extractor.ts";
+import { isRecord } from "../../requirements/index.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
+import { extractLeaseAgentId } from "../index.ts";
 import type { UnifiedAgentRow } from "./types.ts";
 
 export interface LifecycleSegResult {

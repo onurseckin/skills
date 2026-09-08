@@ -1,6 +1,6 @@
 import { lstatSync, realpathSync } from "node:fs";
 import type { RepositoryContentIdentity } from "../core/contracts/index.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { inspectRepositoryNode, type RepositoryContentNode } from "./repository-content-node.ts";
 import { repositoryContentPaths, type RepositoryContentPath } from "./repository-content-paths.ts";

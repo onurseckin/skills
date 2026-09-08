@@ -14,8 +14,8 @@ import {
   auditRepoGovernanceCoverage,
   discoverAndCalibrateRepoPolicy,
   awakenTier0Governance,
-} from "../../mind/governance/policy-discovery.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+} from "../../mind/governance/index.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 function getNestedValue(obj: unknown, path: string): unknown {
   const parts = path.split(".");

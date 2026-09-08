@@ -1,7 +1,4 @@
-import {
-  orchestratorRunCommand,
-  orchestratorSuperviseCommand,
-} from "../commands/orchestrator-ops.ts";
+import { orchestratorRunCommand, orchestratorSuperviseCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const DEFAULT_WATCH_INTERVAL_SECONDS = 30;

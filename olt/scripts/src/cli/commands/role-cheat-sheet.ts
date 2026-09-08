@@ -6,7 +6,7 @@ import {
   type RoleCheatSheetOptions,
   type RoleSummary,
 } from "../../roles/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export async function roleCheatSheetCommand(
   flags: Flags,

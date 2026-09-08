@@ -1,5 +1,5 @@
 import { quarantineViolations, scanRootHygiene } from "../../health/hygiene/index.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export function hygieneFixCommand(
   flags: Flags,

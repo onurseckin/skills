@@ -1,13 +1,14 @@
-import { minimizeCrossingsBarycenter } from "../sugiyama-dag/crossing.ts";
-import { assignSugiyamaRanks } from "../sugiyama-dag/ranking.ts";
-import { insertVirtualDummyNodes } from "../sugiyama-dag/routing.ts";
-import { extractFeedbackArcSet, reverseCycleEdges } from "../sugiyama-dag/tarjan.ts";
-import type {
-  SugiyamaEdge,
-  SugiyamaLayer,
-  SugiyamaNode,
-  SugiyamaWaveMetrics,
-} from "../sugiyama-dag/types.ts";
+import {
+  assignSugiyamaRanks,
+  extractFeedbackArcSet,
+  insertVirtualDummyNodes,
+  minimizeCrossingsBarycenter,
+  reverseCycleEdges,
+  type SugiyamaEdge,
+  type SugiyamaLayer,
+  type SugiyamaNode,
+  type SugiyamaWaveMetrics,
+} from "../sugiyama-dag/index.ts";
 import type {
   DagExportOptions,
   DagLayoutCluster,

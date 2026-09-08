@@ -1,4 +1,4 @@
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
 import {
   boolFlag,
   integerFlag,
@@ -6,7 +6,7 @@ import {
   textFlag,
   type CommandContext,
   type Flags,
-} from "../options.ts";
+} from "../index.ts";
 import {
   deliverEventsToWebhook,
   formatEventsToNdjsonStream,

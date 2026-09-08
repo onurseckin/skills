@@ -1,5 +1,5 @@
 import type { JsonObject } from "../core/contracts/index.ts";
-import { sha256Bytes } from "../core/json.ts";
+import { sha256Bytes } from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { inspectRepositoryGitControls } from "./repository-git-controls.ts";
 import {

@@ -15,9 +15,9 @@ import {
   type ListenerLivenessResult,
   type ListenerLivenessStatus,
 } from "../../communication/mailbox/index.ts";
-import type { MailboxEnvelope, MailboxMessageType } from "../../communication/types.ts";
-import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import type { MailboxEnvelope, MailboxMessageType } from "../../communication/index.ts";
+import { enforceLineLimit, formatTable } from "../formatters/index.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export type MessageDeliveryStatus = "DELIVERED" | "MARKED-READ" | "UNREAD" | "UNDELIVERED";
 

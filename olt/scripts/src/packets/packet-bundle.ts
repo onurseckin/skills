@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { atomicWriteBytes, fsyncDirectory } from "../core/durable-write.ts";
-import { canonicalJsonBytes } from "../core/json.ts";
-import { readRegularFileNoFollow } from "../core/no-follow.ts";
+import {
+  atomicWriteBytes,
+  canonicalJsonBytes,
+  fsyncDirectory,
+  readRegularFileNoFollow,
+} from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { safeRmSync } from "../core/shared/safe-fs/index.ts";
 import type { BuiltPacket } from "./types.ts";

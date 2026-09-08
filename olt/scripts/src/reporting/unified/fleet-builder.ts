@@ -1,10 +1,10 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { resolveCapsulesDir } from "../../core/shared/paths.ts";
-import { isRecord } from "../../requirements/predicates.ts";
+import { resolveCapsulesDir } from "../../core/shared/index.ts";
+import { isRecord } from "../../requirements/index.ts";
 import { TIER_NAMES } from "../../authority/thread/index.ts";
-import { listTrackWorktrees, type TrackWorktreeInfo } from "../../workflow/worktree/manager.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
+import { listTrackWorktrees, type TrackWorktreeInfo } from "../../workflow/worktree/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
 import { buildSugiyamaDagReport } from "../sugiyama-dag/index.ts";
 import { formatFleetDashboard } from "./fleet-renderer.ts";
 import { buildAgentMatrixRows, segmentTaskLifecycle } from "./lifecycle-segmenter.ts";

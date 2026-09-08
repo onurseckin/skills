@@ -1,5 +1,5 @@
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 import { rotateMindGeneration } from "../../mind/archival/rotate/index.ts";
 
 export interface MindRotateCommandResult {

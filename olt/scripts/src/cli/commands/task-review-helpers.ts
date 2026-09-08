@@ -1,23 +1,23 @@
 import type { CommandRecord } from "../../core/contracts/index.ts";
-import { readRegularFileNoFollow } from "../../core/no-follow.ts";
+import { readRegularFileNoFollow } from "../../core/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { isValidatorDomain } from "../../packets/role-contract.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { applicableGates, commandMatchesGate } from "../../workflow/gates/index.ts";
-import { gateRunEvidence, probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
+import { gateRunEvidence, probeRoundsRecorded } from "../../workflow/review/index.ts";
 import {
   DEFAULT_MAX_MICRO_CYCLES,
   formatMicroCycleFeedback,
   getLatestMicroCycle,
   recordMicroCycleCritique,
-} from "../../workflow/review/micro-cycle.ts";
+} from "../../workflow/review/index.ts";
 import {
   validateChecklistCoverage,
   type ChecklistCoverageReport,
-} from "../../workflow/review/validate-review.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
+} from "../../workflow/review/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
 import { formatTaskRejectBrief, formatTaskReviewPassBrief } from "../formatters/index.ts";
-import { integerFlag, textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../index.ts";
 import { failingVerdictInput, type ReviewFindingParams } from "./task-finding-input.ts";
 import {
   evaluateDualUiGates,
@@ -25,8 +25,8 @@ import {
   type UiCognitiveInspectionInput,
   type UiMechanicInspectionInput,
 } from "../../validation/ui/index.ts";
-import { tokenDigest } from "../../workflow/lease/token.ts";
-import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
+import { tokenDigest } from "../../workflow/lease/index.ts";
+import type { ScreenshotRecord } from "../../reporting/index.ts";
 import type {
   CompanionManifestData,
   DualChannelAuditResult,

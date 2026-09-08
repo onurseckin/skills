@@ -1,8 +1,8 @@
-import { workflowPort } from "../../integration/store-ports.ts";
-import { abandonAttempt } from "../../workflow/lease/abandon.ts";
-import { systemClock } from "../../workflow/types.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { abandonAttempt } from "../../workflow/lease/index.ts";
+import { systemClock } from "../../workflow/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type Flags } from "../index.ts";
 
 export function taskAbandonCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;

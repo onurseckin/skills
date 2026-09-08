@@ -1,5 +1,5 @@
 import type { JsonObject } from "../core/contracts/index.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../core/index.ts";
 
 export function criticIntegrityDigest(evidence: readonly JsonObject[]): string {
   const findings = evidence.map(({ event_head: _head, ...finding }) => finding);

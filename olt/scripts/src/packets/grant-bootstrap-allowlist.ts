@@ -1,4 +1,15 @@
-import type { CommandSpec } from "../cli/registry/types.ts";
+export interface CommandFlagSpec {
+  readonly name: string;
+}
+
+export interface CommandSpec {
+  readonly name: string;
+  readonly aliases: readonly string[];
+  readonly flags: readonly CommandFlagSpec[];
+  readonly authority?: {
+    readonly requiresActingIdentity?: boolean;
+  };
+}
 
 export const CAPSULE_GENESIS_COMMANDS: ReadonlySet<string> = new Set([
   "plan:init",
@@ -96,6 +107,7 @@ const COMMANDS_WHOSE_ACTING_FLAG_NAME_IS_A_DISPLAY_FILTER_NOT_AN_IDENTITY: Reado
     "sentinel:post-action",
     "sentinel:turn-end",
     "sentinel:watch",
+    "task:fail",
   ]);
 
 export function requiresActingIdentity(spec: CommandSpec): boolean {

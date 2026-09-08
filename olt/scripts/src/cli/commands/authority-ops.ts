@@ -1,10 +1,10 @@
 import { loadRun } from "../../engine/store/index.ts";
 import { decideProposal } from "../../mind/proposals/proposal/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import { recordAuthorityDecision } from "../../workflow/authority/record-authority-decision.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { recordAuthorityDecision } from "../../workflow/authority/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type Flags } from "../index.ts";
 
 export function authorityDecideCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;

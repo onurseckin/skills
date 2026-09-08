@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import { dirname } from "node:path";
 import {
   daemonHealthPath,
@@ -37,6 +37,14 @@ function createVirtualPorts(vfs: ChatVirtualFS): DaemonWatcherPorts {
 }
 
 describe("DaemonWatcher attachment retry and unconditional polling", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("initializes with watch_active false when room directory does not exist", () => {
     const watcher = new DaemonWatcher("uncreated-room", {
       ports: createVirtualPorts(new ChatVirtualFS()),
@@ -48,7 +56,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     expect(metrics.wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
   });
 
-  it("retries attachment and activates watcher when room directory is created after startup", async () => {
+  it("retries attachment and activates watcher when room directory is created after startup", () => {
     const vfs = new ChatVirtualFS();
     const roomId = "delayed-room";
     const watcher = new DaemonWatcher(roomId, {
@@ -62,7 +70,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
 
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    vi.advanceTimersByTime(25);
 
     expect(watcher.getMetrics().watch_active).toBe(true);
     expect(watcher.getMetrics().watch_failures).toBe(0);
@@ -72,7 +80,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     expect(receivedWakes.length).toBeGreaterThan(0);
   });
 
-  it("maintains unconditional 750ms poll loop active at all times", async () => {
+  it("maintains unconditional 750ms poll loop active at all times", () => {
     const vfs = new ChatVirtualFS();
     const roomId = "poll-room";
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
@@ -84,7 +92,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     const wakes: WakeSource[] = [];
     watcher.start((source) => wakes.push(source));
 
-    await new Promise((resolve) => setTimeout(resolve, 70));
+    vi.advanceTimersByTime(70);
     watcher.stop();
 
     expect(watcher.getMetrics().poll_interval_ms).toBe(20);
@@ -128,7 +136,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     expect(watcher.getMetrics().watch_failures).toBeGreaterThan(0);
     expect(watcher.getMetrics().poll_interval_ms).toBe(750);
 
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    vi.advanceTimersByTime(60);
 
     expect(watcher.getMetrics().watch_active).toBe(true);
     expect(watcher.getMetrics().poll_interval_ms).toBe(750);
@@ -204,7 +212,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     expect(recordFailed?.watch_active).toBe(false);
     expect(recordFailed?.watch_failures).toBeGreaterThan(0);
 
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    vi.advanceTimersByTime(60);
     expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(true);
     watcher.stop();
 
@@ -245,7 +253,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
 
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    vi.advanceTimersByTime(60);
 
     expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(true);
     expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(true);
@@ -307,7 +315,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
 
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 2 }));
 
-    await new Promise((resolve) => setTimeout(resolve, 70));
+    vi.advanceTimersByTime(70);
 
     const pollWakes = receivedWakes.filter((w) => w.source === "poll" && w.tokenChanged);
     expect(pollWakes.length).toBeGreaterThan(0);

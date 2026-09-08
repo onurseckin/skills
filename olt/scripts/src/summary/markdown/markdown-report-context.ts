@@ -4,8 +4,8 @@ import type { Manifest } from "../../core/contracts/index.ts";
 import type { CommandRecord } from "../../core/contracts/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import type { TopologyRecord } from "../../core/contracts/index.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { readAgentLedgerView } from "../metrics/agent-telemetry.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
+import { readAgentLedgerView } from "../metrics/index.ts";
 import type { AsciiWave } from "./markdown-ascii-graph.ts";
 import type {
   CommandView,

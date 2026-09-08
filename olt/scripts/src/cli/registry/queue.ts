@@ -3,7 +3,7 @@ import {
   queueNextCommand,
   queuePopCommand,
   queueWaveCommand,
-} from "../commands/queue.ts";
+} from "../commands/index.ts";
 import {
   mindQueueAddCommand,
   mindQueueCleanCommand,

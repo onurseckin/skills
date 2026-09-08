@@ -6,7 +6,7 @@ import {
   runDoctorAgent,
   type AgentRole,
 } from "../../sentinel/index.ts";
-import { textFlag, listFlag, type Flags } from "../options.ts";
+import { textFlag, listFlag, type Flags } from "../index.ts";
 
 export async function doctorAgentCommand(flags: Flags): Promise<Record<string, unknown>> {
   const roleRaw = textFlag(flags, "role", true);

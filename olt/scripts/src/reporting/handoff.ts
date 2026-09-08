@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readTopology } from "../core/contracts/index.ts";
-import { atomicWriteBytes } from "../core/durable-write.ts";
+import { atomicWriteBytes } from "../core/index.ts";
 import { loadRun } from "../engine/store/index.ts";
-import { readAgentLedger } from "../workflow/agents/ledger.ts";
+import { readAgentLedger } from "../workflow/agents/index.ts";
 import type { TaskView } from "./action-types.ts";
 import { agentRows, liveWaveLine, topologyRows } from "./handoff-sections.ts";
 import { nextActions } from "./next-actions.ts";

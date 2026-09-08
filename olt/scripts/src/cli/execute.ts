@@ -12,7 +12,7 @@ import {
 } from "../packets/command-authority.ts";
 import { commandInvocations, findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session/index.ts";
-import { findRepoRoot } from "../core/shared/paths.ts";
+import { findRepoRoot } from "../core/shared/index.ts";
 import { CumulativePhaseInvariantEngine, DeductiveStateMachine } from "./phase-invariants.ts";
 import {
   executePostActionHook,
@@ -21,8 +21,8 @@ import {
   isCanonicalRole,
   type AgentRole,
 } from "../sentinel/index.ts";
-import { isFileMutationCommand } from "../authority/rbac/command-predicates.ts";
-import { agentIdToRole } from "../authority/thread/role-mapping.ts";
+import { isFileMutationCommand } from "../authority/rbac/index.ts";
+import { agentIdToRole } from "../authority/thread/index.ts";
 
 export { DeductiveStateMachine, CumulativePhaseInvariantEngine };
 

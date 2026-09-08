@@ -1,4 +1,4 @@
-import { detectActiveHost, type HostType } from "../platform/host-autodetect.ts";
+import { detectActiveHost, type HostType } from "../platform/index.ts";
 
 export type DetectedHost = HostType | "unknown";
 

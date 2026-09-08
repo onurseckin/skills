@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentRole } from "../../core/contracts/index.ts";
-import { readRegularFileNoFollow } from "../../core/no-follow.ts";
+import { readRegularFileNoFollow } from "../../core/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
+import { parseUnifiedAgentManifest } from "../../authority/index.ts";
 import {
   type RoleContract,
   type Checklist,

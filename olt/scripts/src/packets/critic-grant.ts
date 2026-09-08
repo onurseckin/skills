@@ -4,7 +4,7 @@ import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { observeCapsuleIntegrity } from "../workflow/completion/index.ts";
 import { authoritativeRepositoryCommand } from "../workflow/completion/index.ts";
-import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
+import type { TransactionPort, WorkflowState } from "../workflow/index.ts";
 import { evidenceSchema } from "./evidence-schema.ts";
 import { publishRolePacket } from "./publish-role-packet.ts";
 import {

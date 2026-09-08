@@ -1,4 +1,4 @@
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
 import {
   renderApcaContrastBadge,
   type AuditedDefect,

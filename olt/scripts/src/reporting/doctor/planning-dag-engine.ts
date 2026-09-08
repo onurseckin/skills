@@ -1,4 +1,4 @@
-import { listTrackWorktrees } from "../../workflow/worktree/manager.ts";
+import { listTrackWorktrees } from "../../workflow/worktree/index.ts";
 import {
   collectAllEdges,
   extractDependencyId,

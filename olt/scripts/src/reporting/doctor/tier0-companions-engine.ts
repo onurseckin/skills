@@ -1,8 +1,17 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { createRequire } from "node:module";
 import type { AgentGrantRecord, JsonObject } from "../../core/contracts/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
-import { readAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
+
+const req = createRequire(import.meta.url);
+
+function getReadAgentLedger(): (state: JsonObject) => AgentGrantRecord[] {
+  const mod = req("../../workflow/agents/index.ts") as {
+    readonly readAgentLedger: (state: JsonObject) => AgentGrantRecord[];
+  };
+  return mod.readAgentLedger;
+}
 import {
   computeDoctorEnginePassed,
   type DoctorCheckEngineResult,
@@ -43,7 +52,7 @@ export function checkTier0CompanionsHealth(
 
   let grants: readonly AgentGrantRecord[] = [];
   try {
-    grants = readAgentLedger(state as unknown as JsonObject);
+    grants = getReadAgentLedger()(state as unknown as JsonObject);
   } catch {
     if (Array.isArray(state.agents)) {
       grants = state.agents as AgentGrantRecord[];

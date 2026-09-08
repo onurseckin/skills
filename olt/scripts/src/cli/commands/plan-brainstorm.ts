@@ -1,9 +1,9 @@
 import { lstatSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
-import { canonicalJsonBytes, sha256Bytes } from "../../core/json.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../core/index.ts";
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/index.ts";
 import { BrainstormEngine, type BrainstormResult } from "../../graph/brainstorm-engine.ts";
 import {
   BRAINSTORMING_SCHEMA,
@@ -11,8 +11,8 @@ import {
   loadRun,
   transactIdempotent,
 } from "../../engine/store/index.ts";
-import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { parseArguments } from "../arguments.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { parseArguments } from "../index.ts";
 
 /**
  * A bare capsule NAME (no path separator) must resolve under the canonical

@@ -1,11 +1,10 @@
 import { HarnessError } from "../../../../core/errors/index.ts";
 import { type DependencyMap, topologicalOrder } from "../../../../graph/dag-forensics.ts";
-import { isInteger } from "../../../../requirements/predicates.ts";
+import { isInteger } from "../../../../requirements/index.ts";
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-import { scopeConflict, resourceConflict } from "../../conflict/conflicts.ts";
-import { type ScheduledTask } from "../../conflict/rank.ts";
+import { scopeConflict, resourceConflict, type ScheduledTask } from "../../conflict/index.ts";
 import { type CriticalPathDepthResult } from "./unlimited-types.ts";
 
 export function taskRecord(value: unknown): value is ScheduledTask {

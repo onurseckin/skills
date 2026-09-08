@@ -5,9 +5,9 @@ import {
   type ValidatorDomain,
   VALIDATOR_DOMAINS,
 } from "../../../core/contracts/index.ts";
-import { DependencyMap } from "../../../graph/dag-forensics";
-import { isInteger } from "../../../requirements/predicates";
-import { ScheduledTask } from "../conflict/rank";
+import type { DependencyMap } from "../../../graph/dag-forensics.ts";
+import { isInteger } from "../../../requirements/index.ts";
+import type { ScheduledTask } from "../conflict/index.ts";
 
 export function partitionOrchestratorDomains(
   tasks: readonly ScheduledTask[],

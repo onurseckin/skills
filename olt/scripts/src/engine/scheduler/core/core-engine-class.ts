@@ -30,7 +30,7 @@ import {
   type MultiDomainBatchOptions,
   type MultiDomainBatchResult,
   evaluateMultiDomainBatch,
-} from "../dispatch/multi-domain-batch.ts";
+} from "../dispatch/index.ts";
 import {
   type MultiDomainValidatorDispatchOptions,
   type MultiDomainValidatorDispatchResult,

@@ -10,7 +10,7 @@ import { rollDayKeyIfNeeded } from "../../mind/lifecycle/budget/index.ts";
 import { DEFAULT_MIND_BUDGET } from "../../mind/lifecycle/charter/index.ts";
 import { writeLastPulse } from "../../mind/lifecycle/pulse/index.ts";
 import { parseDuration } from "../../mind/memory/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/index.ts";
 import type { MilestoneEvidenceVerification } from "../../mind/evidence/index.ts";
 import { formatMindPulseOpenedBrief } from "./mind-pulse-formatter.ts";
 import { computeMindCognitiveTelemetry } from "./mind-pulse-metrics.ts";

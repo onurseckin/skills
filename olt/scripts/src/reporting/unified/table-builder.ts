@@ -1,4 +1,4 @@
-import { formatTable } from "../../cli/formatters/line-limiter.ts";
+import { formatTable } from "../../cli/formatters/index.ts";
 import type {
   DecisionAuditRow,
   ImplementerValidatorTrackingRow,

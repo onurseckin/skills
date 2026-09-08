@@ -1,7 +1,7 @@
 import { classifyPath, type Violation } from "../core/index.ts";
 import type { IndexedBlob } from "./git-index.ts";
 
-const FANOUT_LIMIT = 10;
+export const FANOUT_LIMIT = 10;
 
 function dirname(path: string): string {
   const separator = path.lastIndexOf("/");
@@ -13,6 +13,7 @@ export function findFanoutViolations(blobs: readonly IndexedBlob[]): readonly Vi
   const counts = new Map<string, number>();
   for (const blob of blobs) {
     if (!classifyPath(blob.path).fanoutCounted) continue;
+    if (blob.path.endsWith("/index.ts") || blob.path === "index.ts") continue;
     const directory = dirname(blob.path);
     const existing = counts.get(directory);
     const count = existing !== undefined ? existing + 1 : 1;

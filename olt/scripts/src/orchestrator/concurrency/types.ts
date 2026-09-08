@@ -1,5 +1,5 @@
 import type { BrentConcurrencyPlan, BrentPartition } from "../../mind/preplanning/types.ts";
-import type { QuotaState } from "../../telemetry/circuit-breaker.ts";
+import type { QuotaState } from "../../telemetry/index.ts";
 
 export type { BrentConcurrencyPlan, BrentPartition, QuotaState };
 

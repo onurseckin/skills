@@ -6,7 +6,12 @@
 import ts from "typescript";
 import type { PurityViolation } from "./types.ts";
 import {
+  CHAI_ASSERT_COMPARISONS,
   createViolation,
+  findDeclarationInitializer,
+  hasFakeTimers,
+  UNMOCKED_TIMER_IDENTIFIERS,
+  unwrapParens,
   WALL_CLOCK_COMPARISON_METHODS,
   WALL_CLOCK_IDENTIFIERS,
   WALL_CLOCK_RULE,
@@ -165,52 +170,27 @@ export function checkMockTautologies(
   }
 }
 
-function unwrapParens(node: ts.Node): ts.Node {
-  let curr = node;
-  while (ts.isParenthesizedExpression(curr)) {
-    curr = curr.expression;
-  }
-  return curr;
-}
-
-function findDeclarationInitializer(
-  identName: string,
-  fromNode: ts.Node,
-): ts.Expression | undefined {
-  let curr: ts.Node | undefined = fromNode.parent;
-
-  while (curr) {
-    if (ts.isBlock(curr) || ts.isSourceFile(curr)) {
-      for (const stmt of curr.statements) {
-        if (stmt.pos >= fromNode.pos) break;
-
-        if (ts.isVariableStatement(stmt)) {
-          for (const decl of stmt.declarationList.declarations) {
-            if (ts.isIdentifier(decl.name) && decl.name.text === identName) {
-              if (decl.initializer) {
-                return decl.initializer;
-              }
-            }
-          }
-        }
-      }
-    }
-    curr = curr.parent;
-  }
-
-  return undefined;
-}
-
 export function involvesWallClock(node: ts.Node, sf: ts.SourceFile, depth = 0): boolean {
   if (depth > 3) return false;
   let found = false;
+  const fakeTimers = hasFakeTimers(sf, node);
 
   function visit(n: ts.Node): void {
     if (found) return;
 
     if (ts.isCallExpression(n)) {
       const callText = n.expression.getText(sf);
-      if (callText === "Date.now" || callText === "performance.now" || callText.endsWith(".now")) {
+      if (
+        callText === "Date.now" ||
+        callText === "performance.now" ||
+        callText.endsWith(".now") ||
+        (!fakeTimers &&
+          (callText === "sleep" ||
+            callText === "Bun.sleep" ||
+            callText.endsWith(".sleep") ||
+            callText === "setTimeout" ||
+            callText === "setInterval"))
+      ) {
         found = true;
         return;
       }
@@ -218,6 +198,10 @@ export function involvesWallClock(node: ts.Node, sf: ts.SourceFile, depth = 0): 
 
     if (ts.isIdentifier(n)) {
       if (WALL_CLOCK_IDENTIFIERS.has(n.text)) {
+        found = true;
+        return;
+      }
+      if (!fakeTimers && UNMOCKED_TIMER_IDENTIFIERS.has(n.text)) {
         found = true;
         return;
       }
@@ -350,14 +334,7 @@ export function checkWallClockAssert(
     }
 
     const method = expr.name.text;
-    if (
-      method === "isBelow" ||
-      method === "isAbove" ||
-      method === "isAtLeast" ||
-      method === "isAtMost" ||
-      method === "lessThan" ||
-      method === "greaterThan"
-    ) {
+    if (CHAI_ASSERT_COMPARISONS.has(method)) {
       if (node.arguments.some((arg) => involvesWallClock(arg, sf))) {
         out.push(
           createViolation(

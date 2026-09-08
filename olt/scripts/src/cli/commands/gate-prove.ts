@@ -11,10 +11,11 @@ import {
   type GateProveOutcome,
 } from "../../graph/gate-proof.ts";
 import { commandIsWeak } from "../../graph/gate-command-policy.ts";
+
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { actorFlag, integerFlag, textFlag, type Flags } from "../index.ts";
 import { readPlanBindings } from "./plan-replan-bindings.ts";
 
 // A record persisted before this fix has no `outcome` field; derive its equivalent so drift

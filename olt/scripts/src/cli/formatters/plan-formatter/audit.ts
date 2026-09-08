@@ -1,5 +1,5 @@
 import type { AuditFinding } from "../../../graph/plan-audit.ts";
-import { enforceLineLimit } from "../line-limiter.ts";
+import { enforceLineLimit } from "../index.ts";
 import {
   nextActionsBlock,
   planAuditNextActions,

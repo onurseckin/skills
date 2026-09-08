@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { readRegularFileNoFollow } from "../core/no-follow.ts";
+import { readRegularFileNoFollow } from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import type { CanonicalCommonInstructions } from "./types.ts";

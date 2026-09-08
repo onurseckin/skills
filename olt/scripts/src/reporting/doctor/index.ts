@@ -40,6 +40,7 @@ export {
   type GitDiffRecord,
 } from "./tier-confinement/index.ts";
 export {
+  MINIMUM_BUN_VERSION,
   versionAtLeast,
   ignoredByGit,
   classifyIssueSeverity,
@@ -64,6 +65,12 @@ export {
   type PreCompletionBlocker,
 } from "./pre-completion.ts";
 export { runDoctor, type DoctorOptions } from "./runner.ts";
+export {
+  StateMachineAuditor,
+  type LifecycleFinding,
+  type LifecycleAuditSummary,
+} from "./state-machine-auditor.ts";
+export { runDoctorDiagnostics, type HarnessHealthCheck } from "./adversarial-doctor/index.ts";
 export {
   checkPlanningDag,
   checkAstPurity,
@@ -99,10 +106,15 @@ export {
   checkTier0CompanionsHealth,
   checkAntiStagnationDoctor,
   auditAntiStagnationHealth,
+  checkPlanQualityAndAgentUtilization,
+  checkAgentCanonicalAlignment,
+  isDoctorFindingBlocking,
+  computeDoctorEnginePassed,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
   MIND_CHARTER_INVARIANTS,
   type PlanningDagCheckOptions,
+  type PlanQualityCheckOptions,
   type AstPurityCheckOptions,
   type AntiMockMutationCheckOptions,
   type CounterfactualCheckRecord,

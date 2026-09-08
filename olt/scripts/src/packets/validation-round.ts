@@ -1,7 +1,7 @@
 import type { RunState } from "../core/contracts/index.ts";
 import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
-import { applicableGates, commandArgv } from "../workflow/gates/gate-policy.ts";
-import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import { applicableGates, commandArgv } from "../workflow/gates/index.ts";
+import type { TaskRecord, WorkflowState } from "../workflow/index.ts";
 import { priorRoundDemands, type ProveDemand } from "./prior-round-demands.ts";
 import type { RepositoryGitCommand } from "./repository-git-command.ts";
 import { taskCommandEvidence, type RecordedCommand } from "./round-commands.ts";

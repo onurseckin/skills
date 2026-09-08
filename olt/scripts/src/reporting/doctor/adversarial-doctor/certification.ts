@@ -1,7 +1,7 @@
 import { basename } from "node:path";
-import { MINIMUM_BUN_VERSION } from "../../../core/config/contracts.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
-import { findRepoRoot } from "../../../core/shared/paths.ts";
+import { findRepoRoot } from "../../../core/shared/index.ts";
+import { MINIMUM_BUN_VERSION } from "../index.ts";
 import { compareSemver, parseIsoTimestamp, runAdversarialCounterfactualCheck } from "./mutation.ts";
 import { runDoctorDiagnostics } from "./diagnostics.ts";
 import type {

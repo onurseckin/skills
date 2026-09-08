@@ -115,7 +115,7 @@ export function installGateProofSpies(): void {
         if (c !== undefined) vfs.set(sd, Buffer.isBuffer(c) ? Buffer.from(c) : c);
         return;
       }
-      ocopy(src, dst);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${so}`);
     }),
     spyOn(fs, "chmodSync").mockImplementation((p, mode) => {
       const s = norm(p);
@@ -123,7 +123,7 @@ export function installGateProofSpies(): void {
         vmodes.set(s, typeof mode === "number" ? mode : Number.parseInt(String(mode), 8));
         return;
       }
-      ochmod(p, mode);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
       const s = norm(String(p));
@@ -143,7 +143,7 @@ export function installGateProofSpies(): void {
         vfs.set(s, typeof d === "string" ? d : Buffer.from(d.buffer, d.byteOffset, d.byteLength));
         return;
       }
-      ow(p, d);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "mkdirSync").mockImplementation((p) => {
       const s = norm(p);
@@ -151,7 +151,7 @@ export function installGateProofSpies(): void {
         vdirs.add(s);
         return undefined;
       }
-      return om(p) as string | undefined;
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "rmSync").mockImplementation((p) => {
       const s = norm(p);
@@ -163,7 +163,7 @@ export function installGateProofSpies(): void {
         for (const d of Array.from(vdirs)) if (d.startsWith(`${s}/`)) vdirs.delete(d);
         return;
       }
-      orm(p, { recursive: true, force: true });
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "unlinkSync").mockImplementation((p) => {
       const s = norm(p);
@@ -171,7 +171,21 @@ export function installGateProofSpies(): void {
         vfs.delete(s);
         return;
       }
-      ounlink(p);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
+    }),
+    spyOn(fs, "appendFileSync").mockImplementation((p, d) => {
+      const s = norm(String(p));
+      if (s.startsWith("/virtual/")) {
+        const c = vfs.get(s);
+        const cur = Buffer.isBuffer(c) ? c.toString("utf-8") : (c ?? "");
+        const str =
+          typeof d === "string"
+            ? d
+            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8");
+        vfs.set(s, cur + str);
+        return;
+      }
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
       const s = norm(p);
@@ -231,7 +245,6 @@ export function setupVirtualGraphFS(): void {
   installGateProofSpies();
 }
 
-/** Scripts `repositoryGit` by argv[0] (ls-files / ls-tree / show). */
 export function fakeGit(script: Record<string, RepositoryGitResult>): RepositoryGitCommand {
   return (_repo: string, argv: readonly string[]): RepositoryGitResult => {
     const verb = argv[0] ?? "";
@@ -248,7 +261,6 @@ export const noopSpawn: GateSpawn = () => ({
   timedOut: false,
 });
 
-/** Stands in for the real gate subprocess: reads the scratch-copy filesystem and checks conditions. */
 export function fsCheckSpawn(check: (cwd: string) => boolean): GateSpawn {
   return (_argv: readonly string[], cwd: string) => ({
     status: check(cwd) ? 0 : 1,

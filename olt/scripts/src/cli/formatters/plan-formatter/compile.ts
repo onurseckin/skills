@@ -1,4 +1,4 @@
-import { enforceLineLimit } from "../line-limiter.ts";
+import { enforceLineLimit } from "../index.ts";
 import { nextActionsBlock, planCompileNextActions } from "../next-actions/index.ts";
 import type { PlanCompileParams } from "./types.ts";
 

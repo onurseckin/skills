@@ -5,11 +5,11 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import type { AgentToolRef } from "../core/contracts/index.ts";
 import type { AgentRole } from "../core/contracts/index.ts";
 import { isCognitiveValidatorRole, isMechanicValidatorRole } from "../core/contracts/index.ts";
-import { canonicalJsonBytes } from "../core/json.ts";
+import { canonicalJsonBytes } from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
-import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
-import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
+import { locateSubTask, readBranchLedger } from "../workflow/branch/index.ts";
+import type { TransactionPort, WorkflowState } from "../workflow/index.ts";
 
 export function assertGrantedRoleTools(role: AgentRole, tools: readonly AgentToolRef[]): void {
   if (isCognitiveValidatorRole(role) && !isMechanicValidatorRole(role)) {

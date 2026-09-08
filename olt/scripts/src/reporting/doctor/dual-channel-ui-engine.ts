@@ -4,7 +4,7 @@ import {
   type DoctorDiagnosticFinding,
 } from "./types.ts";
 
-import type { ElementThemePair } from "../theme/types.ts";
+import type { ElementThemePair } from "../theme/index.ts";
 
 export interface DualChannelUiCheckOptions {
   readonly themeElements?: readonly ElementThemePair[] | undefined;

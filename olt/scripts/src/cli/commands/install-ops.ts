@@ -1,7 +1,7 @@
-import { installSkill } from "../../installer/install.ts";
-import { installationStatus } from "../../installer/installation-status.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { installSkill } from "../../installer/index.ts";
+import { installationStatus } from "../../installer/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type Flags } from "../index.ts";
 
 function clientNames(raw: string): string[] {
   return raw

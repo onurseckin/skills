@@ -34,7 +34,7 @@ export {
   getTelemetryQuotaProvider,
   resolveMeasuredQuotaPercentage,
   setTelemetryQuotaProvider,
-} from "../../telemetry/circuit-breaker.ts";
+} from "../../telemetry/index.ts";
 export {
   bootstrapTelemetryQuota,
   getActiveTelemetryCollector,

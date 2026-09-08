@@ -5,14 +5,14 @@
  * and JSON machine-readable integration. Supports manual summary injection and querying.
  */
 
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 import {
   createTestSummaryRecord,
   formatTestSummaryMarkdown,
   getLatestTestSummary,
   saveTestSummary,
   type TestSummaryRecord,
-} from "../../testing/concurrency-lock.ts";
+} from "../../testing/index.ts";
 
 export async function testSummaryCommand(
   flags: Flags,

@@ -12,7 +12,7 @@ import {
   type ThinkingLevel,
 } from "../../core/contracts/index.ts";
 import { getHarnessConfig } from "../../core/config/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { rollbackStagedSessionGrant, stageSessionGrant } from "../../authority/session/index.ts";
 import { roleToTier } from "../../authority/thread/index.ts";
@@ -26,12 +26,12 @@ import {
   registerAgentGrant,
   type GrantTelemetryInput,
   type RegistrationAuthority,
-} from "../../workflow/agents/grants.ts";
-import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { formatAgentRegisterBrief } from "../formatters/agent-formatter.ts";
+} from "../../workflow/agents/index.ts";
+import { readAgentLedger } from "../../workflow/agents/index.ts";
+import { formatAgentRegisterBrief } from "../formatters/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
-import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { toolRefFlags } from "../taxonomy-flags.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { toolRefFlags } from "../index.ts";
 import { isCanonicalRole } from "../../sentinel/index.ts";
 import { SentinelMonitorRegistry } from "../../sentinel/monitor/index.ts";
 

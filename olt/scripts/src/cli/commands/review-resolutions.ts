@@ -1,8 +1,8 @@
 import type { Finding } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findingClassOf, type FindingClass } from "../../workflow/review/finding-class.ts";
-import type { RevalidationProof } from "../../workflow/review/validate-review.ts";
-import { listFlag, type Flags } from "../options.ts";
+import { findingClassOf, type FindingClass } from "../../workflow/review/index.ts";
+import type { RevalidationProof } from "../../workflow/review/index.ts";
+import { listFlag, type Flags } from "../index.ts";
 
 const METHOD_BY_CLASS: Record<FindingClass, string> = {
   defect: "verification_passed",

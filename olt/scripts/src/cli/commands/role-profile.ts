@@ -5,7 +5,7 @@ import {
   resolveProfile,
   type AbstractProfile,
 } from "../../roles/index.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export function roleProfileCommand(
   flags: Flags,

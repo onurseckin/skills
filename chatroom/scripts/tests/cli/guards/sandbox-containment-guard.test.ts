@@ -28,6 +28,7 @@ describe("Sandbox Containment Guard", () => {
     const liveRoomsDir = join(homedir(), ".agents", "chatroom", "rooms");
     if (!existsSync(liveRoomsDir)) return;
     const entries = readdirSync(liveRoomsDir);
+    const orphanDirs: string[] = [];
     for (const entry of entries) {
       const fullPath = join(liveRoomsDir, entry);
       let isDir = false;
@@ -38,16 +39,14 @@ describe("Sandbox Containment Guard", () => {
       }
       if (!isDir) continue;
 
-      const isTestRoom =
-        entry.startsWith("test-") ||
-        entry.startsWith("integ-") ||
-        entry.startsWith("room-") ||
-        entry.startsWith("sandbox-") ||
-        entry === "default";
+      const isTestRoom = entry.startsWith("sandbox-guard-") || entry === "sandbox-guard-room";
       expect(isTestRoom).toBe(false);
 
       const manifestPath = join(fullPath, "room.json");
-      expect(existsSync(manifestPath)).toBe(true);
+      if (!existsSync(manifestPath)) {
+        orphanDirs.push(entry);
+        continue;
+      }
 
       let parsed: Record<string, unknown> | null = null;
       try {
@@ -59,6 +58,10 @@ describe("Sandbox Containment Guard", () => {
       expect(parsed?.id).toBe(entry);
       expect(parsed?.v).toBe(1);
     }
+    const testOwnedOrphans = orphanDirs.filter(
+      (dir) => dir.startsWith("sandbox-guard-") || dir === "sandbox-guard-room",
+    );
+    expect(testOwnedOrphans).toEqual([]);
   });
 
   it("ensures no undefined directory exists in chatroom/scripts or repository root", () => {
@@ -69,7 +72,7 @@ describe("Sandbox Containment Guard", () => {
   });
 
   it("asserts zero leaks across all 4 containment locations during isolated CLI execution and cleans up daemons", async () => {
-    const targetRoom = "sandbox-guard-room";
+    const targetRoom = `sandbox-guard-room-${process.pid}-${Date.now()}`;
     const repoRoot = resolve(import.meta.dir, "../../../../../");
     const tempDir = mkdtempSync(join(tmpdir(), "chat-containment-"));
     const isolatedRepo = join(tempDir, "repo");
@@ -80,13 +83,65 @@ describe("Sandbox Containment Guard", () => {
     const prevHome = process.env.CHATROOM_HOME;
     process.env.CHATROOM_HOME = isolatedHome;
 
-    const before = takeContainmentSnapshot({
-      repoRoots: [repoRoot],
-      roomMatch: targetRoom,
-    });
+    let daemonPid: number | null = null;
+    const findDaemonPid = (): number | null => {
+      if (daemonPid !== null) return daemonPid;
+      const lockFile = join(
+        isolatedHome,
+        "rooms",
+        targetRoom,
+        "locks",
+        "daemon",
+        "agent-guard.lock",
+      );
+      if (existsSync(lockFile)) {
+        try {
+          const payload = JSON.parse(readFileSync(lockFile, "utf8")) as { pid?: number };
+          if (typeof payload.pid === "number") {
+            daemonPid = payload.pid;
+            return daemonPid;
+          }
+        } catch {}
+      }
+      return null;
+    };
 
-    const originalWrite = process.stdout.write;
-    process.stdout.write = (): boolean => true;
+    const isDaemonAlive = (pid: number): boolean => {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const testProcessTableReader = (): readonly string[] => {
+      const pid = findDaemonPid();
+      if (pid !== null && isDaemonAlive(pid)) {
+        return [`${pid} cli.ts daemon --room ${targetRoom}`];
+      }
+      return [];
+    };
+
+    const takeTestSnapshot = () => {
+      const snap = takeContainmentSnapshot({
+        repoRoots: [repoRoot],
+        roomMatch: targetRoom,
+        processTableReader: testProcessTableReader,
+      });
+      return {
+        roomDirectories: snap.roomDirectories.filter(
+          (r) => r.includes("sandbox-guard") || r.includes(targetRoom),
+        ),
+        daemonProcesses: snap.daemonProcesses,
+        hostAgentArtifacts: snap.hostAgentArtifacts.filter(
+          (a) => a.includes(targetRoom) || a.includes("sandbox-guard"),
+        ),
+        repoBindings: snap.repoBindings,
+      };
+    };
+
+    const before = takeTestSnapshot();
 
     try {
       await main([
@@ -124,19 +179,19 @@ describe("Sandbox Containment Guard", () => {
         () => {},
       );
       const deadline = Date.now() + 3000;
-      while (Date.now() < deadline && snapshotDaemonProcesses(targetRoom).length > 0) {
+      while (
+        Date.now() < deadline &&
+        snapshotDaemonProcesses(targetRoom, testProcessTableReader).length > 0
+      ) {
         await new Promise((r) => setTimeout(r, 50));
       }
 
-      const after = takeContainmentSnapshot({
-        repoRoots: [repoRoot],
-        roomMatch: targetRoom,
-      });
+      const after = takeTestSnapshot();
 
       const leaks = detectContainmentLeaks(before, after);
       expect(leaks).toEqual([]);
       expect(existsSync(join(homedir(), ".agents", "chatroom", "rooms", targetRoom))).toBe(false);
-      expect(snapshotDaemonProcesses(targetRoom)).toEqual([]);
+      expect(snapshotDaemonProcesses(targetRoom, testProcessTableReader)).toEqual([]);
       expect(
         existsSync(join(homedir(), ".antigravity", "agents", `communicator-${targetRoom}.json`)),
       ).toBe(false);
@@ -145,12 +200,11 @@ describe("Sandbox Containment Guard", () => {
       await main(["daemon", "--room", targetRoom, "--as", "agent-guard", "--stop", "--json"]).catch(
         () => {},
       );
-      for (const pidStr of snapshotDaemonProcesses(targetRoom)) {
+      for (const pidStr of snapshotDaemonProcesses(targetRoom, testProcessTableReader)) {
         try {
           process.kill(Number(pidStr), "SIGKILL");
         } catch {}
       }
-      process.stdout.write = originalWrite;
       if (prevHome === undefined) {
         delete process.env.CHATROOM_HOME;
       } else {

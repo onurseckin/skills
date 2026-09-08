@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { MailboxCursor, MailboxEnvelope } from "../../communication/types.ts";
+import type { MailboxCursor, MailboxEnvelope } from "../../communication/index.ts";
 import type { DoctorDiagnosticFinding } from "./types.ts";
 
 export interface MailboxHealthOptions {

@@ -12,9 +12,9 @@ import {
   type ForensicsSummary,
   type MetaAuditAnalysisOptions,
 } from "../../mind/auditing/meta/index.ts";
-import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
-import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { resolveBacklogPath } from "../../core/shared/paths.ts";
+import { enforceLineLimit, formatTable } from "../formatters/index.ts";
+import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { resolveBacklogPath } from "../../core/shared/index.ts";
 
 export type {
   FeedbackInjectionOptions,

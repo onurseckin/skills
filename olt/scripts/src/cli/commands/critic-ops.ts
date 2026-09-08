@@ -5,14 +5,14 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import {
   publishCriticRolePacket,
   repositoryEvidenceCommandIds,
 } from "../../packets/critic-grant.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { recordGrantInspections } from "../../packets/role-grant.ts";
-import { queryScreenshots } from "../../reporting/screenshot-store.ts";
+import { queryScreenshots } from "../../reporting/index.ts";
 import { beginCompletenessCritic } from "../../workflow/completion/index.ts";
 import { observeCapsuleIntegrity } from "../../workflow/completion/index.ts";
 import { parseRawFindings } from "../../workflow/completion/index.ts";
@@ -21,14 +21,14 @@ import { recordCompletionRemediation } from "../../workflow/completion/index.ts"
 import { recordCompletionReview } from "../../workflow/completion/index.ts";
 import { authoritativeRepositoryCommand } from "../../workflow/completion/index.ts";
 import type { CompletionFinding } from "../../workflow/completion/index.ts";
-import { tokenDigest } from "../../workflow/lease/token.ts";
+import { tokenDigest } from "../../workflow/lease/index.ts";
 import {
   formatCriticRejectBrief,
   formatCriticReviewBrief,
   formatCriticStartBrief,
 } from "../formatters/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { listFlag, textFlag, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { listFlag, textFlag, type Flags } from "../index.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {
   void expected;

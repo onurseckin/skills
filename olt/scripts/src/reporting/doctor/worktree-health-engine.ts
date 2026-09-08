@@ -8,8 +8,9 @@ import {
   cleanupTrackWorktree,
   destroyOrchestratorWorktree,
   listTrackWorktrees,
-} from "../../workflow/worktree/manager.ts";
-import { runGit, type GitRunner } from "../../workflow/worktree/git-ops.ts";
+  runGit,
+  type GitRunner,
+} from "../../workflow/worktree/index.ts";
 import {
   findPrunableWorktrees,
   getGitWorktreePaths,

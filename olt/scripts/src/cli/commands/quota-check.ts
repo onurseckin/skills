@@ -1,13 +1,10 @@
-import { TelemetryNormalizationEngine } from "../../telemetry/engine.ts";
+import { TelemetryNormalizationEngine } from "../../telemetry/index.ts";
 import {
   createDefaultCollectors,
   type CollectorEnvironment,
 } from "../../telemetry/collectors/index.ts";
-import {
-  QuotaCircuitBreaker,
-  formatCircuitBreakerMarkdown,
-} from "../../telemetry/circuit-breaker.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { QuotaCircuitBreaker, formatCircuitBreakerMarkdown } from "../../telemetry/index.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export async function quotaCheckCommand(
   flags: Flags,

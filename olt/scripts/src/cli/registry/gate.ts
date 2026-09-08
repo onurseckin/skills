@@ -1,4 +1,4 @@
-import { gateProveCommand } from "../commands/gate-prove.ts";
+import { gateProveCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const GATE_COMMANDS: readonly CommandSpec[] = [

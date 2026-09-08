@@ -1,5 +1,5 @@
-import { dagViewCommand } from "../dag-view.ts";
-import type { CommandContext, Flags } from "../../options.ts";
+import { dagViewCommand } from "../index.ts";
+import type { CommandContext, Flags } from "../../index.ts";
 
 export function reportDagCommand(
   flags: Flags,

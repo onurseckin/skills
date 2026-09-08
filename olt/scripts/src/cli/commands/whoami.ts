@@ -1,7 +1,7 @@
-import { integerFlag, textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../index.ts";
 import { enforceLineLimit, nextActionsBlock, whoamiNextActions } from "../formatters/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { readAgentLedger } from "../../workflow/agents/ledger.ts";
+import { readAgentLedger } from "../../workflow/agents/index.ts";
 import {
   identifyExecutionContext,
   inferRoleFromAgentId,

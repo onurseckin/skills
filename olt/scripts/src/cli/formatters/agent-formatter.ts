@@ -1,7 +1,7 @@
 import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/index.ts";
 import type { Evidenced } from "../../core/contracts/index.ts";
 import { isKnownToolCategory } from "../../core/contracts/index.ts";
-import type { TaskLineage } from "../../workflow/agents/lineage.ts";
+import type { TaskLineage } from "../../workflow/agents/index.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 import {
   agentListNextActions,

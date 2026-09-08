@@ -19,10 +19,18 @@ describe("directory fanout violations", () => {
     expect(findFanoutViolations(files.map(blob))).toEqual([]);
   });
 
-  test("reports eleven direct included files", () => {
+  test("permits ten non-index files plus index.ts (eleven total files)", () => {
     const files = [
       "slice/index.ts",
       ...Array.from({ length: 10 }, (_, index) => `slice/file-${index}.ts`),
+    ];
+    expect(findFanoutViolations(files.map(blob))).toEqual([]);
+  });
+
+  test("reports eleven direct non-index files", () => {
+    const files = [
+      "slice/index.ts",
+      ...Array.from({ length: 11 }, (_, index) => `slice/file-${index}.ts`),
     ];
     expect(findFanoutViolations(files.map(blob))).toEqual([
       {

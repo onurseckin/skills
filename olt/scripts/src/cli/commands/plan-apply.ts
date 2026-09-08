@@ -6,7 +6,7 @@ import { initializePlannerPacket } from "../../packets/planner-packet.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { formatPlanApplyBrief, formatPlanClaimBrief } from "../formatters/index.ts";
-import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { actorFlag, integerFlag, textFlag, type Flags } from "../index.ts";
 
 export function capsulePlanningStore(runRoot: string): PlanningStore {
   return {

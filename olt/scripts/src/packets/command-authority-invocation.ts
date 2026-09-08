@@ -1,6 +1,6 @@
 import type { AgentRole } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
-import type { CommandSpec } from "../cli/registry/types.ts";
+import type { CommandSpec } from "./types.ts";
 import { loadRoleContract, resolveRoleContractPath, type RoleContract } from "./role-contract.ts";
 import {
   isCognitiveValidatorRole,

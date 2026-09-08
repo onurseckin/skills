@@ -1,18 +1,20 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import type { CommandRecord } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { verifyCommandRecord } from "../../engine/runner/signing/verify-command";
-import type { PacketRecord } from "../../workflow/types.ts";
-import { packetEvidenceIssues } from "../packet-evidence.ts";
-import { workflowView } from "../workflow-view.ts";
-import { installationStatus } from "../../installer/installation-status.ts";
+import { verifyCommandRecord } from "../../engine/runner/signing/index.ts";
+import type { PacketRecord } from "../../workflow/index.ts";
+import { packetEvidenceIssues, workflowView } from "../index.ts";
+import { installationStatus } from "../../installer/index.ts";
 import { trustedHostEvidence, trustedHostLimitations } from "../../core/contracts/index.ts";
-import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
-import { inspectRepoPolicy } from "../../policy/repo-policy.ts";
+import { repositoryGitCommand } from "../../packets/index.ts";
+import { inspectRepoPolicy } from "../../policy/index.ts";
+
+type RepositoryGitCommand = repositoryGitCommand.RepositoryGitCommand;
+const repositoryGit: RepositoryGitCommand = repositoryGitCommand.repositoryGit;
 import { auditTierConfinement, summarizeTierConfinement } from "./tier-confinement/index.ts";
 import { evaluateSocraticSelfQuestioning } from "../socratic-validator/index.ts";
 import { StateMachineAuditor } from "./state-machine-auditor.ts";

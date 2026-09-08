@@ -2,8 +2,8 @@ import { HarnessError } from "../../core/errors/index.ts";
 import {
   syncDoctorFindingsToDefects,
   type DoctorFindingInput,
-} from "../../mind/defects/sync/lifecycle-sync.ts";
-import { integerFlag, textFlag, type Flags } from "../options.ts";
+} from "../../mind/defects/sync/index.ts";
+import { integerFlag, textFlag, type Flags } from "../index.ts";
 
 export interface FindingFileOptions {
   readonly code: string;

@@ -1,4 +1,4 @@
-import { orphanDisposeCommand } from "../commands/orphan-ops.ts";
+import { orphanDisposeCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, repeatableFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const ORPHAN_COMMANDS: readonly CommandSpec[] = [

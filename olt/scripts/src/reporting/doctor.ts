@@ -6,6 +6,13 @@ export {
   type BehavioralViolationType,
 } from "./behavioral-auditor/index.ts";
 export {
+  evaluateSocraticSelfQuestioning,
+  formatSocraticAuditSection,
+  type SocraticAuditReport,
+  type SocraticDimension,
+  type SocraticQuestionEvaluation,
+} from "./socratic-validator/index.ts";
+export {
   auditTierConfinement,
   summarizeTierConfinement,
   assertSupervisorRoleConfinement,
@@ -13,24 +20,11 @@ export {
   type TierConfinementSummary,
   type TierViolationSeverity,
   type TierViolationType,
-} from "./doctor/tier-confinement/index.ts";
-export {
-  evaluateSocraticSelfQuestioning,
-  formatSocraticAuditSection,
-  type SocraticAuditReport,
-  type SocraticDimension,
-  type SocraticQuestionEvaluation,
-} from "./socratic-validator";
-export {
   StateMachineAuditor,
   type LifecycleFinding,
   type LifecycleAuditSummary,
-} from "./doctor/state-machine-auditor.ts";
-export {
   runDoctorDiagnostics,
   type HarnessHealthCheck,
-} from "./doctor/adversarial-doctor/index.ts";
-export {
   checkPlanningDag,
   checkAstPurity,
   checkAntiMockMutation,
@@ -84,22 +78,15 @@ export {
   type AntiStagnationAuditReport,
   type InvariantAuditResult,
   type MindCharterInvariant,
-} from "./doctor/engines.ts";
-export {
   checkPreCompletionDiagnostics,
   type PreCompletionDiagnosticsOptions,
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,
-} from "./doctor/pre-completion.ts";
-export {
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
   type DoctorRemedialAction,
   type GuidanceGenerationOptions,
   type DoctorGuidanceResult,
-} from "./doctor/guidance.ts";
-
-export {
   versionAtLeast,
   ignoredByGit,
   classifyIssueSeverity,
@@ -108,6 +95,8 @@ export {
   type DoctorIssueSeverity,
   type DoctorIssueTiering,
   type CapsuleDoctorFacts,
-} from "./doctor/facts.ts";
-export { formatDoctorReport, type DoctorReportFormatParams } from "./doctor/report-formatter.ts";
-export { runDoctor, type DoctorOptions } from "./doctor/runner.ts";
+  formatDoctorReport,
+  type DoctorReportFormatParams,
+  runDoctor,
+  type DoctorOptions,
+} from "./doctor/index.ts";

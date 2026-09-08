@@ -12,8 +12,8 @@ import {
 } from "../../mind/defects/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { resolveCapsulesDir, resolveCompletedDefectsPath } from "../../core/shared/paths.ts";
+import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { resolveCapsulesDir, resolveCompletedDefectsPath } from "../../core/shared/index.ts";
 import {
   getApcaBadgeInfo,
   type ApcaBadgeInfo,

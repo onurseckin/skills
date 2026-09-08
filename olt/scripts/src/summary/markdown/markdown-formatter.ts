@@ -1,6 +1,6 @@
 import type { Manifest } from "../../core/contracts/index.ts";
 import type { CommandRecord } from "../../core/contracts/index.ts";
-import type { WorkflowState } from "../../workflow/types.ts";
+import type { WorkflowState } from "../../workflow/index.ts";
 import { renderChecklistCoverage } from "./markdown-checklist-coverage.ts";
 import {
   renderGates,

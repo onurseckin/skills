@@ -8,7 +8,7 @@ import {
   serverCleanCommand,
   serverRestartCommand,
   serverStatusCommand,
-} from "../commands/server-ops.ts";
+} from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
 
 export const SERVER_COMMANDS: readonly CommandSpec[] = [

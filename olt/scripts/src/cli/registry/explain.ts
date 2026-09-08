@@ -1,4 +1,4 @@
-import { explainCommand } from "../commands/explain-ops.ts";
+import { explainCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const EXPLAIN_COMMANDS: readonly CommandSpec[] = [

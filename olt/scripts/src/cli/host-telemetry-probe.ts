@@ -1,12 +1,12 @@
 import type { JsonObject } from "../core/contracts/index.ts";
-import type { DerivedTelemetryInput, TelemetryFieldConflict } from "../workflow/agents/grants.ts";
+import type { DerivedTelemetryInput, TelemetryFieldConflict } from "../workflow/agents/index.ts";
 import { detectHostTelemetry, type HostTelemetryProbe } from "../summary/metrics/index.ts";
-import { readAgentTranscriptTelemetry } from "../workflow/agents/transcript-telemetry.ts";
+import { readAgentTranscriptTelemetry } from "../workflow/agents/index.ts";
 import {
   probeLiveQuotaTelemetry,
   type LifecycleQuotaTelemetry,
   type ProbeLifecycleQuotaOptions,
-} from "../workflow/lifecycle/quota-lifecycle.ts";
+} from "../workflow/lifecycle/index.ts";
 
 export { probeLiveQuotaTelemetry, type LifecycleQuotaTelemetry, type ProbeLifecycleQuotaOptions };
 

@@ -1,10 +1,10 @@
 import type { BranchRecord } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
-import { workflowPort } from "../integration/store-ports.ts";
+import { workflowPort } from "../integration/index.ts";
 import { completionIssues } from "../workflow/completion/index.ts";
-import { orphanEvidenceSha256 } from "../workflow/orphan-evidence/digest.ts";
-import { isLeaseSuspended } from "../workflow/lease/suspension.ts";
-import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import { orphanEvidenceSha256 } from "../workflow/orphan-evidence/index.ts";
+import { isLeaseSuspended } from "../workflow/lease/index.ts";
+import type { TaskRecord, WorkflowState } from "../workflow/index.ts";
 import { trustedHostEvidence } from "../core/contracts/index.ts";
 
 function taskView(task: TaskRecord): JsonObject {

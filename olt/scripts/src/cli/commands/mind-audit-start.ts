@@ -3,9 +3,9 @@ import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface MindAuditStartResult {
   readonly markdown: string;

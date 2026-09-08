@@ -1,12 +1,11 @@
-import {
-  computeDoctorEnginePassed,
-  type DoctorCheckEngineResult,
-  type DoctorDiagnosticFinding,
-} from "../types.ts";
-
 import { isBadGit, isWholeSuite, parseArgv } from "./classifiers.ts";
 import { isImplementerRole, isValidatorRole } from "./roles.ts";
-import type { CognitiveValidatorCommandLockOptions } from "./types.ts";
+import {
+  computeDoctorEnginePassed,
+  type CognitiveValidatorCommandLockOptions,
+  type DoctorCheckEngineResult,
+  type DoctorDiagnosticFinding,
+} from "./types.ts";
 
 const inferRole = (agentId?: string, explicit?: string): string => {
   if (explicit) return explicit;

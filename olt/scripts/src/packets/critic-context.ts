@@ -1,8 +1,7 @@
 import type { CommandRecord } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
-import { requireSubstantiveObjects } from "../workflow/evidence.ts";
-import { requireText } from "../workflow/task-state.ts";
+import { requireSubstantiveObjects, requireText } from "../workflow/index.ts";
 import { authoritativeRepositoryCommand } from "../workflow/completion/index.ts";
 import type { PacketInput } from "./types.ts";
 import { isolateCriticContext } from "./validator-context.ts";

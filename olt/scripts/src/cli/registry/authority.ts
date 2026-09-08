@@ -1,12 +1,12 @@
-import { authorityDecideCommand } from "../commands/authority-ops.ts";
+import { authorityDecideCommand } from "../commands/index.ts";
 import {
   watchdogCleanupCommand,
   watchdogPhaseCleanupCommand,
   watchdogProbeCommand,
   watchdogStatusCommand,
   watchdogVerifyCommand,
-} from "../commands/watchdog-ops.ts";
-import { whoamiCommand } from "../commands/whoami.ts";
+} from "../commands/index.ts";
+import { whoamiCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [

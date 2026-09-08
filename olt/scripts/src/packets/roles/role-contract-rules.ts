@@ -5,7 +5,7 @@ import {
   isMechanicValidatorRole,
   type AgentRole,
 } from "../../core/contracts/index.ts";
-import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
+import { parseUnifiedAgentManifest } from "../../authority/index.ts";
 import {
   isValidatorDomain,
   type ValidatorDomain,

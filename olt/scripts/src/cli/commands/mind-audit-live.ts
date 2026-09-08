@@ -1,8 +1,8 @@
 import type { JsonObject } from "../../core/contracts/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { MindAuditorEngine } from "../../mind/auditing/cognitive/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import type { CommandContext } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import type { CommandContext } from "../index.ts";
 
 export async function mindAuditLiveCommand(
   flags: Record<string, unknown>,

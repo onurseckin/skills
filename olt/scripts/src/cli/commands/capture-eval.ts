@@ -6,7 +6,7 @@ import {
   type CompanionManifestV2,
   type ValidationContext,
 } from "../../capture/validator/index.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export function evaluateManifestFile(filePath: string): CompanionManifestV2 {
   const resolved = resolve(filePath);

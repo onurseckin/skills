@@ -1,6 +1,6 @@
 import { HarnessError } from "../core/errors/index.ts";
 import { flagPositions } from "./arguments.ts";
-import { enforceLineLimit, formatTable } from "./formatters/line-limiter.ts";
+import { enforceLineLimit, formatTable } from "./formatters/index.ts";
 import {
   COMMAND_REGISTRY,
   PRIMARY_VERBS,

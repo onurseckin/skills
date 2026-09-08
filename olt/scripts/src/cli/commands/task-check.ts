@@ -18,10 +18,10 @@ import {
   type AstLintViolation,
 } from "../../linter/ast/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { AutoReceiptLogger } from "../../engine/runner/receipt/auto-receipt";
-import type { TaskRecord } from "../../workflow/types.ts";
-import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
-import { boolFlag, listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { AutoReceiptLogger } from "../../engine/runner/receipt/index.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
+import { enforceLineLimit, formatTable } from "../formatters/index.ts";
+import { boolFlag, listFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export const SUPPORTED_EXTENSIONS: readonly string[] = [
   ".ts",

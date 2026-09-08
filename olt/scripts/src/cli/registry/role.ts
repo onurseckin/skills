@@ -1,8 +1,4 @@
-import {
-  roleCheatSheetCommand,
-  roleListCommand,
-  roleProfileCommand,
-} from "../commands/role-ops.ts";
+import { roleCheatSheetCommand, roleListCommand, roleProfileCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
 
 export const ROLE_COMMANDS: readonly CommandSpec[] = [

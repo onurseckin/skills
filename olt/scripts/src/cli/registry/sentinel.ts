@@ -1,10 +1,10 @@
-import { doctorAgentCommand } from "../commands/doctor-agent.ts";
+import { doctorAgentCommand } from "../commands/index.ts";
 import {
   sentinelPostActionCommand,
   sentinelPreActionCommand,
   sentinelTurnEndCommand,
   sentinelWatchCommand,
-} from "../commands/sentinel-ops.ts";
+} from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const SENTINEL_COMMANDS: readonly CommandSpec[] = [

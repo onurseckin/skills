@@ -1,6 +1,6 @@
-import { runCompleteCommand, runExecCommand } from "../commands/run-ops.ts";
-import { runInitCommand } from "../commands/run-init.ts";
-import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
+import { runCompleteCommand, runExecCommand } from "../commands/index.ts";
+import { runInitCommand } from "../commands/index.ts";
+import { CATEGORY_FLAG_HELP } from "../index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

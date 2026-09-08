@@ -2,9 +2,9 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
-import { queryScreenshots } from "../../reporting/screenshot-store.ts";
-import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
+import { commandEvidenceView, commandRecordPath } from "../../reporting/index.ts";
+import { queryScreenshots } from "../../reporting/index.ts";
+import type { ScreenshotRecord } from "../../reporting/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import {
   formatEvidenceBrief,
@@ -14,8 +14,8 @@ import {
   formatReportBrief,
   formatReportsListBrief,
   formatScreenshotsListBrief,
-} from "../formatters/inspection-formatter.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+} from "../formatters/index.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
 function isObject(value: JsonValue | undefined): value is JsonObject {

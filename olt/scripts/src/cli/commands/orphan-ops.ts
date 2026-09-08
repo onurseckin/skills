@@ -1,7 +1,7 @@
-import { workflowPort } from "../../integration/store-ports.ts";
-import { dispositionOrphanEvidence } from "../../workflow/orphan-evidence/disposition.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { listFlag, textFlag, type Flags } from "../options.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { dispositionOrphanEvidence } from "../../workflow/orphan-evidence/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { listFlag, textFlag, type Flags } from "../index.ts";
 
 export function orphanDisposeCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;

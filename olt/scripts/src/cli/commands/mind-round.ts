@@ -23,7 +23,7 @@ import {
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/index.ts";
-import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface MindRoundOpenResult {
   readonly markdown: string;

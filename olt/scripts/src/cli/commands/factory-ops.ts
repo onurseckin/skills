@@ -1,20 +1,17 @@
 import { join, resolve } from "node:path";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { auditMindPreplanningStagnation } from "../../mind/auditing/index.ts";
-import { auditSkillConcurrencySaturation } from "../../mind/auditing/skill-concurrency-auditor.ts";
-import {
-  isPreplanningNeeded,
-  runPreplanningTick,
-} from "../../mind/preplanning/continuous-preplanner.ts";
+import { auditSkillConcurrencySaturation } from "../../mind/auditing/index.ts";
+import { isPreplanningNeeded, runPreplanningTick } from "../../mind/preplanning/index.ts";
 import {
   filterEligibleBacklogItems,
   filterEligibleDefects,
   loadBacklogItems,
   loadDefectItems,
-} from "../../mind/preplanning/backlog-clusterer.ts";
-import { resolveLedgerPath } from "../../mind/preplanning/bridge-state.ts";
-import type { PreplanningRunResult } from "../../mind/preplanning/types.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+} from "../../mind/preplanning/index.ts";
+import { resolveLedgerPath } from "../../mind/preplanning/index.ts";
+import type { PreplanningRunResult } from "../../mind/preplanning/index.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface FactoryPreplanCommandResult {
   readonly markdown: string;

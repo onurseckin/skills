@@ -175,4 +175,52 @@ describe("Wall-Clock Test Lint Rule (no-wall-clock-assertion)", () => {
     const wallClockViolations = violations.filter((v) => v.rule === "no-wall-clock-assertion");
     expect(wallClockViolations).toHaveLength(0);
   });
+
+  it("flags unmocked timer wake comparisons like expect(wakes.length).toBeGreaterThan(1)", () => {
+    const code = `
+      import { test, expect } from "bun:test";
+
+      test("unmocked wakes assertion", async () => {
+        const wakes: string[] = [];
+        await new Promise((resolve) => setTimeout(resolve, 70));
+        expect(wakes.length).toBeGreaterThan(1);
+        expect(receivedWakes.length).toBeGreaterThan(0);
+      });
+    `;
+    const violations = auditSourceCode(code, "tests/wakes.test.ts");
+    const wallClockViolations = violations.filter((v) => v.rule === "no-wall-clock-assertion");
+    expect(wallClockViolations).toHaveLength(2);
+  });
+
+  it("flags unmocked sleep and setTimeout calls in assertions", () => {
+    const code = `
+      import { test, expect } from "bun:test";
+
+      test("unmocked delay calls", () => {
+        expect(sleep(50)).toBeLessThan(100);
+        expect(setTimeout(() => {}, 50)).toBeGreaterThan(0);
+      });
+    `;
+    const violations = auditSourceCode(code, "tests/delay-calls.test.ts");
+    const wallClockViolations = violations.filter((v) => v.rule === "no-wall-clock-assertion");
+    expect(wallClockViolations).toHaveLength(2);
+  });
+
+  it("allows timer assertions when fake timers are active via vi.useFakeTimers()", () => {
+    const code = `
+      import { test, expect, vi } from "bun:test";
+
+      test("deterministic test with fake timers", () => {
+        vi.useFakeTimers();
+        const wakes: string[] = [];
+        vi.advanceTimersByTime(70);
+        expect(wakes.length).toBeGreaterThan(1);
+        expect(receivedWakes.length).toBeGreaterThan(0);
+        vi.useRealTimers();
+      });
+    `;
+    const violations = auditSourceCode(code, "tests/fake-timers.test.ts");
+    const wallClockViolations = violations.filter((v) => v.rule === "no-wall-clock-assertion");
+    expect(wallClockViolations).toHaveLength(0);
+  });
 });

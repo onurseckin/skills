@@ -1,10 +1,14 @@
-import type { CommandSpec } from "../cli/registry/types.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import {
   formatHardlockRemediation,
   resolveCurrentHost,
   type DetectedHost,
 } from "./command-authority-remediation.ts";
+
+export interface CommandSpec {
+  readonly name: string;
+  readonly aliases: readonly string[];
+}
 
 export function isMechanicValidatorRole(role: string): boolean {
   return role.toLowerCase().trim() === "ui-headless-validator";

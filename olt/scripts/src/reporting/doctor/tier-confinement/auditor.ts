@@ -7,8 +7,8 @@ import type {
   RunState,
 } from "../../../core/contracts/index.ts";
 import { isJsonObject } from "../../../core/contracts/index.ts";
-import type { TaskRecord } from "../../../workflow/types.ts";
-import { readAgentLedger } from "../../../workflow/agents/ledger.ts";
+import type { TaskRecord } from "../../../workflow/index.ts";
+import { readAgentLedger } from "../../../workflow/agents/index.ts";
 import { loadRun } from "../../../engine/store/index.ts";
 import { deduplicateFindings } from "./constants.ts";
 import {

@@ -1,4 +1,4 @@
-import { factoryPreplanCommand, factoryStatusCommand } from "../commands/factory-ops.ts";
+import { factoryPreplanCommand, factoryStatusCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
 
 export { factoryPreplanCommand, factoryStatusCommand };

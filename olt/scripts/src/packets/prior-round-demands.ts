@@ -1,8 +1,7 @@
 import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
-import { isProbeDemand } from "../workflow/review/finding-class.ts";
-import { requireText } from "../workflow/task-state.ts";
-import type { TaskRecord } from "../workflow/types.ts";
+import { isProbeDemand } from "../workflow/review/index.ts";
+import { requireText, type TaskRecord } from "../workflow/index.ts";
 
 const CONCLUSION_KEYS: ReadonlySet<string> = new Set([
   "assessment",

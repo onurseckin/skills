@@ -1,5 +1,5 @@
-import { summaryExportCommand, summaryViewCommand } from "../commands/summary-ops.ts";
-import { testSummaryCommand } from "../commands/test-summary.ts";
+import { summaryExportCommand, summaryViewCommand } from "../commands/index.ts";
+import { testSummaryCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const SUMMARY_COMMANDS: readonly CommandSpec[] = [

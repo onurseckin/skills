@@ -1,6 +1,6 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
-import { textFlag, type Flags } from "../options.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
+import { textFlag, type Flags } from "../index.ts";
 
 export function resolveFindingRequirement(task: TaskRecord, explicit: string | undefined): string {
   if (explicit !== undefined) {

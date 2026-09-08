@@ -8,10 +8,10 @@ import {
   type TaskQueueItem,
   type TaskQueueStatus,
 } from "../../task/queue/index.ts";
-import { resolveTraceContext } from "../../telemetry/trace-context.ts";
-import { parseArguments } from "../arguments.ts";
+import { resolveTraceContext } from "../../telemetry/index.ts";
+import { parseArguments } from "../index.ts";
 import { formatTable } from "../formatters/index.ts";
-import { assertFlags, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { assertFlags, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 const DEFAULT_COWAN_LIMIT = 50;
 const MAX_COWAN_PAYLOAD_BYTES = 409600;

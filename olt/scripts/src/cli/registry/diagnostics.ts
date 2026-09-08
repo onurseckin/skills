@@ -1,13 +1,13 @@
-import { defectAuditCommand } from "../commands/defect-audit.ts";
-import { coverageCheckCommand } from "../commands/coverage-check.ts";
+import { defectAuditCommand } from "../commands/index.ts";
+import { coverageCheckCommand } from "../commands/index.ts";
 import {
   doctorCommand,
   healthCommand,
   recoverCommand,
   repairProjectionCommand,
-} from "../commands/diagnostics-ops.ts";
+} from "../commands/index.ts";
 import { doctorCertifyCommand } from "../../reporting/doctor/certify-command.ts";
-import { findingFileCommand } from "../commands/finding-ops.ts";
+import { findingFileCommand } from "../commands/index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

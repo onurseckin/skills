@@ -1,6 +1,6 @@
 import { computeAntiIdleInterval } from "../../core/scheduling/index.ts";
-import { resolveTraceContext } from "../../telemetry/trace-context.ts";
-import { parseArguments } from "../arguments.ts";
+import { resolveTraceContext } from "../../telemetry/index.ts";
+import { parseArguments } from "../index.ts";
 import {
   assertFlags,
   boolFlag,
@@ -8,7 +8,7 @@ import {
   textFlag,
   type CommandContext,
   type Flags,
-} from "../options.ts";
+} from "../index.ts";
 
 const ALLOWED_SCHED_EVAL_FLAGS: readonly string[] = [
   "pending-work",

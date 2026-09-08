@@ -11,9 +11,9 @@ import {
   type AuditTaskInput,
   type PlanAuditResult,
 } from "../../graph/plan-audit.ts";
-import type { TaskDeclaration } from "../../requirements/compiler.ts";
+import type { TaskDeclaration } from "../../requirements/index.ts";
 import { formatPlanAuditBrief } from "../formatters/index.ts";
-import { actorFlag, textFlag, type Flags } from "../options.ts";
+import { actorFlag, textFlag, type Flags } from "../index.ts";
 
 function gateText(gate: TaskDeclaration["gate"]): string {
   return typeof gate === "string" ? gate : gate.join(" ");

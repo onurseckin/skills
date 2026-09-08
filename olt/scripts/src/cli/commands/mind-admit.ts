@@ -11,10 +11,10 @@ import {
   type ProposalStatus,
 } from "../../mind/proposals/proposal/index.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findGrant, readAgentLedger } from "../../workflow/agents/index.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { enforceLineLimit } from "../formatters/index.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 import { canAdmitTask } from "../../telemetry/soft-drain/index.ts";
 
 export interface MindAdmitResult {

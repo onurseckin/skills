@@ -1,26 +1,10 @@
 import { existsSync } from "node:fs";
-import {
-  ChatError,
-  daemonHealthPath,
-  readerCursorPath,
-  readerLockPath,
-  roomDir,
-  roomLogDir,
-  roomManifestPath,
-  roomQuarantinePath,
-  writeAtomic,
-  type Envelope,
-} from "../core/index.ts";
+import { ChatError, daemonHealthPath, readerCursorPath, readerLockPath } from "../core/index.ts";
+import { roomDir, roomLogDir, roomManifestPath, roomQuarantinePath } from "../core/index.ts";
+import { writeAtomic, type Envelope } from "../core/index.ts";
 import { verifyEnvelope } from "../crypto/index.ts";
-import {
-  ackLease,
-  leaseNext,
-  loadCursor,
-  saveCursorCas,
-  withReaderLock,
-  type Confirmation,
-  type ReaderCursor,
-} from "../cursor/index.ts";
+import { ackLease, leaseNext, loadCursor, saveCursorCas, withReaderLock } from "../cursor/index.ts";
+import type { Confirmation, ReaderCursor } from "../cursor/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import {
   claimHealthRecord,
@@ -33,6 +17,7 @@ import {
 } from "./health.ts";
 import {
   dispatchDeliveryNotification,
+  dispatchRespawnNotification,
   resolveRoomKey,
   runWithProcessLifecycle,
   type NotifyResult,
@@ -343,16 +328,26 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
     });
   };
 
-  const checkLockLoss = (controller: ProcessLifecycleController): boolean =>
-    checkAndHandleLockLoss({
+  const checkLockLoss = (controller: ProcessLifecycleController): boolean => {
+    const outcome = checkAndHandleLockLoss({
       room,
       reader,
       expectedPid: process.pid,
       ports: options.healthPorts,
       onLockLoss: options.onLockLoss,
-      notifyCommand: policy.notify_command,
       onStop: () => controller.stop(),
     });
+    if (!outcome.valid && policy.notify_command) {
+      dispatchRespawnNotification(policy.notify_command, {
+        reason: "respawn",
+        room,
+        reader,
+        ts: new Date().toISOString(),
+        message: outcome.message ?? "daemon self-terminated due to lock loss",
+      }).catch(() => {});
+    }
+    return outcome.valid;
+  };
 
   await runWithProcessLifecycle({
     healthPath,

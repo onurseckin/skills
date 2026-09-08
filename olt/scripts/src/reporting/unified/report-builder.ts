@@ -1,11 +1,11 @@
-import { enforceLineLimit } from "../../cli/formatters/line-limiter.ts";
+import { enforceLineLimit } from "../../cli/formatters/index.ts";
 import { getHarnessConfig } from "../../core/config/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { isRecord } from "../../requirements/predicates.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { computeCapsuleDoctorFacts } from "../doctor/facts.ts";
-import { extractLeaseAgentId } from "../lease-agent-extractor.ts";
+import { isRecord } from "../../requirements/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
+import { computeCapsuleDoctorFacts } from "../doctor/index.ts";
+import { extractLeaseAgentId } from "../index.ts";
 import {
   buildSugiyamaDagReport,
   type SugiyamaEdge,

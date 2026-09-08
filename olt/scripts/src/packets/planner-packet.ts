@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
-import { requireText } from "../workflow/task-state.ts";
+import { requireText } from "../workflow/index.ts";
 import type { PublishedPacket } from "./persist-packet.ts";
 import { evidenceSchema } from "./evidence-schema.ts";
 import { preplanPacketPort } from "./preplan-port.ts";

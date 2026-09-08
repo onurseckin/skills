@@ -1,16 +1,16 @@
 import { existsSync } from "node:fs";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { readBoundedBytes } from "../../core/json.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { readBoundedBytes } from "../../core/index.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { AutonomousLoopRunner } from "../../orchestrator/loop-runner.ts";
 import { formatMorningReportMarkdown } from "../../orchestrator/morning-report.ts";
 import { runSupervisionWatch } from "../../orchestrator/supervision-watch.ts";
 import { RunSupervisor, type TaskDispatcher } from "../../orchestrator/supervisor.ts";
 import type { RoundExecutor } from "../../orchestrator/types.ts";
-import { refreshHandoff } from "../../reporting/handoff.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { DEFAULT_WATCH_INTERVAL_SECONDS } from "../registry/orchestrator.ts";
+import { refreshHandoff } from "../../reporting/index.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { DEFAULT_WATCH_INTERVAL_SECONDS } from "../registry/index.ts";
 
 export { DEFAULT_WATCH_INTERVAL_SECONDS };
 

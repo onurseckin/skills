@@ -142,11 +142,13 @@ export function installPlanAuditFsSpies(): void {
         vfs.delete(so);
         return undefined;
       }
-      return orename(oldP, newP);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${so}`);
     }),
-    spyOn(fs, "chmodSync").mockImplementation((p, m) =>
-      norm(p).startsWith("/virtual/") ? undefined : ochmod(p, m),
-    ),
+    spyOn(fs, "chmodSync").mockImplementation((p, m) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) return undefined;
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
+    }),
     spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
       if (typeof p === "number" && openFds.has(p)) {
         const c = openFds.get(p)!.content;
@@ -175,7 +177,7 @@ export function installPlanAuditFsSpies(): void {
         );
         return;
       }
-      ow(p, d);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "mkdirSync").mockImplementation((p) => {
       const s = norm(p);
@@ -183,7 +185,7 @@ export function installPlanAuditFsSpies(): void {
         vdirs.add(s);
         return undefined;
       }
-      return om(p) as string | undefined;
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(fs, "rmSync").mockImplementation((p) => {
       const s = norm(p);
@@ -193,7 +195,28 @@ export function installPlanAuditFsSpies(): void {
         for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
         return;
       }
-      orm(p, { recursive: true, force: true });
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
+    }),
+    spyOn(fs, "unlinkSync").mockImplementation((p) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vfs.delete(s);
+        return;
+      }
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
+    }),
+    spyOn(fs, "appendFileSync").mockImplementation((p, d) => {
+      const s = norm(String(p));
+      if (s.startsWith("/virtual/")) {
+        const cur = vfs.get(s) ?? "";
+        const str =
+          typeof d === "string"
+            ? d
+            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8");
+        vfs.set(s, cur + str);
+        return;
+      }
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${s}`);
     }),
     spyOn(flockFfi, "tryExclusiveFlock").mockReturnValue(true),
     spyOn(flockFfi, "releaseFlock").mockReturnValue(undefined),

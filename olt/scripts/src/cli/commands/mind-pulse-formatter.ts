@@ -1,7 +1,7 @@
 import type { SupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
 import { formatDuration } from "../../mind/proposals/brief/index.ts";
 import { MindAutonomousDiscoveryEngine } from "../../mind/tasks/discovery/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
 import type {
   MindPulseActiveAgentCoordinate,
   MindPulseWaveLaneInfo,

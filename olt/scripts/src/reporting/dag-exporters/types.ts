@@ -5,7 +5,7 @@ import type {
   SugiyamaNode,
   SugiyamaRankedNode,
   SugiyamaWaveMetrics,
-} from "../sugiyama-dag/types.ts";
+} from "../sugiyama-dag/index.ts";
 
 export type DagExportFormat = "svg" | "mermaid" | "ascii" | "dot" | "json";
 

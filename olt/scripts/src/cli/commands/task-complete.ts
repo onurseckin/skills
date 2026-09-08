@@ -1,7 +1,7 @@
 import { completeTask } from "../../task/queue/index.ts";
-import { resolveTraceContext } from "../../telemetry/trace-context.ts";
-import { parseArguments } from "../arguments.ts";
-import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { resolveTraceContext } from "../../telemetry/index.ts";
+import { parseArguments } from "../index.ts";
+import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 const ALLOWED_TASK_COMPLETE_FLAGS: readonly string[] = [
   "task",

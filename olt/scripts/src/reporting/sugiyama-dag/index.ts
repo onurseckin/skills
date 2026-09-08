@@ -59,3 +59,8 @@ export {
   truncateOptical,
 } from "./render-box.ts";
 export { renderSugiyamaDag, generateSugiyamaDagReport, buildSugiyamaDagReport } from "./render.ts";
+export {
+  layoutSugiyamaDag,
+  AsciiCanvasMatrix,
+  type SugiyamaCanvasDagReport,
+} from "./canvas-layout.ts";

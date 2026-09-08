@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { resolveTelemetryPath } from "../core/shared/paths.ts";
+import { resolveTelemetryPath } from "../core/shared/index.ts";
 
 export interface TelemetryEvent {
   readonly timestamp: string;

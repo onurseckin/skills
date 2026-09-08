@@ -1,5 +1,5 @@
 import { type ValidatorDomain, type TopologyDecision } from "../../../../core/contracts/index.ts";
-import type { ScheduledTask } from "../../conflict/rank.ts";
+import type { ScheduledTask } from "../../conflict/index.ts";
 
 export interface UnlimitedDepthSchedulerConfig {
   readonly default_max_parallel?: number | undefined;

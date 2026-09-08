@@ -195,6 +195,40 @@ describe("sentinel:pre-action hook", () => {
     expect(forceWithArgsResult.code).toBe("QUALITY_GATE_BYPASS_ATTEMPT");
   });
 
+  test("allows safe git commands and force-with-lease negative controls", () => {
+    const pushResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: "git push origin main",
+    });
+    expect(pushResult.allowed).toBe(true);
+
+    const featCommitResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: 'git commit -m "feat: valid commit message"',
+    });
+    expect(featCommitResult.allowed).toBe(true);
+
+    const cleanCommitResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: 'git commit -m "clean commit message"',
+    });
+    expect(cleanCommitResult.allowed).toBe(true);
+
+    const forceWithLeaseResult = executePreActionHook({
+      agent_id: "impl_01",
+      role: "implementer",
+      action_type: "shell_command",
+      target: "git push --force-with-lease",
+    });
+    expect(forceWithLeaseResult.allowed).toBe(true);
+  });
+
   test("CLI execute sentinel:pre-action blocks unauthorized calls with exit code 1", async () => {
     let didThrow = false;
     try {

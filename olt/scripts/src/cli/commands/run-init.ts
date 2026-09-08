@@ -1,10 +1,10 @@
 import type { CapsuleMode } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { readBoundedBytes } from "../../core/json.ts";
-import { assertInstalledRuntimeFresh } from "../../installer/runtime-freshness.ts";
+import { readBoundedBytes } from "../../core/index.ts";
+import { assertInstalledRuntimeFresh } from "../../installer/index.ts";
 import { initCapsuleRun, loadRun } from "../../engine/store/index.ts";
 import { formatCapsuleInitBrief } from "../formatters/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export async function runInitCommand(
   flags: Flags,

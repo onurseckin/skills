@@ -5,8 +5,8 @@ import {
   type TaskSourceType,
   type TaskQueueStatus,
 } from "../../task/queue/index.ts";
-import { resolveTraceContext } from "../../telemetry/trace-context.ts";
-import { parseArguments } from "../arguments.ts";
+import { resolveTraceContext } from "../../telemetry/index.ts";
+import { parseArguments } from "../index.ts";
 import {
   assertFlags,
   integerFlag,
@@ -14,7 +14,7 @@ import {
   textFlag,
   type CommandContext,
   type Flags,
-} from "../options.ts";
+} from "../index.ts";
 
 const ALLOWED_TASK_ADD_FLAGS: readonly string[] = [
   "task",

@@ -1,24 +1,24 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import { runDoctor } from "../../reporting/doctor.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { runDoctor } from "../../reporting/index.ts";
 import { constructSupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import { loadRun, recoverProjection, transactionRecoveryStatus } from "../../engine/store/index.ts";
-import { recoverStale } from "../../workflow/lease/recover-stale.ts";
-import { releaseLease } from "../../workflow/lease/release.ts";
-import { systemClock, type WorkflowState } from "../../workflow/types.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { recoverStale } from "../../workflow/lease/index.ts";
+import { releaseLease } from "../../workflow/lease/index.ts";
+import { systemClock, type WorkflowState } from "../../workflow/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
 import {
   doctorNextActions,
   nextActionsBlock,
   recoverNextActions,
   type DoctorCriticalFinding,
-} from "../formatters/next-actions.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
-import { detectHostApp } from "../../authority/thread/context.ts";
-import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+} from "../formatters/index.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
+import { detectHostApp } from "../../authority/thread/index.ts";
+import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../index.ts";
 
 function runPlanVerified(run: string): boolean {
   try {

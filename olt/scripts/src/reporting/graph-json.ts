@@ -1,4 +1,4 @@
-import { dagViewCommand, type DagViewReport } from "../cli/commands/dag-view.ts";
+import { dagViewCommand, type DagViewReport } from "../cli/commands/index.ts";
 import { basename } from "node:path";
 
 export interface DagJsonCoordinates {

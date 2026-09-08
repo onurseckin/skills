@@ -7,7 +7,7 @@ import {
   type MindInitFlowResult,
 } from "../../mind/lifecycle/index.ts";
 import type { RepoGovernanceStatus } from "../../mind/governance/index.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 import { formatMindInitBrief } from "./mind-init-brief.ts";
 
 export type MindInitGovernanceStatus = RepoGovernanceStatus;

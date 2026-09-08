@@ -4,13 +4,13 @@ import { isJsonObject } from "../../core/contracts/index.ts";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { isAgentRole, type AgentRole } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { publishSubTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { abandonBranch, collectBranch } from "../../workflow/branch/collect.ts";
-import { readBranchLedger, requireSubTask } from "../../workflow/branch/ledger.ts";
-import { openBranch, type SubTaskInput } from "../../workflow/branch/open.ts";
-import { claimSubTask, submitSubTask } from "../../workflow/branch/sub-tasks.ts";
+import { abandonBranch, collectBranch } from "../../workflow/branch/index.ts";
+import { readBranchLedger, requireSubTask } from "../../workflow/branch/index.ts";
+import { openBranch, type SubTaskInput } from "../../workflow/branch/index.ts";
+import { claimSubTask, submitSubTask } from "../../workflow/branch/index.ts";
 import {
   formatBranchAbandonBrief,
   formatBranchClaimBrief,
@@ -18,8 +18,8 @@ import {
   formatBranchOpenBrief,
   formatBranchStatusBrief,
   formatBranchSubmitBrief,
-} from "../formatters/branch-formatter.ts";
-import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+} from "../formatters/index.ts";
+import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../index.ts";
 
 function splitPair(entry: string, flag: string): [string, string] {
   const index = entry.indexOf("=");

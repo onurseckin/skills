@@ -1,7 +1,7 @@
 import type { JsonObject } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
-import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
+import type { TransactionPort, WorkflowState } from "../workflow/index.ts";
 import { evidenceSchema } from "./evidence-schema.ts";
 import { publishRolePacket } from "./publish-role-packet.ts";
 import {

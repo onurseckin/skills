@@ -4,10 +4,10 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { checkDailyBudget } from "../../mind/lifecycle/budget/index.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findGrant, readAgentLedger } from "../../workflow/agents/index.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 import { systemClock, type Clock } from "../../workflow/index.ts";
 import { verifyMilestoneEvidence } from "../../mind/evidence/index.ts";
 import {

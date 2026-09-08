@@ -1,8 +1,8 @@
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { recordCoordinatorPushback } from "../../workflow/review/coordinator-pushback.ts";
-import { systemClock } from "../../workflow/types.ts";
-import { actorFlag, textFlag, type Flags } from "../options.ts";
+import { recordCoordinatorPushback } from "../../workflow/review/index.ts";
+import { systemClock } from "../../workflow/index.ts";
+import { actorFlag, textFlag, type Flags } from "../index.ts";
 import { validateReviewPushbackCriteria } from "../../authority/review/index.ts";
 
 export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown> {

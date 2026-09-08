@@ -12,11 +12,11 @@ import {
 } from "../../mind/memory/sources/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findGrant, readAgentLedger } from "../../workflow/agents/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { initRepoPolicy } from "../../policy/index.ts";
-import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface MindObserveResult {
   readonly markdown: string;

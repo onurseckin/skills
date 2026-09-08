@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { verifyEnvelopeHmac } from "../../communication/mailbox/envelope.ts";
-import type { MailboxEnvelope } from "../../communication/types.ts";
+import { verifyEnvelopeHmac } from "../../communication/mailbox/index.ts";
+import type { MailboxEnvelope } from "../../communication/index.ts";
 import {
   computeDoctorEnginePassed,
   type DoctorCheckEngineResult,

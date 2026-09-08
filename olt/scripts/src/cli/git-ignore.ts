@@ -7,7 +7,7 @@ import {
   type RepositoryGitCommand,
 } from "../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../packets/repository-git-metadata.ts";
-import { OLT_DIR_NAME } from "../core/shared/paths.ts";
+import { OLT_DIR_NAME } from "../core/shared/index.ts";
 
 // `.olt/capsules` has always been asserted gitignored below, but the rest of the `.olt` runtime
 // state directory (policy, memory, backlog, defect ledgers, auditor cursors, telemetry, ...) was

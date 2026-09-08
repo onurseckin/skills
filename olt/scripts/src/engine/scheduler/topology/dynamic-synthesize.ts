@@ -10,14 +10,13 @@ import {
   calculateValidatorAllocations,
   calculateCriticConcurrency,
 } from "./dynamic-allocations.ts";
-import { TopologyDecision, TopologyReason } from "../../../core/contracts";
-import { HarnessError } from "../../../core/errors";
-import { dependencyMap } from "../../../graph/dependency-map";
-import { isInteger } from "../../../requirements/predicates";
-import { isRecord } from "../../../requirements/predicates.ts";
-import { ScheduledTask } from "../conflict/rank";
-import { proposeBatch } from "../dispatch/propose-batch.ts";
-import { taskRecord, conflicting, derivedRationale } from "./unlimited/unlimited-utils.ts";
+import { TopologyDecision, TopologyReason } from "../../../core/contracts/index.ts";
+import { HarnessError } from "../../../core/errors/index.ts";
+import { dependencyMap } from "../../../graph/dependency-map.ts";
+import { isInteger, isRecord } from "../../../requirements/index.ts";
+import type { ScheduledTask } from "../conflict/index.ts";
+import { proposeBatch } from "../dispatch/index.ts";
+import { taskRecord, conflicting, derivedRationale } from "./unlimited/index.ts";
 
 export function synthesizeDynamicTopology(
   state: unknown,

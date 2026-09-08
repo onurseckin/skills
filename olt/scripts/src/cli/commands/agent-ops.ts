@@ -5,18 +5,18 @@ import {
   recordAgentReport,
   refreshAgentDerivedTelemetry,
   releaseAgentGrant,
-} from "../../workflow/agents/grants.ts";
-import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { ancestorChain, taskLineage } from "../../workflow/agents/lineage.ts";
+} from "../../workflow/agents/index.ts";
+import { readAgentLedger } from "../../workflow/agents/index.ts";
+import { ancestorChain, taskLineage } from "../../workflow/agents/index.ts";
 import {
   formatAgentLineageBrief,
   formatAgentListBrief,
   formatAgentReleaseBrief,
   formatAgentReportBrief,
-} from "../formatters/agent-formatter.ts";
+} from "../formatters/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
-import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
-import { tokenExtraFlags, toolRefFlags } from "../taxonomy-flags.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../index.ts";
+import { tokenExtraFlags, toolRefFlags } from "../index.ts";
 import { SentinelMonitorRegistry } from "../../sentinel/monitor/index.ts";
 
 export { agentRegisterCommand } from "./agent-registration.ts";

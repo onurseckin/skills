@@ -1,6 +1,6 @@
-import { captureEvalCommand } from "../commands/capture-eval.ts";
-import { captureInitCommand } from "../commands/capture-init.ts";
-import { captureRunCommand } from "../commands/capture-run.ts";
+import { captureEvalCommand } from "../commands/index.ts";
+import { captureInitCommand } from "../commands/index.ts";
+import { captureRunCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const CAPTURE_COMMANDS: readonly CommandSpec[] = [

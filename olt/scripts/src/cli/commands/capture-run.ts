@@ -1,5 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import type { CommandContext, Flags } from "../options.ts";
+import type { CommandContext, Flags } from "../index.ts";
 
 export const CAPTURE_RUN_MISSING_PROVIDER_MESSAGE =
   "capture:run cannot execute: no real browser automation driver is wired into this build. " +

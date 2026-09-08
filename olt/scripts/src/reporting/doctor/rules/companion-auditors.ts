@@ -2,8 +2,8 @@ import type { AgentGrantRecord } from "../../../core/contracts/index.ts";
 import { isJsonObject } from "../../../core/contracts/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { SkillAuditorPolicy } from "../../../engine/scheduler/index.ts";
-import { readAgentLedger } from "../../../workflow/agents/ledger.ts";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../types.ts";
+import { readAgentLedger } from "../../../workflow/agents/index.ts";
+import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../index.ts";
 
 export interface CompanionAuditorDoctorOptions {
   readonly repoRoot?: string | undefined;

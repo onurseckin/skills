@@ -9,11 +9,11 @@ import {
 } from "../../mind/lifecycle/budget/index.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/index.ts";
 import { writeLastPulse } from "../../mind/lifecycle/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface MindPulseOpenResult {
   markdown: string;

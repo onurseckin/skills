@@ -1,12 +1,12 @@
 import { HarnessError } from "../../core/errors/index.ts";
 import { parseDuration } from "../../mind/memory/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { constructSupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
 import {
   runScriptBackedDiagnostics,
   type ScriptBackedDiagnosticsResult,
 } from "../../engine/scheduler/diagnostics/index.ts";
-import { generateAsciiDagBadges } from "../../engine/scheduler/diagnostics/ascii-badges.ts";
+import { generateAsciiDagBadges } from "../../engine/scheduler/diagnostics/index.ts";
 import { buildSchedulerLivePushReport } from "../../engine/scheduler/reporting/index.ts";
 import { computeMindCognitiveTelemetry } from "./mind-pulse-metrics.ts";
 import { CLOSING_FORBIDDEN_FOR_MIND, type MindPulseResult } from "./mind-pulse-state.ts";

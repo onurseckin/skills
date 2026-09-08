@@ -7,10 +7,9 @@ import type {
 } from "../../../core/contracts/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { dependencyMap } from "../../../graph/dependency-map.ts";
-import { isInteger, isRecord } from "../../../requirements/predicates.ts";
-import { resourceConflict, scopeConflict } from "../conflict/conflicts.ts";
-import { proposeBatch } from "../dispatch/propose-batch.ts";
-import type { ScheduledTask } from "../conflict/rank.ts";
+import { isInteger, isRecord } from "../../../requirements/index.ts";
+import { resourceConflict, scopeConflict, type ScheduledTask } from "../conflict/index.ts";
+import { proposeBatch } from "../dispatch/index.ts";
 
 export type TopologyConfig = Readonly<Pick<ResolvedHarnessConfig, "default_max_parallel">>;
 

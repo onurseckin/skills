@@ -1,22 +1,46 @@
 import { createRequire } from "node:module";
-import { COMMAND_DOMAINS, type CommandSpec } from "../../cli/registry/types.ts";
 import {
   computeDoctorEnginePassed,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
 } from "./types.ts";
 
+export interface CommandSpec {
+  readonly name: string;
+  readonly aliases: readonly string[];
+  readonly domain: string;
+  readonly summary?: string;
+  readonly description?: string;
+  readonly handler?: unknown;
+}
+
 const req = createRequire(import.meta.url);
 
 let cachedRegistry: readonly CommandSpec[] | undefined;
+let cachedDomains: readonly string[] | undefined;
+
+function getRegistryModule(): {
+  readonly COMMAND_REGISTRY: readonly CommandSpec[];
+  readonly COMMAND_DOMAINS: readonly string[];
+} {
+  return req("../../cli/registry/index.ts") as {
+    readonly COMMAND_REGISTRY: readonly CommandSpec[];
+    readonly COMMAND_DOMAINS: readonly string[];
+  };
+}
 
 function getCommandRegistry(): readonly CommandSpec[] {
-  if (cachedRegistry) return cachedRegistry;
-  const mod = req("../../cli/registry/index.ts") as {
-    readonly COMMAND_REGISTRY: readonly CommandSpec[];
-  };
-  cachedRegistry = mod.COMMAND_REGISTRY;
+  if (!cachedRegistry) {
+    cachedRegistry = getRegistryModule().COMMAND_REGISTRY;
+  }
   return cachedRegistry;
+}
+
+function getCommandDomains(): readonly string[] {
+  if (!cachedDomains) {
+    cachedDomains = getRegistryModule().COMMAND_DOMAINS;
+  }
+  return cachedDomains;
 }
 
 const CANONICAL_ALIAS_ALLOWLIST: ReadonlyMap<string, readonly string[]> = new Map([
@@ -59,7 +83,7 @@ export function checkCliRegistryTaxonomy(
       });
     }
 
-    if (!COMMAND_DOMAINS.includes(spec.domain)) {
+    if (!getCommandDomains().includes(spec.domain)) {
       findings.push({
         code: "CLI_UNKNOWN_DOMAIN",
         severity: "ERROR",

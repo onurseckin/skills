@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runGit, type GitRunner } from "../../workflow/worktree/git-ops.ts";
-import type { TrackWorktreeInfo } from "../../workflow/worktree/manager.ts";
+import { runGit, type GitRunner, type TrackWorktreeInfo } from "../../workflow/worktree/index.ts";
 import type { WorktreeHealthOptions } from "./worktree-health-engine.ts";
 
 export interface ParsedLockFile {

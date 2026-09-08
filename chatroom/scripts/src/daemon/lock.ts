@@ -6,7 +6,6 @@ import {
   isProcessAlive,
   type LockPayload,
 } from "../core/index.ts";
-import { dispatchRespawnNotification } from "./notify.ts";
 
 export interface DaemonLockPorts {
   readonly existsSync?: ((path: string) => boolean) | undefined;
@@ -160,12 +159,17 @@ export interface CheckLockLossOptions {
   readonly expectedPid: number;
   readonly ports?: DaemonLockPorts | undefined;
   readonly onLockLoss?: ((reason: "missing" | "stolen" | "corrupt") => void) | undefined;
-  readonly notifyCommand?: string | null | undefined;
   readonly onStop: () => void;
 }
 
-export function checkAndHandleLockLoss(options: CheckLockLossOptions): boolean {
-  const { room, reader, expectedPid, ports, onLockLoss, notifyCommand, onStop } = options;
+export interface LockLossOutcome {
+  readonly valid: boolean;
+  readonly reason?: "missing" | "stolen" | "corrupt" | undefined;
+  readonly message?: string | undefined;
+}
+
+export function checkAndHandleLockLoss(options: CheckLockLossOptions): LockLossOutcome {
+  const { room, reader, expectedPid, ports, onLockLoss, onStop } = options;
   const lockCheck = verifyDaemonLock(room, reader, expectedPid, ports);
   if (!lockCheck.valid) {
     const reason = lockCheck.reason ?? "missing";
@@ -173,17 +177,12 @@ export function checkAndHandleLockLoss(options: CheckLockLossOptions): boolean {
       process.stderr.write(`daemon: self-terminating cleanly on lock loss (${reason})\n`);
     } catch {}
     onLockLoss?.(reason);
-    if (notifyCommand) {
-      dispatchRespawnNotification(notifyCommand, {
-        reason: "respawn",
-        room,
-        reader,
-        ts: new Date().toISOString(),
-        message: `daemon self-terminated due to lock loss (${reason})`,
-      }).catch(() => {});
-    }
     onStop();
-    return false;
+    return {
+      valid: false,
+      reason,
+      message: `daemon self-terminated due to lock loss (${reason})`,
+    };
   }
-  return true;
+  return { valid: true };
 }

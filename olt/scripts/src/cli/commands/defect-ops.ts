@@ -10,7 +10,7 @@ import {
   type DefectResolutionProof,
   type LiveDeduplicationOptions,
 } from "../../logging/defects/index.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export interface DefectRecordResult extends Record<string, unknown> {
   readonly defects: readonly AggregatedDefect[];

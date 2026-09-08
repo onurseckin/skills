@@ -1,10 +1,9 @@
 import { type TopologyDecision, type TopologyReason } from "../../../../core/contracts/index.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";
 import { dependencyMap } from "../../../../graph/dependency-map.ts";
-import { isInteger } from "../../../../requirements/predicates.ts";
-import { isRecord } from "../../../../requirements/predicates.ts";
-import { type ScheduledTask } from "../../conflict/rank.ts";
-import { proposeBatch } from "../../dispatch/propose-batch.ts";
+import { isInteger, isRecord } from "../../../../requirements/index.ts";
+import { type ScheduledTask } from "../../conflict/index.ts";
+import { proposeBatch } from "../../dispatch/index.ts";
 import {
   pairValidatorsStrictly,
   assertUnboundedConcurrencySafety,

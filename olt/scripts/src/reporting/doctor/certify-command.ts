@@ -1,7 +1,7 @@
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { boolFlag, listFlag, textFlag, type Flags } from "../../cli/options.ts";
+import { boolFlag, listFlag, textFlag, type Flags } from "../../cli/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../policy/index.ts";
 import {
   certifyHarnessDoctor,

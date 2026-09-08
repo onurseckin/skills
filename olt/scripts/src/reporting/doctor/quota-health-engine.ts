@@ -1,8 +1,36 @@
-import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
-import { DEFAULT_QUOTA_THRESHOLD } from "../../telemetry/circuit-breaker-evaluator.ts";
-import { TelemetryNormalizationEngine } from "../../telemetry/engine.ts";
-import type { UnifiedTelemetryReport } from "../../telemetry/types.ts";
+import {
+  DEFAULT_QUOTA_THRESHOLD,
+  TelemetryNormalizationEngine,
+  type UnifiedTelemetryReport,
+} from "../../telemetry/index.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+
+function resolveHostProviderLoose(rawHost: string | null | undefined): string {
+  if (typeof rawHost !== "string" || rawHost.trim().length === 0) {
+    return "unknown";
+  }
+  const normalized = rawHost.trim().toLowerCase();
+  if (normalized.includes("claude") || normalized.includes("anthropic")) {
+    return "claude-code";
+  }
+  if (normalized.includes("cursor")) {
+    return "cursor";
+  }
+  if (normalized.includes("codex")) {
+    return "codex";
+  }
+  if (
+    normalized.includes("chatgpt") ||
+    normalized.includes("gpt") ||
+    normalized.includes("openai")
+  ) {
+    return "chatgpt";
+  }
+  if (normalized.includes("antigravity") || normalized.includes("gemini")) {
+    return "antigravity";
+  }
+  return normalized;
+}
 
 export interface QuotaHealthCheckOptions {
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;

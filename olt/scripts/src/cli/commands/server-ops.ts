@@ -5,7 +5,7 @@
  * rich markdown briefs, JSON output formatting, and flag handling.
  */
 
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 import {
   captureSnapshot,
   createServerLifecycleManager,

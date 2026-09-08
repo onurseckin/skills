@@ -1,14 +1,14 @@
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import {
   readWorktreeLedger,
   reclaimOrphanedWorktrees,
   recordReclaim,
 } from "../../workflow/worktree/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type Flags } from "../index.ts";
 
 export function worktreeReclaimCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;

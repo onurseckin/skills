@@ -5,7 +5,7 @@ import {
   worktreeListCommand,
   worktreeReclaimCommand,
   worktreeStatusCommand,
-} from "../commands/worktree-ops.ts";
+} from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const WORKFLOW_COMMANDS: readonly CommandSpec[] = [

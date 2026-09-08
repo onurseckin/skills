@@ -1,7 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { HarnessEvent } from "../../core/contracts/index.ts";
-import type { TelemetryEvent } from "../telemetry-stream.ts";
+
+export interface TelemetryEvent {
+  readonly timestamp: string;
+  readonly actor: string;
+  readonly action?: string | undefined;
+  readonly [key: string]: unknown;
+}
 
 export interface MuxEnvelope<T = unknown> {
   readonly id: string;

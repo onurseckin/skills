@@ -3,7 +3,7 @@ import {
   criticRemediateCommand,
   criticReviewCommand,
   criticStartCommand,
-} from "../commands/critic-ops.ts";
+} from "../commands/index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

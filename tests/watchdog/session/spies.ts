@@ -1,8 +1,3 @@
-/**
- * @file spies.ts
- * Path-level interceptor spies for node:fs operations for tests/watchdog domain.
- */
-
 import { spyOn, type Mock } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -36,7 +31,7 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         s.vfs.mkdirSync(t, opts as Parameters<typeof s.vfs.mkdirSync>[1]);
         return t;
       }
-      return orig.mkdirSync(t, opts as Parameters<typeof orig.mkdirSync>[1]);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
     }),
     spy(
       "writeFileSync",
@@ -51,8 +46,7 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         }
         const t = norm(String(p));
         if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
-          orig.writeFileSync(t, d, opts);
-          return;
+          throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
         }
         const parent = path.dirname(t);
         if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
@@ -133,6 +127,9 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
     }),
     spy("rmSync", (p: fs.PathLike, opts?: fs.RmOptions) => {
       const t = norm(String(p));
+      if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
+      }
       s.symlinks.delete(t);
       s.hardlinks.delete(t);
       s.customModes.delete(t);
@@ -150,10 +147,12 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         if (k.startsWith(t + "/")) s.customMtimes.delete(k);
       }
       if (s.vfs.existsSync(t)) s.vfs.rmSync(t, opts as Parameters<typeof s.vfs.rmSync>[1]);
-      else if (!isVirtualPath(t)) orig.rmSync(t, opts);
     }),
     spy("unlinkSync", (p: fs.PathLike) => {
       const t = norm(String(p));
+      if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
+      }
       s.symlinks.delete(t);
       s.hardlinks.delete(t);
       s.customModes.delete(t);
@@ -162,7 +161,6 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         if (parent === t) s.hardlinks.delete(child);
       }
       if (s.vfs.existsSync(t)) s.vfs.unlinkSync(t);
-      else if (!isVirtualPath(t)) orig.unlinkSync(t);
     }),
     spy("symlinkSync", (target: fs.PathLike, link: fs.PathLike) => {
       s.symlinks.set(norm(String(link)), norm(String(target)));
@@ -175,6 +173,12 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
     spy("linkSync", (src: fs.PathLike, dst: fs.PathLike) => {
       const sStr = norm(String(src));
       const dStr = norm(String(dst));
+      if (!isVirtualPath(sStr) && !s.vfs.existsSync(sStr)) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${sStr}`);
+      }
+      if (!isVirtualPath(dStr) && !s.vfs.existsSync(dStr)) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${dStr}`);
+      }
       s.hardlinks.set(dStr, sStr);
       if (s.vfs.existsSync(sStr)) {
         const parent = path.dirname(dStr);
@@ -184,10 +188,13 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         if (mode !== undefined) s.customModes.set(dStr, mode);
         return;
       }
-      if (!isVirtualPath(sStr) && !isVirtualPath(dStr)) orig.linkSync(sStr, dStr);
     }),
     spy("chmodSync", (p: fs.PathLike, m: fs.Mode) => {
-      s.customModes.set(norm(String(p)), typeof m === "string" ? parseInt(m, 8) : m);
+      const t = norm(String(p));
+      if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
+      }
+      s.customModes.set(t, typeof m === "string" ? parseInt(m, 8) : m);
     }),
     spy("realpathSync", (p: fs.PathLike) => {
       const t = norm(String(p));
@@ -221,7 +228,12 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         }
         return;
       }
-      orig.renameSync(sStr, dStr);
+      if (isVirtualPath(sStr)) {
+        const err = new Error(`ENOENT: no such file or directory, rename '${sStr}' -> '${dStr}'`);
+        (err as unknown as { code: string }).code = "ENOENT";
+        throw err;
+      }
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${sStr}`);
     }),
     spy("cpSync", (src: string | URL, dst: string | URL) => {
       const sStr = norm(String(src));
@@ -238,7 +250,12 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         }
         return;
       }
-      orig.cpSync(sStr, dStr);
+      if (isVirtualPath(sStr)) {
+        const err = new Error(`ENOENT: no such file or directory, cp '${sStr}' -> '${dStr}'`);
+        (err as unknown as { code: string }).code = "ENOENT";
+        throw err;
+      }
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${sStr}`);
     }),
     spy("copyFileSync", (src: fs.PathLike, dst: fs.PathLike) => {
       const sStr = norm(String(src));
@@ -251,11 +268,20 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         if (mode !== undefined) s.customModes.set(dStr, mode);
         return;
       }
-      orig.copyFileSync(sStr, dStr);
+      if (isVirtualPath(sStr)) {
+        const err = new Error(`ENOENT: no such file or directory, copyfile '${sStr}' -> '${dStr}'`);
+        (err as unknown as { code: string }).code = "ENOENT";
+        throw err;
+      }
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${sStr}`);
     }),
     spy("utimesSync", (p: fs.PathLike, _a: unknown, m: number | string | Date) => {
+      const t = norm(String(p));
+      if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
+      }
       s.customMtimes.set(
-        norm(String(p)),
+        t,
         typeof m === "number" ? m : m instanceof Date ? m.getTime() : Date.now(),
       );
     }),
@@ -266,8 +292,7 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
       }
       const t = norm(String(p));
       if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
-        orig.appendFileSync(t, d);
-        return;
+        throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${t}`);
       }
       const cur = s.vfs.existsSync(t) ? s.vfs.readFileSync(t, "utf8") : "";
       s.vfs.writeFileSync(t, cur + (typeof d === "string" ? d : Buffer.from(d).toString("utf8")));
@@ -278,7 +303,7 @@ export function createWatchdogFsSpies(s: VirtualWatchdogState): Array<{ mockRest
         s.vfs.mkdirSync(dir, { recursive: true });
         return dir;
       }
-      return orig.mkdtempSync(prefix);
+      throw new Error(`[VFS_SAFETY] Disallowed mutating fs call on non-virtual path: ${prefix}`);
     }),
   ];
 

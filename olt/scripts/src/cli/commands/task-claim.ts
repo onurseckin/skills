@@ -3,27 +3,27 @@ import { AGENT_ROLES, isAgentRole } from "../../core/contracts/index.ts";
 import { evidenced, type Evidenced } from "../../core/contracts/index.ts";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { appendDefectLedgerRecord } from "../../logging/defect-logger.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { appendDefectLedgerRecord } from "../../logging/index.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import {
   refreshAgentDerivedTelemetry,
   type TelemetryFieldConflict,
-} from "../../workflow/agents/grants.ts";
-import { claimTask } from "../../workflow/lease/claim.ts";
-import { hashWriteScope } from "../../workflow/lease/write-scope-hash.ts";
-import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
+} from "../../workflow/agents/index.ts";
+import { claimTask } from "../../workflow/lease/index.ts";
+import { hashWriteScope } from "../../workflow/lease/index.ts";
+import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/index.ts";
 import { formatTaskClaimBrief, formatTaskHeartbeatBrief } from "../formatters/index.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
-import { detectHostApp } from "../../authority/thread/context.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
+import { detectHostApp } from "../../authority/thread/index.ts";
 import { inferRoleFromAgentId } from "../../authority/thread/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
-import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { heartbeat } from "../../workflow/lease/heartbeat.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { heartbeat } from "../../workflow/lease/index.ts";
 
 export { taskSubmitCommand } from "./task-submit.ts";
 

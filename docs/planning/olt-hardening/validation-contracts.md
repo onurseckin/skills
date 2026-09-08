@@ -53,14 +53,15 @@ Implementers submitting completed work (`task:submit`) frequently hit `cannot de
 1. **Exact Agent Match**: Prioritizes commands where `c.task_id === task.id` and `c.actor === agentId`.
 2. **Actor Variance Fallback**: If no exact actor match exists, falls back to any command where `c.task_id === task.id` and `c.exit_code === 0`.
 3. **Empty Gate Auto-Bypass**: If no commands exist and the task's gate is empty (null, undefined, `""`, `[]`, or `{}`), returns empty check list with `agent_reported` evidence class instead of throwing an error.
-4. **Explicit Skip Flags**: Passing `--skip-checks` or `--no-checks` cleanly skips check determination:
+4. **Explicit No-Op Flags**: Passing `--no-op` and `--reason` cleanly satisfies check and change determination when no changes were needed:
    ```bash
    bun harness.ts task:submit \
      --run .olt/capsules/<run-id> \
      --task <task-id> \
      --agent <agent-id> \
      --token <lease-token> \
-     --skip-checks \
+     --no-op \
+     --reason "No code changes required" \
      --summary "Updated documentation"
    ```
 

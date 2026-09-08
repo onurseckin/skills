@@ -104,6 +104,15 @@ export const WALL_CLOCK_IDENTIFIERS = new Set([
   "deltaMs",
 ]);
 
+export const UNMOCKED_TIMER_IDENTIFIERS = new Set([
+  "wakes",
+  "receivedWakes",
+  "pollWakes",
+  "wakeCount",
+  "timerCount",
+  "tickCount",
+]);
+
 export const WALL_CLOCK_COMPARISON_METHODS = new Set([
   "toBeLessThan",
   "toBeGreaterThan",
@@ -111,7 +120,106 @@ export const WALL_CLOCK_COMPARISON_METHODS = new Set([
   "toBeGreaterThanOrEqual",
 ]);
 
+export const CHAI_ASSERT_COMPARISONS = new Set([
+  "isBelow",
+  "isAbove",
+  "isAtLeast",
+  "isAtMost",
+  "lessThan",
+  "greaterThan",
+]);
+
 export const WALL_CLOCK_RULE = "no-wall-clock-assertion";
 
 export const WALL_CLOCK_VIOLATION_MESSAGE =
   "Wall-clock timing comparison detected in test. Tests must assert deterministic observable state instead of wall-clock latency.";
+
+export function unwrapParens(node: ts.Node): ts.Node {
+  let curr = node;
+  while (ts.isParenthesizedExpression(curr)) {
+    curr = curr.expression;
+  }
+  return curr;
+}
+
+export function findDeclarationInitializer(
+  identName: string,
+  fromNode: ts.Node,
+): ts.Expression | undefined {
+  let curr: ts.Node | undefined = fromNode.parent;
+  while (curr) {
+    if (ts.isBlock(curr) || ts.isSourceFile(curr)) {
+      for (const stmt of curr.statements) {
+        if (stmt.pos >= fromNode.pos) break;
+        if (ts.isVariableStatement(stmt)) {
+          for (const decl of stmt.declarationList.declarations) {
+            if (ts.isIdentifier(decl.name) && decl.name.text === identName) {
+              if (decl.initializer) return decl.initializer;
+            }
+          }
+        }
+      }
+    }
+    curr = curr.parent;
+  }
+  return undefined;
+}
+
+export function hasFakeTimers(sf: ts.SourceFile, node?: ts.Node): boolean {
+  let fileHasHook = false;
+  function checkTop(n: ts.Node): void {
+    if (fileHasHook) return;
+    if (ts.isCallExpression(n)) {
+      const expr = n.expression;
+      if (
+        (ts.isPropertyAccessExpression(expr) && expr.name.text === "useFakeTimers") ||
+        (ts.isIdentifier(expr) && expr.text === "useFakeTimers")
+      ) {
+        fileHasHook = true;
+        return;
+      }
+    }
+    if (
+      ts.isCallExpression(n) &&
+      ts.isIdentifier(n.expression) &&
+      (n.expression.text === "test" || n.expression.text === "it")
+    ) {
+      return;
+    }
+    ts.forEachChild(n, checkTop);
+  }
+  checkTop(sf);
+  if (fileHasHook) return true;
+
+  if (node) {
+    let curr: ts.Node | undefined = node;
+    while (curr) {
+      if (
+        ts.isCallExpression(curr) &&
+        ts.isIdentifier(curr.expression) &&
+        (curr.expression.text === "test" || curr.expression.text === "it")
+      ) {
+        let testHasFake = false;
+        function checkTest(n: ts.Node): void {
+          if (testHasFake) return;
+          if (ts.isCallExpression(n)) {
+            const expr = n.expression;
+            if (
+              (ts.isPropertyAccessExpression(expr) && expr.name.text === "useFakeTimers") ||
+              (ts.isIdentifier(expr) && expr.text === "useFakeTimers")
+            ) {
+              testHasFake = true;
+              return;
+            }
+          }
+          ts.forEachChild(n, checkTest);
+        }
+        checkTest(curr);
+        return testHasFake;
+      }
+      curr = curr.parent;
+    }
+  }
+
+  return false;
+}

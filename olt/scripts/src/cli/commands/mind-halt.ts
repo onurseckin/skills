@@ -2,8 +2,8 @@ import type { JsonObject } from "../../core/contracts/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { writeLastPulse } from "../../mind/lifecycle/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 /**
  * Implements defect 105: `mind:halt` was declared in the registry and is the second half of

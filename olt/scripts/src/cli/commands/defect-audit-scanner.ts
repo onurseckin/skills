@@ -5,7 +5,7 @@ import {
   resolveCapsulesDir,
   resolveDefectsPath,
   resolveCompletedDefectsPath,
-} from "../../core/shared/paths.ts";
+} from "../../core/shared/index.ts";
 import type { AuditedDefect, DefectFileDiscovery, DefectStatus } from "./defect-audit-types.ts";
 
 export function discoverDefectFiles(

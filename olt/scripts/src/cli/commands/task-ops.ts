@@ -11,7 +11,7 @@ import { taskValidateStartCommand } from "./task-validation-start.ts";
 import { taskReleaseCommand as coreRelease } from "./diagnostics-ops.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { writeIndex } from "../../engine/store/index.ts";
-import { textFlag, type Flags, type CommandContext } from "../options.ts";
+import { textFlag, type Flags, type CommandContext } from "../index.ts";
 
 export {
   taskClaimCommand,

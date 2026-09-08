@@ -1,7 +1,6 @@
 import { HarnessError } from "../core/errors/index.ts";
-import { readAgentLedger } from "../workflow/agents/ledger.ts";
-import type { Flags } from "../cli/options.ts";
-import type { CommandSpec } from "../cli/registry/types.ts";
+import { readAgentLedger } from "../workflow/agents/index.ts";
+import type { CommandSpec, Flags } from "./types.ts";
 import { declaresRunIdentityFlag, requiresActingIdentity } from "./grant-bootstrap-allowlist.ts";
 import {
   isCognitiveValidatorRole,

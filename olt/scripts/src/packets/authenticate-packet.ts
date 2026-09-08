@@ -1,11 +1,9 @@
 import type { BranchSubTask } from "../core/contracts/index.ts";
-import { canonicalJsonBytes } from "../core/json.ts";
+import { canonicalJsonBytes } from "../core/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
-import { readBranchLedger, locateSubTask } from "../workflow/branch/ledger.ts";
-import { tokenMatches } from "../workflow/lease/token.ts";
-import { requireText } from "../workflow/task-state.ts";
-import type { TaskRecord } from "../workflow/types.ts";
-import { systemClock } from "../workflow/types.ts";
+import { locateSubTask, readBranchLedger } from "../workflow/branch/index.ts";
+import { tokenMatches } from "../workflow/lease/index.ts";
+import { requireText, systemClock, type TaskRecord } from "../workflow/index.ts";
 import type { PacketInput } from "./types.ts";
 import { assertCriticIndependent } from "../workflow/completion/index.ts";
 import { assertActiveCriticDeadline } from "./authorization-deadline.ts";

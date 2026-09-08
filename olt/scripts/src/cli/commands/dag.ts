@@ -1,13 +1,13 @@
 import { basename, dirname } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { isRecord } from "../../requirements/predicates.ts";
-import type { TaskDeclaration } from "../../requirements/compiler.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { parseArguments } from "../arguments.ts";
+import { isRecord } from "../../requirements/index.ts";
+import type { TaskDeclaration } from "../../requirements/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
+import { parseArguments } from "../index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 import { schedulingMetrics } from "../../engine/scheduler/index.ts";
 import {
@@ -20,7 +20,7 @@ import {
   buildLivingTracerReport,
   type LivingTracerReport,
 } from "../../reporting/living-tracer/index.ts";
-import { readCapsuleEvents } from "../../reporting/event-stream.ts";
+import { readCapsuleEvents } from "../../reporting/index.ts";
 
 function isStringArray(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");

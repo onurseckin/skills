@@ -4,7 +4,7 @@ import {
   computeDoctorEnginePassed,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
-} from "../types.ts";
+} from "./types.ts";
 
 import { checkCognitiveValidatorCommandLock } from "./audit.ts";
 

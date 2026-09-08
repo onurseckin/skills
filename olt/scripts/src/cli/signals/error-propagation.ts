@@ -1,5 +1,5 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import { normalizeError } from "../../core/errors/normalize-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import { normalizeError } from "../../core/errors/index.ts";
 
 export function mapErrorToExitCode(error: unknown): number {
   if (error instanceof HarnessError) {

@@ -2,20 +2,20 @@ import { existsSync } from "node:fs";
 import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/index.ts";
 import { findRepoRoot, HarnessError } from "../../core/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../policy/index.ts";
 import {
   buildExactAnchorBriefing,
   type ExactAnchorBriefing,
 } from "../../mind/proposals/builder/index.ts";
-import { readAgentLedger, requireGrant } from "../../workflow/agents/ledger.ts";
-import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
-import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
-import { formatAgentBrief, type AgentBriefParams } from "../formatters/agent-formatter.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { formatTaskBrief, type TaskBriefParams } from "../formatters/task-formatter.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { readAgentLedger, requireGrant } from "../../workflow/agents/index.ts";
+import { applicableGates, commandArgv } from "../../workflow/gates/index.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
+import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/index.ts";
+import { formatAgentBrief, type AgentBriefParams } from "../formatters/index.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
+import { formatTaskBrief, type TaskBriefParams } from "../formatters/index.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 import {
   deriveNextSteps,
   deriveRecommendedCommands,

@@ -1,4 +1,4 @@
-import { coordinatorPushbackCommand } from "../commands/coordinator-pushback.ts";
+import { coordinatorPushbackCommand } from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const COORDINATOR_COMMANDS: readonly CommandSpec[] = [

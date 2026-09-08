@@ -1,7 +1,7 @@
 import { basename, join } from "node:path";
 import { generateSummarySuite } from "../../summary/formatters/index.ts";
 import { generateUnifiedReport } from "../../reporting/unified/index.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 
 export function summaryExportCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;

@@ -1,5 +1,5 @@
 import { listAvailableRoles } from "../../roles/index.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export function roleListCommand(flags: Flags, _context?: CommandContext): Record<string, unknown> {
   const rolesDir = textFlag(flags, "roles-dir", false) ?? textFlag(flags, "dir", false);

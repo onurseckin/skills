@@ -1,7 +1,7 @@
 import type { AgentRole } from "../core/contracts/index.ts";
 import type { BranchSubTask } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
-import type { Clock, RequirementRuntime, TaskRecord, WorkflowState } from "../workflow/types.ts";
+import type { Clock, RequirementRuntime, TaskRecord, WorkflowState } from "../workflow/index.ts";
 import type { RoleContract } from "./role-contract.ts";
 
 export interface PacketInput {
@@ -89,4 +89,29 @@ export interface CognitiveStepCoverageResult {
   readonly coveredStepsCount: number;
   readonly missingStepsCount: number;
   readonly issues: readonly CognitiveStepCoverageIssue[];
+}
+
+export type FlagValue = string | boolean;
+export type FlagValues = FlagValue | readonly FlagValue[];
+export type Flags = Readonly<Record<string, FlagValues | undefined>>;
+
+export interface CommandFlagSpec {
+  readonly name: string;
+  readonly description?: string;
+  readonly required?: boolean;
+  readonly repeatable?: boolean;
+}
+
+export interface CommandAuthoritySpec {
+  readonly requiresActingIdentity?: boolean;
+  readonly authorityRunFlag?: string;
+  readonly allowedRoles: readonly string[];
+  readonly constrainedPathFlags?: readonly string[];
+}
+
+export interface CommandSpec {
+  readonly name: string;
+  readonly aliases: readonly string[];
+  readonly flags: readonly CommandFlagSpec[];
+  readonly authority?: CommandAuthoritySpec;
 }

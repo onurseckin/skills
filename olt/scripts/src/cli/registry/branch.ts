@@ -5,7 +5,7 @@ import {
   branchOpenCommand,
   branchStatusCommand,
   branchSubmitCommand,
-} from "../commands/branch-ops.ts";
+} from "../commands/index.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

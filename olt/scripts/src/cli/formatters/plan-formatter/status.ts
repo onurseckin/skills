@@ -1,4 +1,4 @@
-import { enforceLineLimit, formatTable } from "../line-limiter.ts";
+import { enforceLineLimit, formatTable } from "../index.ts";
 import {
   autoPartitionNextActions,
   nextActionsBlock,

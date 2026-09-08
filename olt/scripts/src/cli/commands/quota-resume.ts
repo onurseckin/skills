@@ -1,14 +1,14 @@
-import { resumeDagSnapshot, formatDagResumeMarkdown } from "../../telemetry/dag-snapshot.ts";
-import { TelemetryNormalizationEngine } from "../../telemetry/engine.ts";
-import { QuotaCircuitBreaker } from "../../telemetry/circuit-breaker.ts";
+import { resumeDagSnapshot, formatDagResumeMarkdown } from "../../telemetry/index.ts";
+import { TelemetryNormalizationEngine } from "../../telemetry/index.ts";
+import { QuotaCircuitBreaker } from "../../telemetry/index.ts";
 import {
   createDefaultCollectors,
   type CollectorEnvironment,
 } from "../../telemetry/collectors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export async function quotaResumeCommand(
   flags: Flags,

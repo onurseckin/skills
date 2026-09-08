@@ -4,7 +4,7 @@ import type {
   AgentToolUse,
   CommandRecord,
 } from "../../../core/contracts/index.ts";
-import type { TaskRecord } from "../../../workflow/types.ts";
+import type { TaskRecord } from "../../../workflow/index.ts";
 import {
   isCoordinatorRole,
   isOrchestratorRole,

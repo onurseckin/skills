@@ -1,13 +1,13 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { applicableGates } from "../../workflow/gates/gate-policy.ts";
-import { beginValidation } from "../../workflow/review/begin-validation.ts";
-import { validationForValidator } from "../../workflow/review/validation-state.ts";
+import { applicableGates } from "../../workflow/gates/index.ts";
+import { beginValidation } from "../../workflow/review/index.ts";
+import { validationForValidator } from "../../workflow/review/index.ts";
 import { formatValidationStartBrief } from "../formatters/index.ts";
-import { integerFlag, textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../index.ts";
 import { reviewPolicyFor } from "./task-review-support.ts";
 
 export async function taskValidateStartCommand(flags: Flags): Promise<Record<string, unknown>> {

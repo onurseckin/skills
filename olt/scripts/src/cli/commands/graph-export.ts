@@ -6,7 +6,7 @@ import {
   type DagExportResult,
 } from "../../reporting/dag-exporters/index.ts";
 import { generateDagJsonReport, type DagJsonReport } from "../../reporting/graph-json.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
 export interface GraphExportCommandResult extends Record<string, unknown> {

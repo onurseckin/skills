@@ -1,5 +1,5 @@
 import { dagViewCommand, resolveCapsuleRun } from "./dag-view.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type Flags } from "../index.ts";
 import {
   generateLeasesReport,
   generateDecisionsReport,

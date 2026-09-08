@@ -1,5 +1,3 @@
-export { reportDagCommand } from "./report-dag.ts";
-export { reportUnifiedCommand } from "./report-unified.ts";
 export {
   CORE_REPORT_SPECS,
   REPORT_DAG_SPEC,
@@ -23,4 +21,6 @@ export {
   SERVICE_REPORT_SPECS,
   SKILL_AUDIT_LIVE_SPEC,
 } from "./service-specs.ts";
+export { reportDagCommand } from "./report-dag.ts";
+export { reportUnifiedCommand } from "./report-unified.ts";
 export type { ReportDagFlags, ReportUnifiedFlags } from "./types.ts";

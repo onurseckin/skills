@@ -1,5 +1,5 @@
 import { scanRootHygiene } from "../../health/hygiene/index.ts";
-import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export function hygieneAuditCommand(
   flags: Flags,

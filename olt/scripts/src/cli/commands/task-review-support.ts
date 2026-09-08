@@ -2,16 +2,13 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join, resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import {
-  resolveReviewProtocolConfig,
-  type ReviewProtocolConfig,
-} from "../../policy/review-protocol.ts";
-import { MIN_ADVERSARIAL_PROBES } from "../../reporting/doctor/pushback-quotas-engine.ts";
-import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
-import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
-import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { resolveReviewProtocolConfig, type ReviewProtocolConfig } from "../../policy/index.ts";
+import { MIN_ADVERSARIAL_PROBES } from "../../reporting/doctor/index.ts";
+import { ingestScreenshots, ingestVisualReport } from "../../reporting/index.ts";
+import { getVisualReport, queryScreenshots } from "../../reporting/index.ts";
+import type { ScreenshotRecord } from "../../reporting/index.ts";
 import { readAgentMetadata } from "../../runtime/index.ts";
 import {
   analyzeDualChannel,
@@ -22,10 +19,10 @@ import {
   adaptIngestedVisualReport,
   adaptScreenshotRecords,
 } from "../../validation/reporters/index.ts";
-import { attachGateResult } from "../../workflow/gates/attach-result.ts";
-import { finishTask } from "../../workflow/gates/finish-task.ts";
-import { applicableGates, taskHasPassedGate } from "../../workflow/gates/gate-policy.ts";
-import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/types.ts";
+import { attachGateResult } from "../../workflow/gates/index.ts";
+import { finishTask } from "../../workflow/gates/index.ts";
+import { applicableGates, taskHasPassedGate } from "../../workflow/gates/index.ts";
+import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/index.ts";
 
 export function repoRootOf(runRoot: string): string {
   return findRepoRoot(runRoot);

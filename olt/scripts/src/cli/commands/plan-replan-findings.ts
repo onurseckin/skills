@@ -1,5 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import type { FindingDetail } from "../../workflow/scope-partitioner.ts";
+import type { FindingDetail } from "../../workflow/index.ts";
 
 export interface ReplanFindingsInput {
   readonly inline: string | undefined;

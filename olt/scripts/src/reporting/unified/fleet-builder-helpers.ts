@@ -6,15 +6,15 @@ import {
   roleToTier,
   type ExecutionTier,
 } from "../../authority/thread/index.ts";
-import { resolveActiveSession } from "../../authority/session/resolver.ts";
 import {
   getInMemorySessionData,
   isInMemorySessionStoreEnabled,
-} from "../../authority/session/paths.ts";
-import { isRecord } from "../../requirements/predicates.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { computeCapsuleDoctorFacts } from "../doctor/facts.ts";
-import { extractLeaseAgentId } from "../lease-agent-extractor.ts";
+  resolveActiveSession,
+} from "../../authority/session/index.ts";
+import { isRecord } from "../../requirements/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
+import { computeCapsuleDoctorFacts } from "../doctor/index.ts";
+import { extractLeaseAgentId } from "../index.ts";
 import type { SugiyamaEdge, SugiyamaNode } from "../sugiyama-dag/index.ts";
 import type { UnifiedAgentRow } from "./types.ts";
 

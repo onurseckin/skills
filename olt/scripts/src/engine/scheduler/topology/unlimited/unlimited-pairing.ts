@@ -3,8 +3,8 @@ import {
   type ValidatorDomain,
 } from "../../../../core/contracts/index.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";
-import { isRecord } from "../../../../requirements/predicates.ts";
-import { type ScheduledTask } from "../../conflict/rank.ts";
+import { isRecord } from "../../../../requirements/index.ts";
+import { type ScheduledTask } from "../../conflict/index.ts";
 import {
   type PairValidatorsOptions,
   type ValidatorPairingRecord,

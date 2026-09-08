@@ -1,5 +1,5 @@
 import type { FleetReportData } from "./fleet-builder.ts";
-import { padOptical } from "../sugiyama-dag/render-box.ts";
+import { padOptical } from "../sugiyama-dag/index.ts";
 
 export function formatFleetDashboard(fleetData: FleetReportData): string {
   const { stats, capsules, agentRoster } = fleetData;

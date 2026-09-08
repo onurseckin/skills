@@ -1,5 +1,4 @@
-import type { Clock, TransactionPort } from "../workflow/types.ts";
-import { systemClock } from "../workflow/types.ts";
+import { systemClock, type Clock, type TransactionPort } from "../workflow/index.ts";
 import type { PacketAuthorization, PublishedPacket } from "./persist-packet.ts";
 import { publishPacket } from "./persist-packet.ts";
 import { buildPacketFromPinnedRuntime } from "./render-packet.ts";

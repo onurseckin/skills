@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
-import { DEFAULT_PRESETS, DEFAULT_SIDEBAR_LAYOUT } from "../../capture/config/default-presets.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { DEFAULT_PRESETS, DEFAULT_SIDEBAR_LAYOUT } from "../../capture/config/index.ts";
+import { textFlag, type CommandContext, type Flags } from "../index.ts";
 
 export function generateInitialConfigYaml(presetName = "standard-dashboard"): string {
   const preset = DEFAULT_PRESETS[presetName] ?? DEFAULT_PRESETS["standard-dashboard"]!;

@@ -6,11 +6,11 @@ import { findRepoRoot } from "../../core/shared/paths.ts";
 import { initRun, loadRun, transact } from "../../engine/store/index.ts";
 import { partitionByGlob, slugifyScope } from "../../graph/auto-partition.ts";
 import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";
-import { assertInstalledRuntimeFresh } from "../../installer/runtime-freshness.ts";
-import { type TaskDeclaration } from "../../requirements/compiler.ts";
-import { buildEnhancedPlan, writeEnhancedPlan } from "../../requirements/enhanced-plan.ts";
-import { parseRequirementLines } from "../../requirements/requirement-lines.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
+import { assertInstalledRuntimeFresh } from "../../installer/index.ts";
+import { type TaskDeclaration } from "../../requirements/index.ts";
+import { buildEnhancedPlan, writeEnhancedPlan } from "../../requirements/index.ts";
+import { parseRequirementLines } from "../../requirements/index.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
 import {
   formatAutoPartitionBrief,
   formatCapsuleInitBrief,
@@ -18,7 +18,7 @@ import {
   formatPlanStatusBrief,
   formatTaskRegisteredBrief,
 } from "../formatters/index.ts";
-import { ensureHarnessIgnored } from "../git-ignore.ts";
+import { ensureHarnessIgnored } from "../index.ts";
 import {
   actorFlag,
   boolFlag,
@@ -27,7 +27,7 @@ import {
   textFlag,
   type CommandContext,
   type Flags,
-} from "../options.ts";
+} from "../index.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);

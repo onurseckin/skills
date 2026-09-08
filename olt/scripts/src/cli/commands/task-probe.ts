@@ -1,12 +1,12 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { ReviewProtocolEngine, type ReviewChannelKind } from "../../policy/review-protocol.ts";
-import { probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
-import { recordProbe } from "../../workflow/review/record-probe.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
+import { ReviewProtocolEngine, type ReviewChannelKind } from "../../policy/index.ts";
+import { probeRoundsRecorded } from "../../workflow/review/index.ts";
+import { recordProbe } from "../../workflow/review/index.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
 import { formatTaskProbeBrief } from "../formatters/index.ts";
-import { listFlag, textFlag, type Flags } from "../options.ts";
+import { listFlag, textFlag, type Flags } from "../index.ts";
 import {
   buildProbeDemand,
   persistProbeReport,

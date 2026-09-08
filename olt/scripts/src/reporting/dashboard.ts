@@ -1,9 +1,9 @@
 import {
   layoutSugiyamaDag,
-  type SugiyamaDagReport,
+  type SugiyamaCanvasDagReport as SugiyamaDagReport,
   type SugiyamaEdge,
   type SugiyamaRankedNode,
-} from "../graph/sugiyama.ts";
+} from "./sugiyama-dag/index.ts";
 
 export interface DashboardTaskState {
   readonly id: string;
@@ -211,6 +211,7 @@ export function generateDashboardReport(
   const rankedNodes: SugiyamaRankedNode[] = tasks.map((t, idx) => ({
     id: t.id,
     label: t.label,
+    status: t.status,
     rank: 0,
     order: idx,
     isDummy: false,

@@ -1,9 +1,9 @@
 import type { WorkSpanMetrics, ResourceDisjointnessMetrics } from "./dynamic-types.ts";
-import { HarnessError } from "../../../core/errors";
-import { DependencyMap, topologicalOrder } from "../../../graph/dag-forensics";
-import { isInteger } from "../../../requirements/predicates";
-import { ScheduledTask } from "../conflict/rank";
-import { conflicting } from "./unlimited/unlimited-utils.ts";
+import { HarnessError } from "../../../core/errors/index.ts";
+import { type DependencyMap, topologicalOrder } from "../../../graph/dag-forensics.ts";
+import { isInteger } from "../../../requirements/index.ts";
+import type { ScheduledTask } from "../conflict/index.ts";
+import { conflicting } from "./unlimited/index.ts";
 
 export function computeWorkSpanMetrics(
   dependencies: DependencyMap,

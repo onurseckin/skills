@@ -97,7 +97,7 @@ export { INSPECTION_COMMANDS } from "./inspection.ts";
 export { INSTALL_COMMANDS } from "./install.ts";
 export { MIND_COMMANDS } from "./mind/index.ts";
 export { ENGINE_COMMANDS, MSG_COMMANDS } from "./engine.ts";
-export { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
+export { DEFAULT_WATCH_INTERVAL_SECONDS, ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 export { ORPHAN_COMMANDS } from "./orphan.ts";
 export { PLAN_COMMANDS } from "./plan.ts";
 export { POLICY_COMMANDS } from "./policy.ts";

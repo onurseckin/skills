@@ -1,6 +1,6 @@
-import { planAddCommand, planEnhanceCommand, planInitCommand } from "../commands/plan.ts";
-import { orchestrateCommand } from "../commands/orchestrate.ts";
-import { planBrainstormCommand } from "../commands/plan-brainstorm.ts";
+import { planAddCommand, planEnhanceCommand, planInitCommand } from "../commands/index.ts";
+import { orchestrateCommand } from "../commands/index.ts";
+import { planBrainstormCommand } from "../commands/index.ts";
 import { PLAN_LIFECYCLE_COMMANDS } from "./plan-lifecycle.ts";
 import {
   DEFAULT_EXIT_CODES,

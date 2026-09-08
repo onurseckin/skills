@@ -1,13 +1,13 @@
 import { basename, resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { readySet, type ReadyEntry, type ReadySetSelection } from "../../engine/scheduler/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
-import { claimTask } from "../../workflow/lease/claim.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
+import { applicableGates, commandArgv } from "../../workflow/gates/index.ts";
+import { claimTask } from "../../workflow/lease/index.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/index.ts";
 import {
   formatQueueEmptyBrief,
   formatQueueListBrief,
@@ -15,9 +15,9 @@ import {
   formatQueuePopBrief,
   formatQueueWaveBrief,
 } from "../formatters/index.ts";
-import { integerFlag, textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../index.ts";
 
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 
 function runConfig(runRoot: string): ReturnType<typeof getHarnessConfig> {
   return getHarnessConfig(findRepoRoot(runRoot), runRoot);

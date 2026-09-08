@@ -8,14 +8,14 @@ import {
   textFlag,
   type CommandContext,
   type Flags,
-} from "../options.ts";
+} from "../index.ts";
 import {
   formatMemoryQueryBrief,
   indexAllMemory,
   searchMemory,
   type MemoryQueryResult,
 } from "../../mind/memory/core/index.ts";
-import { resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/index.ts";
 
 export interface MemoryQueryCommandResult {
   readonly markdown: string;
