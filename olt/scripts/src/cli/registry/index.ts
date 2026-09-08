@@ -178,5 +178,3 @@ export function getPrimaryCommands(): readonly CommandSpec[] {
 export function getInternalCommands(): readonly CommandSpec[] {
   return INTERNAL_COMMANDS;
 }
-
-export { parseCommandFlags } from "./flag-parser.ts";
