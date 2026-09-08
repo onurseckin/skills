@@ -181,3 +181,46 @@ export async function loadBaseline(
     failure("invalid JSON");
   }
 }
+
+export function assertNoPhantomPaths(
+  baseline: ModularityBaseline,
+  blobs: readonly { path: string }[] | Iterable<string>,
+): void {
+  const knownPaths = new Set<string>();
+  for (const item of blobs) {
+    knownPaths.add(typeof item === "string" ? item : item.path);
+  }
+  const knownDirs = new Set<string>(["."]);
+  for (const path of knownPaths) {
+    let dir = dirname(path);
+    while (dir !== "." && dir !== "") {
+      knownDirs.add(dir);
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+
+  const phantomPaths: string[] = [];
+  for (const violation of baseline.violations) {
+    if (!knownPaths.has(violation.path) && !knownDirs.has(violation.path)) {
+      phantomPaths.push(`"${violation.path}" (${violation.rule})`);
+      continue;
+    }
+    if (violation.rule === "dependency_cycle" && typeof violation.observed === "string") {
+      for (const node of violation.observed.split(",")) {
+        if (!knownPaths.has(node)) {
+          phantomPaths.push(`cycle node "${node}" in "${violation.path}"`);
+        }
+      }
+    }
+  }
+
+  if (phantomPaths.length > 0) {
+    const list = phantomPaths.slice(0, 10).join(", ");
+    const more = phantomPaths.length > 10 ? ` (and ${phantomPaths.length - 10} more)` : "";
+    failure(
+      `baseline contains ${phantomPaths.length} phantom path(s) not found in audited blob set: ${list}${more}`,
+    );
+  }
+}

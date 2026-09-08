@@ -5,7 +5,7 @@ import { renderJsonReport, renderMarkdownReport } from "./reporting/index.ts";
 
 export interface Flags {
   readonly mode: "ratchet" | "strict";
-  readonly source: "index" | "tree";
+  readonly source: "index" | "tree" | "head";
   readonly baselinePath?: string;
   readonly format: "json" | "markdown";
 }
@@ -31,6 +31,8 @@ export function parseFlags(args: readonly string[]): Flags {
         source = "index";
       } else if (value === "tree") {
         source = "tree";
+      } else if (value === "head") {
+        source = "head";
       } else {
         throw new Error(`Invalid modularity flag: ${arg}`);
       }

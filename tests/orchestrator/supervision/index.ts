@@ -1,3 +1,4 @@
+import { afterAll } from "bun:test";
 import { join } from "node:path";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
@@ -9,6 +10,10 @@ import {
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 let runCounter = 0;
+
+afterAll(() => {
+  cleanupSupervisionVFS();
+});
 
 export function setupSupervisionVFS(): VirtualMemoryFS {
   cleanupSupervisionVFS();

@@ -1,8 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { runSupervisionWatch } from "../../../olt/scripts/src/orchestrator/supervision-watch.ts";
-import { fakeClock, supervisedRun } from "./index.ts";
+import { cleanupSupervisionVFS, fakeClock, supervisedRun } from "./index.ts";
+
+afterAll(() => {
+  cleanupSupervisionVFS();
+});
 
 function markDone(run: string, taskId: string): void {
   transact(run, "supervisor", "force-done", {}, (draft) => {

@@ -23,6 +23,8 @@ interface IndexEntry {
 
 const INDEX_RECORD =
   /^(100644|100755|120000|160000) ([0-9a-f]{40}|[0-9a-f]{64}) ([0-3])\t([\s\S]+)$/;
+const TREE_RECORD =
+  /^(100644|100755|120000|160000) (blob|commit) ([0-9a-f]{40}|[0-9a-f]{64})\t([\s\S]+)$/;
 const BATCH_HEADER = /^([0-9a-f]{40}|[0-9a-f]{64}) blob ([0-9]+)$/;
 const DEFAULT_GIT_COMMAND: GitCommandPrefix = ["git"];
 
@@ -99,6 +101,32 @@ function parseIndexRecords(output: Uint8Array): readonly IndexEntry[] {
     .sort((left, right) => comparePaths(left.path, right.path));
 }
 
+function parseTreeRecords(output: Uint8Array): readonly IndexEntry[] {
+  const records = new TextDecoder("utf-8", { fatal: true }).decode(output).split("\0");
+  if (records.pop() !== "") failure("ls-tree output was not NUL-terminated");
+
+  const entries: IndexEntry[] = [];
+  const seen = new Set<string>();
+  for (const record of records) {
+    const match = TREE_RECORD.exec(record);
+    if (!match) failure(`malformed ls-tree record: ${record}`);
+    const mode = match[1];
+    const type = match[2];
+    const oid = match[3];
+    const path = match[4];
+    if (oid === undefined || path === undefined) {
+      failure(`malformed ls-tree record: ${record}`);
+    }
+    if (mode === "160000" || type !== "blob") continue;
+    assertRepositoryRelativePosixPath(path);
+    if (seen.has(path)) failure(`duplicate tree path: ${path}`);
+    seen.add(path);
+    entries.push({ path, oid });
+  }
+
+  return entries.sort((left, right) => comparePaths(left.path, right.path));
+}
+
 function parseBatch(output: Uint8Array, entries: readonly IndexEntry[]): readonly IndexedBlob[] {
   const blobs: IndexedBlob[] = [];
   let offset = 0;
@@ -148,6 +176,38 @@ export async function readIndexedBlobs(
     failure(errorMsg.length > 0 ? errorMsg : "git ls-files failed");
   }
   const entries = parseIndexRecords(listed.stdout);
+  if (entries.length === 0) return [];
+
+  const batch = Bun.spawn(gitArguments(gitCommand, repoRoot, ["cat-file", "--batch"]), {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const collectPromise = collect(batch);
+  batch.stdin.write(entries.map((entry) => `${entry.oid}\n`).join(""));
+  batch.stdin.end();
+  const result = await collectPromise;
+  if (result.status !== 0) {
+    const errorMsg = result.stderr.trim();
+    failure(errorMsg.length > 0 ? errorMsg : "git cat-file failed");
+  }
+  return parseBatch(result.stdout, entries);
+}
+
+export async function readHeadBlobs(
+  repoRoot: string,
+  gitCommand: GitCommandPrefix = DEFAULT_GIT_COMMAND,
+): Promise<readonly IndexedBlob[]> {
+  const list = Bun.spawn(gitArguments(gitCommand, repoRoot, ["ls-tree", "-r", "-z", "HEAD"]), {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const listed = await collect(list);
+  if (listed.status !== 0) {
+    const errorMsg = listed.stderr.trim();
+    failure(errorMsg.length > 0 ? errorMsg : "git ls-tree failed");
+  }
+  const entries = parseTreeRecords(listed.stdout);
   if (entries.length === 0) return [];
 
   const batch = Bun.spawn(gitArguments(gitCommand, repoRoot, ["cat-file", "--batch"]), {

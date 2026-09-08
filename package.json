@@ -34,6 +34,7 @@
     "format:check": "oxfmt --check",
     "modularity:staged": "bun scripts/modularity/modularity-cli.ts --mode ratchet --source index",
     "modularity:check": "bun scripts/modularity/modularity-cli.ts --mode ratchet --source tree",
+    "modularity:baseline:generate": "bun scripts/modularity/baseline/generate.ts",
     "server:status": "bun olt/scripts/harness.ts server:status",
     "server:restart": "bun olt/scripts/harness.ts server:restart",
     "server:clean": "bun olt/scripts/harness.ts server:clean",

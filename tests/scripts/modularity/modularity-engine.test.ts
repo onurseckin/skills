@@ -13,11 +13,15 @@ describe("checkModularity orchestrator (in-memory virtual)", () => {
   const repoRoot = `${process.cwd()}/.olt/virtual-mod-checker-repo`;
   let memoryTreeBlobs: IndexedBlob[] = [];
   let memoryIndexBlobs: IndexedBlob[] = [];
+  let memoryHeadBlobs: IndexedBlob[] = [];
+  let customBaselineViolations: any[] | null = null;
   const spies: { mockRestore: () => void }[] = [];
 
   beforeEach(() => {
     memoryTreeBlobs = [];
     memoryIndexBlobs = [];
+    memoryHeadBlobs = [];
+    customBaselineViolations = null;
 
     spies.push(
       spyOn(inventoryModule, "readTreeBlobs").mockImplementation(async () => memoryTreeBlobs),
@@ -26,13 +30,16 @@ describe("checkModularity orchestrator (in-memory virtual)", () => {
       spyOn(inventoryModule, "readIndexedBlobs").mockImplementation(async () => memoryIndexBlobs),
     );
     spies.push(
+      spyOn(inventoryModule, "readHeadBlobs").mockImplementation(async () => memoryHeadBlobs),
+    );
+    spies.push(
       spyOn(policyModule, "loadBaseline").mockImplementation(async (_root, baselinePath) => {
         if (baselinePath.includes("outside")) {
           throw new Error("Invalid modularity baseline: baseline path is outside the repository");
         }
         return {
           schema: "olt-modularity-baseline/v1",
-          violations: [],
+          violations: customBaselineViolations ?? [],
         };
       }),
     );
@@ -126,6 +133,77 @@ describe("checkModularity orchestrator (in-memory virtual)", () => {
     expect(report.mode).toBe("ratchet");
     expect(report.source).toBe("tree");
     expect(typeof report.passed).toBe("boolean");
+  });
+
+  test("rejects phantom baseline entry under source=index across union", async () => {
+    memoryIndexBlobs = [blob("src/index.ts", "export const a = 1;\n")];
+    memoryHeadBlobs = [blob("src/index.ts", "export const a = 1;\n")];
+    customBaselineViolations = [
+      {
+        rule: "line_limit",
+        path: "src/phantom-ghost.ts",
+        observed: 450,
+        limit: 400,
+        detail: "File exceeds limit.",
+      },
+    ];
+
+    await expect(
+      checkModularity({
+        repoRoot,
+        mode: "ratchet",
+        source: "index",
+      }),
+    ).rejects.toThrow(/phantom path\(s\) not found in audited blob set: "src\/phantom-ghost\.ts"/);
+  });
+
+  test("rejects phantom baseline entry under source=tree across union", async () => {
+    memoryTreeBlobs = [blob("src/index.ts", "export const a = 1;\n")];
+    memoryHeadBlobs = [blob("src/index.ts", "export const a = 1;\n")];
+    customBaselineViolations = [
+      {
+        rule: "line_limit",
+        path: "src/phantom-ghost.ts",
+        observed: 450,
+        limit: 400,
+        detail: "File exceeds limit.",
+      },
+    ];
+
+    await expect(
+      checkModularity({
+        repoRoot,
+        mode: "ratchet",
+        source: "tree",
+      }),
+    ).rejects.toThrow(/phantom path\(s\) not found in audited blob set: "src\/phantom-ghost\.ts"/);
+  });
+
+  test("permits legitimate deletion of a baselined file under source=index", async () => {
+    memoryIndexBlobs = [blob("src/index.ts", "export const ok = true;\n")];
+    memoryHeadBlobs = [
+      blob("src/index.ts", "export const ok = true;\n"),
+      blob("src/deleted-legacy.ts", "legacy\n"),
+    ];
+    customBaselineViolations = [
+      {
+        rule: "line_limit",
+        path: "src/deleted-legacy.ts",
+        observed: 450,
+        limit: 400,
+        detail: "File exceeds limit.",
+      },
+    ];
+
+    const report = await checkModularity({
+      repoRoot,
+      mode: "ratchet",
+      source: "index",
+    });
+
+    expect(report.passed).toBe(true);
+    expect(report.baselineDelta.resolved.length).toBe(1);
+    expect(report.baselineDelta.resolved[0]?.path).toBe("src/deleted-legacy.ts");
   });
 });
 

@@ -15,10 +15,12 @@ import {
 import {
   findFanoutViolations,
   findLineViolations,
+  readHeadBlobs,
   readIndexedBlobs,
   readTreeBlobs,
 } from "./inventory/index.ts";
 import {
+  assertNoPhantomPaths,
   compareBaseline,
   findGeneratedCatalogViolations,
   loadBaseline,
@@ -59,9 +61,11 @@ export async function checkModularity(options: CheckOptions): Promise<CheckRepor
   const baseline =
     options.mode === "ratchet" ? await loadBaseline(options.repoRoot, baselinePath) : undefined;
   const blobs =
-    options.source === "index"
-      ? await readIndexedBlobs(options.repoRoot)
-      : await readTreeBlobs(options.repoRoot);
+    options.source === "head"
+      ? await readHeadBlobs(options.repoRoot)
+      : options.source === "index"
+        ? await readIndexedBlobs(options.repoRoot)
+        : await readTreeBlobs(options.repoRoot);
   const typeScriptBlobs = blobs.filter((blob) => classifyPath(blob.path).importScanned);
   const edges = buildImportEdges(blobs);
   const productionEdges = edges.filter(
@@ -89,6 +93,9 @@ export async function checkModularity(options: CheckOptions): Promise<CheckRepor
   if (baseline === undefined) {
     throw new Error("Modularity baseline required in ratchet mode.");
   }
+  const headBlobs = options.source === "head" ? blobs : await readHeadBlobs(options.repoRoot);
+  const known = new Set([...blobs.map((b) => b.path), ...headBlobs.map((b) => b.path)]);
+  assertNoPhantomPaths(baseline, known);
   const comparison = compareBaseline(baseline, currentBaseline(violations));
   return {
     mode: options.mode,

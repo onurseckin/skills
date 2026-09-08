@@ -6,7 +6,8 @@ const mockFs = await import("node:fs");
 const mockOs = await import("node:os");
 
 describe("Oxlint Pure-Rust Hardening Invariants", () => {
-  const configPath = join(process.cwd(), ".oxlintrc.json");
+  const repoRoot = join(import.meta.dir, "../../..");
+  const configPath = join(repoRoot, ".oxlintrc.json");
   const rawConfig = mockFs.readFileSync(configPath, "utf8");
   const config = JSON.parse(rawConfig);
 
@@ -55,6 +56,10 @@ describe("Oxlint Pure-Rust Hardening Invariants", () => {
     let tempDir: string;
 
     beforeAll(() => {
+      const sp = mockProcRunner.spawnSync as unknown as { mockRestore?: () => void };
+      if (typeof sp?.mockRestore === "function") {
+        sp.mockRestore();
+      }
       tempDir = mockFs.mkdtempSync(join(mockOs.tmpdir(), "oxlint-invariants-"));
     });
 
@@ -63,14 +68,23 @@ describe("Oxlint Pure-Rust Hardening Invariants", () => {
     });
 
     function probe(code: string): { status: number | null; output: string } {
+      const sp = mockProcRunner.spawnSync as unknown as { mockRestore?: () => void };
+      if (typeof sp?.mockRestore === "function") {
+        sp.mockRestore();
+      }
       const filePath = join(tempDir, "probe-" + Math.random().toString(36).slice(2) + ".ts");
       mockFs.writeFileSync(filePath, code);
       try {
         const proc = mockProcRunner.spawnSync(
-          "bunx",
-          ["oxlint", "--deny-warnings", "-f", "unix", filePath],
+          process.execPath,
+          ["x", "oxlint", "--deny-warnings", "-c", configPath, "-f", "unix", filePath],
           {
+            cwd: repoRoot,
             encoding: "utf8",
+            env: {
+              ...process.env,
+              PATH: `${join(process.execPath, "..")}:${process.env.PATH ?? ""}`,
+            },
           },
         );
         return {

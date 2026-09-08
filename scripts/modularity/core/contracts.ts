@@ -1,6 +1,6 @@
 export type ModularityMode = "ratchet" | "strict";
 
-export type ScanSource = "index" | "tree";
+export type ScanSource = "index" | "tree" | "head";
 
 export type ViolationRule =
   | "line_limit"

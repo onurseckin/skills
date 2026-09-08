@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   RunSupervisor,
@@ -6,7 +6,11 @@ import {
   type TaskDispatchResult,
   type TaskDispatcher,
 } from "../../../olt/scripts/src/orchestrator/supervisor.ts";
-import { fakeClock, supervisedRun } from "./index.ts";
+import { cleanupSupervisionVFS, fakeClock, supervisedRun } from "./index.ts";
+
+afterAll(() => {
+  cleanupSupervisionVFS();
+});
 
 function stubDispatcher(
   respond: (input: TaskDispatchInput) => TaskDispatchResult,
