@@ -8,6 +8,11 @@ import {
   type CreateRoomOptions,
   type CreateRoomResult,
 } from "../../chatroom/scripts/src/room/index.ts";
+export {
+  deriveTestSuite,
+  discoverTests,
+  type DeriveTestSuiteOptions,
+} from "../../chatroom/scripts/src/testing/index.ts";
 
 export const VIRTUAL_CHATROOM_HOME = "/virtual/chatroom";
 

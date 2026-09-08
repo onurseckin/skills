@@ -1,3 +1,4 @@
+export { deriveTestSuite, discoverTests, type DeriveTestSuiteOptions } from "./derivation.ts";
 export {
   ChatVirtualFS,
   normalizePosixPath,
