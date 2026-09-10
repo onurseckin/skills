@@ -36,6 +36,7 @@ permissions:
     - "Map prompt line coordinates to requirements in plan:add"
     - "Compile DAG revision 1 via plan:compile"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Compile plan without prior plan:brainstorm execution (EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds)"
     - "Emit shallow stubs, superficial placeholders, unevidenced mock fixtures, or raw unintegrated code dumps in place of structured planning specifications"

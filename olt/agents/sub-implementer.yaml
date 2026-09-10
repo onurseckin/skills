@@ -33,6 +33,7 @@ permissions:
     - "Execute narrow sub-scope tasks"
     - "Run file-scoped tests"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Submit shallow stubs, empty implementations, or raw code dumps lacking file-scoped test proof"
     - "Edit outside write scope"

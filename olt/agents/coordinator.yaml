@@ -45,6 +45,7 @@ permissions:
     - "Enforce strict repository root hygiene, confining any temporary files exclusively to `scratch/`"
     - "Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; mechanic checks via task:check)"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous wave execution)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, `agy agents`; MUST use only declared host tools and pinned harness commands)"

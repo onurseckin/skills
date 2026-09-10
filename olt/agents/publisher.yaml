@@ -32,6 +32,7 @@ permissions:
     - "Verify repository cleanliness, health, and identity via `whoami`, `doctor`, and `task:check`"
     - "Perform worktree branch pruning and garbage collection via `worktree:clean` and inspect state via `worktree:status`"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Edit or modify application source files outside the release transaction"
     - "Claim implementation or repair task leases"

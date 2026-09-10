@@ -33,6 +33,7 @@ permissions:
     - "Generate command evidence"
     - "Run typechecks"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Submit observations validating shallow stubs, mocked fixtures, or unintegrated code dumps"
     - "Render verdicts"

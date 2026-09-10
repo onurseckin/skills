@@ -106,13 +106,22 @@ function checkValidatorTools(agent: AgentDefinitionInput): readonly string[] {
   return violations;
 }
 
-function checkValidatorInvariants(agent: AgentDefinitionInput): string | null {
-  const all = [...(agent.invariants ?? []), ...(agent.tags ?? []), ...(agent.flags ?? [])].map(
-    String,
-  );
-  return all.includes("COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK")
-    ? null
-    : "Invariant flag 'COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK' must be present";
+function checkValidatorInvariants(agent: AgentDefinitionInput, repoRoot?: string): string | null {
+  if (agent.invariants !== undefined || agent.tags !== undefined || agent.flags !== undefined) {
+    const all = [...(agent.invariants ?? []), ...(agent.tags ?? []), ...(agent.flags ?? [])].map(
+      String,
+    );
+    return all.includes("COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK")
+      ? null
+      : "Invariant flag 'COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK' must be present";
+  }
+  const canonical = loadCanonicalContract(repoRoot, "validator");
+  if (canonical && Array.isArray(canonical.invariants)) {
+    if (canonical.invariants.map(String).includes("COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK")) {
+      return null;
+    }
+  }
+  return "Invariant flag 'COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK' must be present";
 }
 
 export function checkAgentCanonicalAlignment(
@@ -166,7 +175,7 @@ export function checkAgentCanonicalAlignment(
       );
       const promptErr = checkValidatorPrompt(prompt);
       const toolErrs = checkValidatorTools(agent);
-      const invErr = checkValidatorInvariants(agent);
+      const invErr = checkValidatorInvariants(agent, repoRoot);
       const reasons = [...(promptErr ? [promptErr] : []), ...toolErrs, ...(invErr ? [invErr] : [])];
 
       for (const reason of reasons) {

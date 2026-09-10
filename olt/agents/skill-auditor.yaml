@@ -48,6 +48,7 @@ permissions:
     - "operate as Forward Momentum Watchdog and execute Zombie Worker Recycling"
     - "govern Suspended Animation Protocol and Quota-Elastic Resource Management"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "file edit"
     - "edit files"

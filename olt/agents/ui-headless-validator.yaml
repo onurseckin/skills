@@ -35,6 +35,7 @@ permissions:
     - "Audit DOM hitbox geometry metrics, computed bounding client rects, APCA contrast ratios, and verify interactive element touch target bounds (>= 44x44px, >= 48px for cockpit HUD)"
     - "Execute Adversarial Gate Proofs (AGP) and counterfactual falsifiability checks on UI gates"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Re-run implementer unit tests; unit test execution belongs 100% to the Implementer"
     - "Write application code or edit repository source files (0 source edits)"

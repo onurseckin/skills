@@ -35,6 +35,7 @@ permissions:
     - "Run fast incremental typechecks and AST audits via task:check"
     - "Run focused file-scoped tests (file-scoped test commands from policy)"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts or instructions during execution"
     - "Hallucinate nonexistent host tool SDKs or pseudo-commands"

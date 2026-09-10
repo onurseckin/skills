@@ -231,7 +231,11 @@ export function auditMindPulseHelper(
     lastInspectedTimestamp: nowIso,
     lastInspectedEventIndex: cursor.lastInspectedEventIndex,
     lastAuditTimestamp: nowIso,
-    ...(stagnant ? { lastStagnationSignature: stagnationSignature } : {}),
+    ...(stagnant
+      ? { lastStagnationSignature: stagnationSignature }
+      : cursor.lastStagnationSignature !== undefined
+        ? { lastStagnationSignature: cursor.lastStagnationSignature }
+        : {}),
   };
   AuditorCursorStore.saveCursor(repoRoot, "mind", updatedCursor);
 

@@ -50,6 +50,7 @@ permissions:
     - "Suspend background scheduler crons and enter zero-cost IDLE upon Quota Freeze (<10%), preserving worktrees without killing subagents."
     - "Execute final repository releases, conventional git commits, and git pushes on its dedicated background finalization thread."
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Propose, author, or implement new user-facing features, speculative APIs, or expanded product scope (Zero Feature Invention Invariant)."
     - "Permit public API surface expansion or type signature mutation during optimization waves (Exports_post === Exports_pre)."
     - "Delete, relax, or weaken existing test assertions in `*.test.ts` during optimization lanes."

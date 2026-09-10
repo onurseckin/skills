@@ -33,6 +33,7 @@ permissions:
     - "Read logs and code"
     - "Perform root-cause diagnosis"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Provide speculative stories or accept shallow stubs in place of deterministic reproductions"
     - "Create, edit, stage, revert, format, or delete any repository file"

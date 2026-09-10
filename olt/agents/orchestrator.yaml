@@ -70,6 +70,7 @@ permissions:
     - "Suspend supervisory cadence crons, keep active coordinators/workers in memory in IDLE state without killing them, preserve all uncommitted file touchpoints unstaged, and await auto-wake sentinel upon Quota Freeze"
     - "Upon auto-wake, re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous convergence)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-tools; MUST use only declared host tools and pinned harness commands)"

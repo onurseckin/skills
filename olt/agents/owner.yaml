@@ -37,6 +37,7 @@ permissions:
     - "Rotate generational capsules and archive lineage via mind:rotate"
     - "Confer or decline needs_authority requirements"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Violate witness isolation during admission"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"

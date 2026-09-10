@@ -34,6 +34,7 @@ permissions:
     - "Perform adversarial falsification of DAG edges and gates"
     - "Emit plan review verdict (plan:review)"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Approve shallow umbrella compression [SHALLOW_PLAN_BLUNDER] (8-vector expansion, EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds, max_files_per_task)"
     - "Approve shallow stubs, unevidenced placeholders, or raw unintegrated code dumps in plans"

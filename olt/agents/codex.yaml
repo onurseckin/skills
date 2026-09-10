@@ -61,6 +61,7 @@ permissions:
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately dispatch child subagents via host subagent dispatch facility (spawn_agent) to execute ready wave lanes in parallel worktrees."
     - "Execute multi-agent operations using OpenAI Codex native tools (spawn_agent, send_message, followup_task, wait_agent, exec) compliant with tiered isolation and mailbox IPC."
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
     - "Bypass mandatory doctor verification before concluding supervisory rounds or task handoffs"

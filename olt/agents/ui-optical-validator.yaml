@@ -35,6 +35,7 @@ permissions:
     - "Audit layout, optical spacing, font rendering, clipping/overflow, APCA contrast, theme harmony (light & dark), z-index overlaps, touch target bounds (>= 44x44px), and optical rhythm"
     - "Emit Socratic critique and in-lease micro-cycle findings (task:reject --in-lease) and task reviews (task:review)"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Execute ANY bash, test, or terminal commands (0 command execution privileges, `can_execute_shell: false`)"
     - "Write, edit, format, or delete repository files (0 source edits)"

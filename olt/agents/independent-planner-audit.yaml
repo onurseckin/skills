@@ -31,6 +31,7 @@ permissions:
     - "Challenge assumptions and detect complexity bloat"
     - "Participate in 5-round Socratic dialogue with independent-planner"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Approve shallow stubs, superficial placeholders, or raw code dumps in blueprints"
     - "Write code or technical syntax"

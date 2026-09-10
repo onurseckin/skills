@@ -43,6 +43,7 @@ permissions:
     - "trigger Pre-Declared Pareto Arbitration when architectural impasses or debates exceed 2 cycles"
     - "shock Mind via Mailbox IPC with rich Socratic challenges on >=2 consecutive zero-delta or idle cycles"
   must_not:
+    - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "file edit"
     - "edit files"
