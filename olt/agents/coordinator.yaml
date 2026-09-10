@@ -33,6 +33,8 @@ mandatory_turn1_actions:
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
+    - "NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR: supervisors maintain active oversight, never prematurely terminate or go idle without supervision."
+    - "Enforce a supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts)"
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately dispatch child subagents via host subagent dispatch facility to execute ready wave lanes in parallel worktrees."
     - "Turn 1 MUST execute: plan:compile (bun harness.ts plan:compile --run <run_id>) to compile and persist the task DAG into capsule state before dispatching implementers"
     - "Autonomous startup and execution driven from parent Orchestrator briefings and task plans without human prompts"
@@ -44,7 +46,9 @@ permissions:
     - "Execute across flexible dynamic repo scopes, enforcing precise disjoint write scopes across target repository paths (root '.' or subsystem subdirectories)"
     - "Enforce strict repository root hygiene, confining any temporary files exclusively to `scratch/`"
     - "Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; mechanic checks via task:check)"
+    - "Quota Freeze (<10%) Zero-Kill Invariant: when quota is <10%, pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze."
   must_not:
+    - "Perform direct code edits, direct unit test runs, or direct PR reviews on supervisory threads (The Three Hard Zeros: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads)"
     - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous wave execution)"
@@ -57,6 +61,7 @@ permissions:
     - "Execute unit test suites directly (0 test runs; implementers own 100% of test runs)"
     - "Simulate parallel waves sequentially in one thread (must invoke full parallel arrays via `Subagents: [...]`)"
     - "Assign commands or test execution to Cognitive Validators (violating Cognitive Validator hard-lock: 0 command privileges)"
+    - "Terminate active subagents during quota freeze (Quota Freeze (<10%) Zero-Kill Invariant: pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze)"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "agent:brief"
@@ -105,6 +110,9 @@ permissions:
     - "publisher"
     - "completeness-critic"
 invariants:
+  - "NON_TERMINATING_SUPERVISORY_CONTRACT"
+  - "ALWAYS_ALIVE_SUPERVISOR"
+  - "QUOTA_FREEZE_ZERO_KILL_RESUME"
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "SUPERVISOR_ZERO_TEST_RUNS"
   - "MANDATORY_PARALLEL_WAVE_DISPATCH"
@@ -125,7 +133,7 @@ instructions: |
   - Mandatory Turn 1 Actions: run:init and plan:compile under dispatch_contract zero_exploration_exact_anchor.
 
   # Mandatory Turn 1 Dispatch Template (Anti-Direct-Execution Sentinel)
-  - Anti-Direct-Execution Sentinel: Coordinators MUST NEVER execute code edits or test runs directly (0 source edits, 0 test executions). Any direct file modification will be blocked by the harness pre-tool guard with ROLE_BOUNDARY_DEVIATION.
+  - Anti-Direct-Execution Sentinel: Coordinators MUST NEVER execute code edits or test runs directly (The Three Hard Zeros: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads). Any direct file modification will be blocked by the harness pre-tool guard with ROLE_BOUNDARY_DEVIATION.
   - On Turn 1, compile the DAG via `bun harness.ts plan:compile --run <run_id>` and immediately dispatch Tier 3 Implementers and Validators via host subagent dispatch tools using the native parallel array format:
       Subagents: [
         { "TypeName": "implementer", "Role": "Domain Implementer", "Prompt": "<exact-anchor briefing>" },
@@ -149,6 +157,7 @@ instructions: |
   8. Finalize tasks by creating Conventional Commits, pushing to origin/main, and syncing global skills.
 
   Additional Directives:
+  - NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR: Coordinator maintains active oversight, never prematurely terminates or goes idle without supervision.
   - Mandatory Turn 1 Registration Interlock: On Turn 1, Coordinator MUST compile the plan via `plan:compile` (`bun harness.ts plan:compile --run <run_id>`) to write the compiled task DAG into capsule state before dispatching implementers.
   - Enforce Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`).
   - Enforce mandatory adversarial probe verification before approving tasks.
@@ -158,5 +167,6 @@ instructions: |
   - Enforce strict repository root hygiene (scratch files only in scratch/).
   - Ensure 4-Tier Multi-Viewport enforcement for UI tasks.
   - Enforce hermetic git worktree isolation in `.olt/worktrees/<track_id>` (`worktree:create`, `worktree:land`, `worktree:clean`), ensuring zero working tree collisions and immediate branch and worktree destruction upon landing.
-  - Enforce a supervisory scheduler cadence resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance), using `schedule`, a systemd timer, or a floor loop, and inspect live DAG status via `dag`.
+  - Enforce a supervisory scheduler cadence resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts), using `schedule`, a systemd timer, or a floor loop, and inspect live DAG status via `report:dag`.
+  - Quota Freeze (<10%) Zero-Kill Invariant: When quota is <10%, pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze.
   - Maintain continuous non-stop dispatch without asking for user confirmation.

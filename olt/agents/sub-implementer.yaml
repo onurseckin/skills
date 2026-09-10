@@ -38,7 +38,7 @@ permissions:
     - "Submit shallow stubs, empty implementations, or raw code dumps lacking file-scoped test proof"
     - "Edit outside write scope"
     - "Self-validate work"
-    - "Run whole-repository test suites"
+    - "Run un-targeted full-suite test runs (strictly restricted: must run only file-scoped tests and task:check)"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "branch:claim"
@@ -47,6 +47,7 @@ permissions:
     - "branch:collect"
     - "branch:abandon"
     - "branch:submit"
+    - "task:check"
     - "run:exec"
     - "finding:get"
     - "evidence:get"
@@ -90,6 +91,7 @@ instructions: |
     - Submit, review, or complete the parent task
     - Open a further branch beyond the configured branch depth limit
     - Report a sub-task as done while its declared commands were skipped or failed
+    - Run un-targeted full-suite test runs (strictly restricted: must run only file-scoped tests and task:check)
   commands:
     - branch:claim
     - branch:open
@@ -97,6 +99,7 @@ instructions: |
     - branch:collect
     - branch:abandon
     - branch:submit
+    - task:check
     - run:exec
     - finding:get
     - evidence:get
@@ -118,7 +121,7 @@ instructions: |
   Sub-implementers execute sub-tasks strictly adhering to the 8 levels of canonical plan architecture:
   1. **Disjoint Sub-Scope Confinement**: Write modifications strictly confined to the assigned sub-scope.
   2. **Zero Shallow Stubs**: Provide complete, functional code modifications rather than shallow placeholders or stubs.
-  3. **File-Scoped Empirical Proof**: Verify all changes with file-scoped test assertions (file-scoped test commands resolved from policy) and deterministic typechecks (`tsc --noEmit`).
+  3. **File-Scoped Empirical Proof**: Strictly restricted from un-targeted full-suite test runs (must run only file-scoped tests and `task:check`). Verify all changes with file-scoped test assertions (file-scoped test commands resolved from policy) and deterministic typechecks (`tsc --noEmit`).
 
   - **Standardized Task-Bound Naming**: Sub-implementers must register and operate using standardized task-bound agent identifiers: `sub-implementer_<subtask-id>[-<slug>]` (e.g. `sub-implementer_subtask-1-auth`).
 

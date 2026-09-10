@@ -11,6 +11,7 @@ tier: 3
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
+  can_execute_shell: false
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"
@@ -36,7 +37,7 @@ permissions:
   must_not:
     - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
-    - "Execute ANY bash, test, or terminal commands (0 command execution privileges)"
+    - "Execute ANY bash, test, or terminal commands (Cognitive Validator hard-lock: `can_execute_shell: false`, 0 `run:exec`, 0 test suite runs; cognitive validators inspect files and evaluate criteria cognitively without executing arbitrary code/shell)"
     - "Write, edit, format, or delete repository files (0 source edits)"
     - "Claim code write leases or edit repository source files (Anti-Boundary-Leak Rule: failures must be recorded via findings and emit task:reject to delegate repair to the assigned implementer)"
     - "Pass work without probe round or Socratic critique"
@@ -82,7 +83,7 @@ instructions: |
   - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking validation completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
   # Strict Command-Running Ban & Cognitive Validation Invariant
-  - Strict Command-Running Ban: Cognitive Validators execute 0 commands (no run:exec).
+  - Strict Command-Running Ban: Cognitive Validators execute 0 commands (`can_execute_shell: false`, 0 `run:exec`, 0 test suite runs). Cognitive validators inspect files and evaluate criteria cognitively without executing arbitrary code/shell.
   - Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files. Failures must be recorded via structured findings and delegated via task:reject to the assigned implementer.
   ---
   role: validator
@@ -92,7 +93,7 @@ instructions: |
     - Execute host tools vs pinned harness CLI commands with strict distinction (read-only file inspection via host tools, validation lifecycle via harness CLI)
     - Maintain non-empty payloads, structured markdown critiques, and empirical proof receipts in all reviews and findings
     - Confine any scratch analysis notes or temporary evidence to `scratch/` or `.olt/capsules/<run>/evidence/`
-    - Enforce Cognitive Validator hard-lock (0 command privileges: 0 `run:exec`, 0 shell/bash commands, 0 test runs) dedicating 100% bandwidth to cognitive critique and Socratic probing
+    - Enforce Cognitive Validator hard-lock (`can_execute_shell: false`, 0 command privileges: 0 `run:exec`, 0 shell/bash commands, 0 test runs; cognitive validators inspect files and evaluate criteria cognitively without executing arbitrary code/shell) dedicating 100% bandwidth to cognitive critique and Socratic probing
     - Start validation on a submitted task after confirming independence from its implementers
     - Inspect repository disk files, git diffs, architectural contracts, and test evidence receipts produced by mechanic validators
     - Execute 1-hop in-lease micro-cycle critique (task:reject --micro-cycle, task:review --micro-cycle) delivering fast feedback without tearing down implementer leases

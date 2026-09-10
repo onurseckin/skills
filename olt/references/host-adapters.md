@@ -9,55 +9,62 @@ the tool names live in the adapter table.
 
 ## 1. Tiered Agent Architecture
 
-All supported host environments must enforce the **Tiered Isolation Model**. The main thread hands off
-to exactly one agent — an orchestrator — and stops; the orchestrator hands off to exactly one
-coordinator per round; only the coordinator ever touches task-level work:
+All supported host environments must enforce the **Tiered Isolation Model**. The main thread operates
+strictly as a Passive Relay (Three Hard Zeros: 0 mutating CLI commands, 0 direct test loops, 0 code edits).
+Upon receiving a user request, it runs Turn 1 initialization, dispatches the mandatory co-deployment pairing
+in a single 1-shot batch via host subagent dispatch (`invoke_subagent` with `Subagents: [...]`), and hands off
+complete execution ownership:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│             Tier 0: Main Interactive Chat Session            │
-│   (Dedicated to human conversation; 0 worker tool chatter)   │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ Spawns 1 Orchestrator
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│           Tier 1: Background Loop Orchestrator                │
-│ (Owns the round scheduler; chains capsules; final synthesis)  │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ Spawns 1 Coordinator per round
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│             Tier 2: Background Run Coordinator               │
-│   (Owns capsule lifecycle, planning, waves, and validation)  │
-└──────────────┬───────────────┬───────────────┬───────────────┘
-               │               │               │ Spawns in background
-               ▼               ▼               ▼
-        ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-        │   Tier 3:   │ │   Tier 3:   │ │   Tier 3:   │
-        │  Worker A   │ │  Worker B   │ │  Validator  │
-        └─────────────┘ └─────────────┘ └─────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           Tier 0: Main Interactive Chat Session                             │
+│  (Passive Relay / Three Hard Zeros: Turn 1 init + 1-shot batch supervisory co-deployment)   │
+└───────────────┬─────────────────────────────┬─────────────────────────────┬─────────────────┘
+                │                             │                             │
+       [Flow 1: Mind Flow]           [Flow 2: Regular Flow]        [Flow 3: Optimizer Flow]
+       (/olt mind)                   (orchestrate)                 (/olt optimize)
+       1-Shot Batch Co-Deploy        1-Shot Batch Co-Deploy        1-Shot Batch Co-Deploy
+       ┌────────┴────────┐           ┌────────┴────────┐           ┌────────┴────────┐
+       ▼                 ▼           ▼                 ▼           ▼                 ▼
+┌─────────────┐   ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│   Tier 0    │   │   Tier 0    │ │   Tier 1    │ │   Tier 0    │ │   Tier 1    │ │   Tier 0    │
+│    Mind     │   │Mind Auditor │ │Orchestrator │ │Skill Auditor│ │ Optimizer-  │ │Skill Auditor│
+│             │   │ (Companion) │ │             │ │ (Companion) │ │Orchestrator │ │ (Companion) │
+└──────┬──────┘   └─────────────┘ └──────┬──────┘ └─────────────┘ └──────┬──────┘ └─────────────┘
+       │ (Deploys Orchestrators)         │                               │
+       └────────────────┬────────────────┴───────────────────────────────┘
+                        │ Spawns 1 Coordinator per round
+                        ▼
+       ┌─────────────────────────────────────────────────────────────┐
+       │             Tier 2: Background Run Coordinator               │
+       │   (Owns capsule lifecycle, planning, waves, and validation) │
+       └──────────────┬───────────────────────────────┬──────────────┘
+                      │                               │ Spawns in background
+                      ▼                               ▼
+               ┌─────────────┐                 ┌─────────────┐
+               │   Tier 3:   │                 │   Tier 3:   │
+               │ Implementer │                 │  Validator  │
+               │  (Worker)   │                 │ (Reviewer)  │
+               └─────────────┘                 └─────────────┘
 ```
 
-0. **Tier 0 (Main Interactive Thread)**:
-   - Remains 100% responsive for user chat.
-   - Spawns **exactly one** background orchestrator agent on standard task runs (`orchestrate`), then stops — it never reads the
-     repository, stages a plan, or dispatches a coordinator or worker itself. See `orchestrate`'s
-     brief in `SKILL.md`: dispatching that one orchestrator is the whole of Tier 0's job.
-   - On `/olt mind` (autonomous product owner mode), spawns **both** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch (Antigravity's `invoke_subagent` with `Subagents: [...]`), injecting verbatim manifests. Because Mind cannot self-spawn Mind Auditor under `ALLOWED_TIER_SPAWNS`, both must be deployed together in 1-shot batch by Tier 0.
-   - Never directly executes implementer tool loops or polls state.
-1. **Tier 1 (Background Loop Orchestrator)**:
-   - Owns the round scheduler: chains capsule state across rounds, synthesizes a round's unresolved
-     findings into the next round's prompt, and declares clean convergence or escalates at the round
-     budget.
+0. **Tier 0 (Main Interactive Thread & Strict Anti-Bypass Rules)**:
+   - Operates strictly as a **Passive Relay** under the **Three Hard Zeros**: zero tool chatter, zero direct test loops, zero code edits.
+   - Strictly prohibited from executing mutating OLT CLI commands (`task:claim`, `task:submit`, `run:exec`, `plan:add`, `plan:replan`, `worktree:land`, etc.), direct test loops (`bun test`, `npm test`, `tsc`), or code editing tools (`replace_file_content`, `write_to_file`). The harness CLI mechanically enforces thread and role boundaries via `whoami` and `ROLE_CONFINEMENT_VIOLATION`.
+   - Executes only Turn 1 initialization (`run:init` or `mind:init`), dispatches the mandatory co-deployment pairing in a single 1-shot batch via host subagent dispatch (`invoke_subagent` with `Subagents: [...]`), and immediately stands down to await reactive notifications via `send_message`:
+     - **Mind Flow (`/olt mind`)**: Inseparable 1-shot batch co-deployment of Tier 0 Mind (`agents/mind.yaml`) + companion Tier 0 Mind Auditor (`agents/mind-auditor.yaml`), registering the supervisory watchdog (`schedule` cron) whose arm interval is resolved via `resolveSupervisoryCadence`.
+     - **Regular Orchestrator Flow (`orchestrate`)**: Spawns **exactly one** background orchestrator agent (`agents/orchestrator.yaml`) + companion Skill Auditor (`agents/skill-auditor.yaml`) in a 1-shot batch deployment, handing off complete execution ownership.
+     - **Optimizer-Orchestrator Flow (`/olt optimize`)**: 1-shot batch deployment of Tier 1 Optimizer-Orchestrator (`agents/optimizer-orchestrator.yaml`) + companion Skill Auditor (`agents/skill-auditor.yaml`).
+1. **Tier 1: Background Loop Orchestrator & Optimizer-Orchestrator**:
+   - Owns the round scheduler: chains capsule state across rounds, synthesizes a round's unresolved findings into the next round's prompt, and declares clean convergence or escalates at the round budget.
    - Spawns **exactly one** Tier 2 coordinator per round, and never a Tier 3 agent directly.
-   - Composes the one finished report from every round's summary; a coordinator's or critic's
-     findings are synthesized into the next round, never bubbled to Tier 0 as an unresolved report.
-   - Unified manifest: `agents/orchestrator.yaml`.
+   - Composes the one finished report from every round's summary; a coordinator's or critic's findings are synthesized into the next round, never bubbled to Tier 0 as an unresolved report.
+   - Accompanied by the fleet-wide companion Skill Auditor (`agents/skill-auditor.yaml`) running on 1-min cadence.
+   - Manifests: `agents/orchestrator.yaml` (regular flow) or `agents/optimizer-orchestrator.yaml` (optimizer flow).
 2. **Tier 2 (Background Run Coordinator)**:
    - Owns `.olt/capsules/<run_id>/` execution lifecycle for one round.
    - Equipped with subagent tools (`enable_subagent_tools: true` or native team lead capabilities).
-   - Coordinates execution waves and routes findings to workers; reports its round's milestones to
-     the Tier 1 orchestrator that dispatched it.
+   - Coordinates execution waves and routes findings to workers; reports its round's milestones to the Tier 1 orchestrator that dispatched it.
 3. **Tier 3 (Worker & Validator Subagents)**:
    - Ephemeral task executors assigned to a single disjoint `write_scope`.
    - Report exclusively to the Background Run Coordinator in the background tree.
@@ -270,10 +277,17 @@ To guarantee a 100% complete, tamper-proof agent execution history in Harness me
 
 Every host adapter implementation must enforce the following guardrails:
 
-### 5.1 Main-Thread Execution Fallback & Parallel Batching
+### 5.1 Main-Thread Execution Fallback, Anti-Bypass & Parallel Batching
 
-- **Anti-Pattern**: Coordinator or Orchestrator attempting to edit code, write fixes, or run task tests directly in the main interactive chat thread.
-- **Guardrail**: Main thread acts solely as a wake-up dispatcher. Tier 2 Coordinators must dispatch Tier 3 Implementers and Validators via host-native subagent tools (`invoke_subagent` in Antigravity, `Agent` in Claude Code, `spawn_agent` in Codex). When ready tasks exist, dispatch the full wave in a single tool call array (`Subagents: [...]`) rather than serializing dispatches across turns.
+- **Anti-Pattern**: Main interactive thread attempting to execute mutating OLT CLI commands (`task:claim`, `task:submit`, `run:exec`, `plan:add`, etc.), run test loops (`bun test`, `npm test`, `tsc`), or directly edit codebase files (`replace_file_content`, `write_to_file`). Or serializing agent dispatches across multiple conversational turns.
+- **Guardrail**:
+  - **Strict Anti-Bypass & Three Hard Zeros**: The main interactive thread operates strictly as a Passive Relay. It is explicitly forbidden from executing mutating CLI commands, running direct test loops, or making code edits. The harness CLI mechanically enforces thread and role boundaries via `whoami` and `ROLE_CONFINEMENT_VIOLATION`.
+  - **Turn 1 Passive Relay**: Upon receiving a user request, the main thread performs only Turn 1 initialization (`run:init` or `mind:init`), dispatches the mandatory co-deployed background supervisory subagents in a single 1-shot batch via host subagents (`Subagents: [...]`), and immediately stands down to await reactive background notifications via `send_message`.
+  - **Mandatory 1-Shot Batch Co-Deployments**:
+    - **Mind Flow (`/olt mind`)**: Inseparable 1-shot batch co-deployment of Tier 0 Mind (`agents/mind.yaml`) + companion Tier 0 Mind Auditor (`agents/mind-auditor.yaml`) via host subagent dispatch (`invoke_subagent` with `Subagents: [...]`), registering the supervisory watchdog (`schedule` cron) whose arm interval is resolved via `resolveSupervisoryCadence`.
+    - **Regular Orchestrator Flow (`orchestrate`)**: 1-shot batch deployment of Tier 1 Orchestrator (`agents/orchestrator.yaml`) + companion Skill Auditor (`agents/skill-auditor.yaml`), handing off complete execution ownership.
+    - **Optimizer Flow (`/olt optimize`)**: 1-shot batch deployment of Tier 1 Optimizer-Orchestrator (`agents/optimizer-orchestrator.yaml`) + companion Skill Auditor (`agents/skill-auditor.yaml`).
+  - **Parallel Batching**: Subordinate supervisors (Tier 2 Coordinators) must dispatch full ready waves of Tier 3 Implementers and Validators in a single tool call array (`Subagents: [...]`) rather than serializing dispatches across turns.
 
 ### 5.2 4-Tier Multi-Viewport Resolution Matrix
 
@@ -342,6 +356,6 @@ Every host adapter implementation must enforce the following guardrails:
 - **Anti-Pattern**: Main interactive thread initializing CLI state on `/olt mind` but omitting subagent dispatch, pausing for manual user confirmation, summarizing prompts instead of injecting verbatim YAML manifests, or failing to deploy `mind-auditor` alongside `mind`.
 - **Guardrail**:
   - The entrypoint on `/olt mind` MUST deploy both `mind` and `mind-auditor` in a single 1-shot batch dispatch (Antigravity's `invoke_subagent` with `Subagents: [...]`).
-  - Because `mind` (Tier 0) cannot self-spawn `mind-auditor` (Tier 1) under `ALLOWED_TIER_SPAWNS`, Tier 0 Main Thread must dispatch both simultaneously.
+  - Because `mind` (Tier 0) cannot self-spawn peer `mind-auditor` (Tier 0) under `ALLOWED_TIER_SPAWNS`, Tier 0 Main Thread must dispatch both simultaneously in a 1-shot batch.
   - Verbatim manifests from `agents/mind.yaml` and `agents/mind-auditor.yaml` must be injected into subagent prompts without lossy compression.
-  - Register a recurring 3-minute supervisory schedule (`schedule` cron `*/3 * * * *`) and stand down main-thread tool execution.
+  - Register a recurring supervisory schedule (`schedule` cron) whose arm interval is resolved via `resolveSupervisoryCadence` and stand down main-thread tool execution.

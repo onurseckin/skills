@@ -40,20 +40,22 @@ model, tier or thinking level is inferred from the machine that exported the run
 Thirteen roles, each with a capability contract in `agents/<role>.yaml` declaring `may`, `must_not`, the
 exact commands it may invoke, and the roles it may branch into:
 
-| Tier       | Roles                                                                          |
-| :--------- | :----------------------------------------------------------------------------- |
-| 0          | `mind`                                                                         |
-| 1          | `orchestrator`, `mind-auditor`                                                 |
-| 2          | `coordinator`                                                                  |
-| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `completeness-critic` |
-| 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                         |
+| Tier       | Roles                                                                                    |
+| :--------- | :--------------------------------------------------------------------------------------- |
+| 0          | `mind`, `mind-auditor` (companion to Mind), `skill-auditor` (companion to Orchestrators) |
+| 1          | `orchestrator`, `optimizer-orchestrator`                                                 |
+| 2          | `coordinator`                                                                            |
+| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `completeness-critic`           |
+| 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                                   |
 
-The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
-tier 3 agent directly. On standard task runs (`orchestrate`), `orchestrator` is the single role the
-main thread dispatches. On `/olt mind` (infinite product owner mode), the main thread dispatches both
-`mind` (Tier 0) and `mind-auditor` (Tier 1) in a single 1-shot batch dispatch via Antigravity's `invoke_subagent`
-(`Subagents: [...]`), since `mind` cannot self-spawn `mind-auditor` under `ALLOWED_TIER_SPAWNS`.
-See `agents/orchestrator.yaml`, `agents/mind.yaml`, `agents/mind-auditor.yaml`, and `references/host-adapters.md`.
+The main interactive thread operates strictly as a Passive Relay under the Three Hard Zeros (0 mutating CLI commands, 0 direct test loops, 0 code edits), performing only Turn 1 initialization and dispatching subordinate agents in 1-shot batch arrays (`Subagents: [...]`) according to the 3 canonical flows:
+
+1. **Mind Flow (`/olt mind`)**: Inseparable 1-shot batch co-deployment of Tier 0 `mind` (`agents/mind.yaml`) and companion Tier 0 `mind-auditor` (`agents/mind-auditor.yaml`), registering the supervisory scheduler (`schedule` cron) whose arm interval is resolved via `resolveSupervisoryCadence`. Because `mind` cannot self-spawn peer `mind-auditor` under `ALLOWED_TIER_SPAWNS`, Tier 0 Main Thread must dispatch both simultaneously.
+2. **Regular Orchestrator Flow (`orchestrate`)**: 1-shot batch deployment of Tier 1 `orchestrator` (`agents/orchestrator.yaml`) + companion Tier 0 `skill-auditor` (`agents/skill-auditor.yaml`), handing off complete execution ownership.
+3. **Optimizer-Orchestrator Flow (`/olt optimize`)**: 1-shot batch deployment of Tier 1 `optimizer-orchestrator` (`agents/optimizer-orchestrator.yaml`) + companion Tier 0 `skill-auditor` (`agents/skill-auditor.yaml`).
+
+The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a tier 3 agent directly.
+See `agents/orchestrator.yaml`, `agents/optimizer-orchestrator.yaml`, `agents/mind.yaml`, `agents/mind-auditor.yaml`, `agents/skill-auditor.yaml`, and `references/host-adapters.md`.
 
 `task:claim --role` names the contract the agent is bound to for the whole lease: `implementer` for
 a ready, retry-ready, or `changes_requested` task. A mismatch is refused.
@@ -290,22 +292,41 @@ can continue with no conversational context.
 ## Tiered dispatch, the Triad Floor, and the Pairing Invariant
 
 ```text
-[Tier 0: Main Interactive Thread] (User interaction only)
-               │ (Spawns exactly 1 child: the orchestrator)
-               ▼
-[Tier 1: Background Loop Orchestrator] (Round scheduler, capsule chaining, final synthesis)
-               │ (Spawns exactly 1 coordinator per round)
-               ▼
-[Tier 2: Background Run Coordinator] (Capsule, graph, topology, leases, lease lifecycle)
-               │ (Dispatches each task the instant it becomes claimable)
-        ┌──────┴─────────────────────────────┐
-        ▼                                    ▼
-[Tier 3: Task Implementers (N)]       [Tier 3: Adversarial Validators (N)]
- (Disjoint write scopes)               (Allowlisted context, mandatory gates)
-        │ branch:open                          (cannot branch: a validation
-        │ (holds the task's live lease)         token is not a lease)
-        ▼
-[sub-implementer / sub-validator / sub-investigator]
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           Tier 0: Main Interactive Thread                                   │
+│  (Passive Relay / Three Hard Zeros: Turn 1 init + 1-shot batch supervisory co-deployment)   │
+└───────────────┬─────────────────────────────┬─────────────────────────────┬─────────────────┘
+                │                             │                             │
+       [Flow 1: Mind Flow]           [Flow 2: Regular Flow]        [Flow 3: Optimizer Flow]
+       (/olt mind)                   (orchestrate)                 (/olt optimize)
+       1-Shot Batch Co-Deploy        1-Shot Batch Co-Deploy        1-Shot Batch Co-Deploy
+       ┌────────┴────────┐           ┌────────┴────────┐           ┌────────┴────────┐
+       ▼                 ▼           ▼                 ▼           ▼                 ▼
+┌─────────────┐   ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│   Tier 0    │   │   Tier 0    │ │   Tier 1    │ │   Tier 0    │ │   Tier 1    │ │   Tier 0    │
+│    Mind     │   │Mind Auditor │ │Orchestrator │ │Skill Auditor│ │ Optimizer-  │ │Skill Auditor│
+│             │   │ (Companion) │ │             │ │ (Companion) │ │Orchestrator │ │ (Companion) │
+└──────┬──────┘   └─────────────┘ └──────┬──────┘ └─────────────┘ └──────┬──────┘ └─────────────┘
+       │ (Deploys Orchestrators)         │                               │
+       └────────────────┬────────────────┴───────────────────────────────┘
+                        │ Spawns 1 Coordinator per round
+                        ▼
+       ┌─────────────────────────────────────────────────────────────┐
+       │             Tier 2: Background Run Coordinator               │
+       │   (Owns capsule lifecycle, planning, waves, and validation) │
+       └──────────────────────────────┬──────────────────────────────┘
+                                      │ Enforces Triad Floor (Min 3 agents)
+                                      │ Dispatches tasks continuously
+                        ┌─────────────┴─────────────┐
+                        ▼                           ▼
+         ┌─────────────────────────────┐ ┌─────────────────────────────┐
+         │ Tier 3: Task Implementers   │ │ Tier 3: Adversarial         │
+         │ (Disjoint write scopes)     │ │ Validators                  │
+         │                             │ │ (Allowlisted context, gates)│
+         └──────────────┬──────────────┘ └─────────────────────────────┘
+                        │ branch:open (holds live lease token)
+                        ▼
+         [sub-implementer / sub-validator / sub-investigator]
 ```
 
 `branch:open` demands the parent task's live **lease** token and a `leased` or `running` task, so
@@ -313,7 +334,7 @@ only the agent actually doing the work subdivides it. A validator holds a valida
 task in `validating` and is refused; a `sub-validator` is dispatched into a branch sub-task by the
 agent that owns the branch.
 
-1. **The Triad Floor (Minimum 3 Agents Deployed)**: for any run — even a single sequential task
+1. **The Triad Floor (Minimum 3 Agents Deployed)**: Below Tier 2, for any run or task wave — even a single sequential task
    ($N=1$) — at least 1 Coordinator + 1 Implementer + 1 Validator are deployed. This is a floor, not
    the sizing rule: it is what the formula below reduces to when a task draws exactly one validator
    domain, the common case.
@@ -333,16 +354,23 @@ agent that owns the branch.
    compute. Dispatch whatever is claimable up to the occupancy ceiling (`default_max_parallel`), and
    refill the instant a slot frees.
 5. **Every dispatch is registered**: one `agent:register` per subagent, before it starts work.
-6. **The orchestrator sits above the floor, not inside it**: the Triad Floor and the Σ formula count
-   one run's coordinator, implementers and validators — never the tier 1 orchestrator that dispatched
-   that coordinator. The orchestrator dispatches a coordinator per round and never a tier 3 agent
+6. **The orchestrators and auditors sit above the floor, not inside it**: the Triad Floor and the Σ formula count
+   one run's coordinator, implementers and validators — never the supervisory Tier 0/1 agents
+   (`mind`, `mind-auditor`, `orchestrator`, `optimizer-orchestrator`, `skill-auditor`) deployed during
+   Turn 1 flow routing. The orchestrator dispatches a coordinator per round and never a tier 3 agent
    directly; a round's own agent count is unaffected by how many rounds the loop has run.
 
 ### Isolation boundaries
 
-1. **Main Thread Isolation (Tier 0)**: Tier 0 is dedicated to user dialogue and whole-loop milestone
-   notifications. It never runs worker tools, edits files, or polls background tasks, and spawns
-   exactly one child: the orchestrator.
+1. **Main Thread Isolation (Tier 0 & Strict Anti-Bypass Rules)**: The main interactive thread operates
+   strictly as a **Passive Relay** under the **Three Hard Zeros**: zero tool chatter, zero direct test
+   loops, zero code edits. It is strictly prohibited from executing mutating OLT CLI commands
+   (`task:claim`, `task:submit`, `run:exec`, `plan:add`, `plan:replan`, `worktree:land`, etc.), test loops
+   (`bun test`, `npm test`, `tsc`), or code edits (`replace_file_content`, `write_to_file`). Upon receiving
+   user requests, it executes only Turn 1 initialization (`run:init` or `mind:init`), dispatches the mandatory
+   supervisory co-deployments in a single 1-shot batch via host subagent dispatch (`Subagents: [...]`), and
+   immediately stands down to await reactive notifications via `send_message`. CLI mechanically enforces
+   thread and role boundaries via `whoami` and `ROLE_CONFINEMENT_VIOLATION`.
 2. **Orchestrator Mediation (Tier 1)**: the orchestrator owns the round scheduler, chains capsule
    state across rounds, and synthesizes a coordinator's or critic's findings into the next round's
    prompt instead of bubbling them to Tier 0. It spawns exactly one coordinator per round and

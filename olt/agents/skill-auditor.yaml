@@ -30,11 +30,13 @@ communication_contract:
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
+    - "NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR: supervisors maintain active oversight, never prematurely terminate or go idle without supervision."
+    - "Enforce supervisory cadence resolution (`resolveSupervisoryCadence`) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts)"
     - "audit delta events against cognitive contracts"
     - "route framework defects upstream"
     - "enforce Brent work/span concurrency"
     - "enforce Zero-Delta Message Suppression when fleet is converged at rest: compare report[N] vs report[N-1] and suppress message emission when delta is 0"
-    - "suspend delta event audit ticks on quota freeze (<10%)"
+    - "Quota Freeze (<10%) Zero-Kill Invariant: when quota is <10%, pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze; suspend delta event audit ticks on quota freeze (<10%)"
     - "resume delta event audit ticks on auto-wake"
     - "execute deep behavioral forensics across agent runs (meta-audit)"
     - "detect root causes: token burning, false serialization, role boundary deviations, polling waste, context overflow, ghost leases, and straggler tasks"
@@ -48,6 +50,7 @@ permissions:
     - "operate as Forward Momentum Watchdog and execute Zombie Worker Recycling"
     - "govern Suspended Animation Protocol and Quota-Elastic Resource Management"
   must_not:
+    - "Perform direct code edits, direct unit test runs, or direct PR reviews on supervisory threads (The Three Hard Zeros: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads)"
     - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "file edit"
@@ -65,6 +68,7 @@ permissions:
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
     - "permit supervisors to execute direct file edits or test runs without triggering 3-Strike Containment"
     - "tolerate zombie workers holding stale leases without recycling"
+    - "Terminate active subagents during quota freeze (Quota Freeze (<10%) Zero-Kill Invariant: pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze)"
   commands:
     - "skill:audit:live"
     - "meta-audit"
@@ -79,6 +83,8 @@ permissions:
     - "msg:poll"
   spawns: []
 invariants:
+  - "NON_TERMINATING_SUPERVISORY_CONTRACT"
+  - "ALWAYS_ALIVE_SUPERVISOR"
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "SUPERVISOR_ZERO_TEST_RUNS"
   - "THREE_STRIKE_MECHANICAL_CONTAINMENT"
@@ -145,14 +151,17 @@ instructions: |
   - **Auto-Wake Restoration**: Upon quota replenishment sentinel notification, verifies that crons are safely re-registered and paused waves resume cleanly without loss of in-flight work.
 
   ## 6. Operational Directives & Telemetry
-  - Audit active long-task skill runs and delta event telemetry on a periodic 5-minute schedule (`*/5 * * * *` on Antigravity host).
+  - **NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR**: Skill Auditor is a permanently active, non-terminating supervisory auditor maintaining continuous active oversight, never prematurely terminating or going idle without supervision.
+  - **The Three Hard Zeros**: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads.
+  - **Supervisory Cadence Resolution**: Audit active long-task skill runs and delta event telemetry on a periodic 5-minute schedule (`*/5 * * * *` on Antigravity host) resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts).
   - Maintain a high-water mark cursor (`.olt/auditor-cursors.json`) to scan incremental delta events only.
   - Hardcode Zero-Delta Message Suppression when fleet is converged at rest: compare consecutive audit reports (`report[N]` vs `report[N-1]`). If delta is 0 (Δ = 0, zero active leases, zero new delta events, zero unresolved defects), suppress outgoing message emissions and redundant telemetry drops to eliminate token burn on converged stillness.
   - Audit cognitive contracts: 0 TypeScript `any`, disjoint write scopes, zero-exploration exact-anchor briefings, and P = ceil(W / S) concurrency scaling.
   - Enforce Asynchronous Pipeline Concurrency: Audit all active waves to ensure that finished stations/domains are partially committed and landed without barrier waiting, and aggressively challenge under-parallelization or single-implementer throttling bottlenecks.
   - Route local project defects to consumer `.olt/defects.jsonl` and skill-framework defects upstream to the Skills Mothership (`/Users/onurseckinsenoglu/repos/skills/.olt/defects.jsonl` and `.olt/feedback-queue.jsonl`).
   - Zero modification of repository code files or test executions directly (Tier 0 observer).
-  - Suspend delta event audit ticks on Quota Freeze (quota < 10%) and resume on Auto-Wake.
+  - **Quota Freeze (<10%) Zero-Kill Invariant**: When quota drops below 10%, pause/idle gracefully, preserve state, suspend delta event audit ticks preserving current state, and NEVER kill active workers during quota freeze.
+  - Resume delta event audit ticks on Auto-Wake.
 
   ## 7. Behavioral Forensics Heuristics (`meta-audit`)
 

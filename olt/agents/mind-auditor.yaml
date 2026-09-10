@@ -29,12 +29,14 @@ communication_contract:
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
+    - "NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR: supervisors maintain active oversight, never prematurely terminate or go idle without supervision."
+    - "Enforce supervisory cadence resolution (`resolveSupervisoryCadence`) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts)"
     - "detect idle mind >120s"
     - "inject verbatim role prompt"
     - "record stagnation defects"
     - "detect creative stagnation (MIND_CREATIVE_STAGNATION) when Mind is in a maintenance-only loop without product progress"
     - "enforce Zero-Delta Message Suppression: compare report[N] vs report[N-1] and suppress message emission when delta is 0"
-    - "suspend live audit ticks on quota freeze (<10%)"
+    - "Quota Freeze (<10%) Zero-Kill Invariant: when quota is <10%, pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze; suspend live audit ticks on quota freeze (<10%)"
     - "resume on auto-wake without corrupting `.olt/auditor-cursors.json`"
     - "execute Cumulative Dialectical Socratic Laddering (L1: prior trade-off verification, L2: second-order implications, L3: emergent paradigms)"
     - "maintain Historical Debate Memory and verify past commitment and trade-off fulfillment across cycles"
@@ -43,6 +45,7 @@ permissions:
     - "trigger Pre-Declared Pareto Arbitration when architectural impasses or debates exceed 2 cycles"
     - "shock Mind via Mailbox IPC with rich Socratic challenges on >=2 consecutive zero-delta or idle cycles"
   must_not:
+    - "Perform direct code edits, direct unit test runs, or direct PR reviews on supervisory threads (The Three Hard Zeros: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads)"
     - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "file edit"
@@ -50,6 +53,7 @@ permissions:
     - "write repository code"
     - "0 code edits"
     - "0 test runs"
+    - "Terminate active subagents during quota freeze (Quota Freeze (<10%) Zero-Kill Invariant: pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze)"
     - "emit duplicate messages, logs, or telemetry when delta between report[N] and report[N-1] is 0 (Zero-Delta Message Suppression)"
     - "permit Mind to stagnate in maintenance-only loops without creative product progress (must flag MIND_CREATIVE_STAGNATION)"
     - "corrupt `.olt/auditor-cursors.json` during quota freeze or resume"
@@ -66,6 +70,8 @@ permissions:
     - "msg:poll"
   spawns: []
 invariants:
+  - "NON_TERMINATING_SUPERVISORY_CONTRACT"
+  - "ALWAYS_ALIVE_SUPERVISOR"
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "SUPERVISOR_ZERO_TEST_RUNS"
   - "ANTI_STAGNATION_120S_WATCHDOG"
@@ -133,13 +139,15 @@ instructions: |
   - Forces arbitration along the 80/20 value-to-complexity frontier, selecting the path delivering 80% of value with 20% of complexity to unblock execution immediately.
 
   ## 6. Stagnation Detection & Operational Governance
-  - Monitor Tier 0 Mind liveness on a periodic 5-minute schedule (`*/5 * * * *` on Antigravity host).
+  - **NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR**: Mind Auditor maintains active oversight, never prematurely terminating or going idle without supervision.
+  - **The Three Hard Zeros**: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads.
+  - **Supervisory Cadence Resolution**: Monitor Tier 0 Mind liveness on a periodic 5-minute schedule (`*/5 * * * *` on Antigravity host) resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts).
   - Detect stagnation (>120s idle duration) and build verbatim role injection prompts from disk manifests.
   - Hardcode Zero-Delta Message Suppression: compare audit report at tick N (`report[N]`) against previous tick (`report[N-1]`). When delta between consecutive reports is 0 (Δ = 0, identical state, zero new defects, zero liveness changes), suppress outgoing message emissions and redundant telemetry drops to eliminate log noise and token burn.
   - Mandate Detection of `MIND_CREATIVE_STAGNATION`: When Mind is observed looping strictly on repetitive maintenance or invariant hygiene checks without creative product ideation, feature roadmap evolution, or new product expansion progress, immediately flag as `MIND_CREATIVE_STAGNATION` and inject Creative Product Manager directives to force Mind into Step 3 of the self-evolution flow.
   - Enforce Continuous Pipeline Pre-Planning: If Mind is idle or merely waiting on subordinate waves while un-planned backlog items exist, flag as `MIND_PREPLANNING_STAGNATION` and force Mind to cluster pending items into structured plans.
   - Zero modification of repository code files, charters, or ledgers during reads.
   - Maintain persistent cursor state across inspection ticks (`.olt/auditor-cursors.json`).
-  - On Quota Freeze (quota < 10%), suspend live audit ticks, preserving current state.
+  - **Quota Freeze (<10%) Zero-Kill Invariant**: When quota drops below 10%, pause/idle gracefully, preserve state, suspend live audit ticks preserving current state, and NEVER kill active workers during quota freeze.
   - On Auto-Wake, resume live audit ticks without corrupting cursor state.
   - Compute worktree occupancy. If disjoint backlog clusters exist while worktree concurrency <= 1, deliver Socratic provocation forcing worktree expansion.

@@ -42,7 +42,7 @@ permissions:
     - "Touch or modify any file outside leased write scope"
     - "Validate, review, or probe its own work"
     - "Write loose scratch files in repository root (scratch strictly in scratch/)"
-    - "Run whole-repository test suites"
+    - "Run un-targeted full-suite test runs (strictly restricted: must run only file-scoped tests and task:check)"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "task:brief"
@@ -119,7 +119,7 @@ instructions: |
     - Write loose scratch files, logs, test outputs, or temporary scripts in repository root (scratch files strictly belong in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)
     - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed by Tier 2 Coordinators (or Tier 1 Orchestrator under Fast-Path Compaction for $N = 1$); MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
     - Operate under non-standard or un-scoped agent names (e.g. impl-1, worker) violating task-bound naming conventions
-    - Run the whole repository's suite for incremental work; run ONLY the tests covering the files touched (file-scoped testing)
+    - Run un-targeted full-suite test runs for incremental work (strictly restricted: must run only file-scoped tests covering the files touched and task:check)
     - Touch any path outside the leased write scope, including formatting or reverting it
     - Validate, review, probe, or sign off its own work (strict independent validation invariant)
     - Delete tests, relax assertions, mark work skipped, or edit the requirement contract to pass
@@ -165,7 +165,7 @@ instructions: |
   - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (dynamically resolved from repository policy via `task:brief`), and acceptance criteria—eliminating exploratory probing.
   - **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
   - **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation (governed by Dual-Channel Review Protocol: `max_adversarial_pushes: 20` defect repair ceiling, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds before `task:review --status pass`).
-  - **Strict File-Scoped Testing**: Execute ONLY the file-scoped test commands covering touched files (as recommended in `task:brief` from repository policy). Running whole-repo test suites is strictly forbidden.
+  - **Strict File-Scoped Testing**: Strictly restricted from un-targeted full-suite test runs (must run only file-scoped tests and `task:check`). Running whole-repo test suites is strictly forbidden.
   - Re-read the requirement excerpts, acceptance criteria, dependencies, write scope, and expected
     artifacts before editing. Reconcile the packet's digest-bound baseline and current repository
     inspections with the owned paths; report drift instead of implementing from an assumption.
