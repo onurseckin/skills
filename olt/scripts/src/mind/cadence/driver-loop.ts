@@ -13,6 +13,8 @@ import type {
   PulseScheduleDecision,
 } from "./types.ts";
 
+export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
+
 export interface PulseDriverPorts {
   readonly now: () => number;
   readonly readNextWakeAt: (runRoot: string) => string | null;
@@ -27,6 +29,7 @@ export interface PulseDriverConfig {
   readonly startedAtMs: number;
   readonly minIntervalMs?: number;
   readonly maxSliceMs?: number;
+  readonly enforceInfiniteCadence?: boolean;
 }
 
 export interface PulseDriverStepResult {
@@ -44,12 +47,21 @@ export function stepPulseDriver(
 ): PulseDriverStepResult {
   const nowMs = ports.now();
   const nextWakeAt = ports.readNextWakeAt(config.runRoot);
+  const minIntervalMs =
+    config.minIntervalMs !== undefined && config.minIntervalMs !== null
+      ? config.minIntervalMs
+      : DEFAULT_MIN_PULSE_INTERVAL_MS;
+  const maxSliceMs =
+    config.maxSliceMs !== undefined && config.maxSliceMs !== null
+      ? config.maxSliceMs
+      : DEFAULT_MAX_WAIT_SLICE_MS;
+
   const decision = decideNextPulse({
     nowMs,
     nextWakeAt,
     lastAttemptAtMs: counters.last_attempt_at_ms,
-    minIntervalMs: config.minIntervalMs ?? DEFAULT_MIN_PULSE_INTERVAL_MS,
-    maxSliceMs: config.maxSliceMs ?? DEFAULT_MAX_WAIT_SLICE_MS,
+    minIntervalMs,
+    maxSliceMs,
   });
 
   if (!decision.due) {
@@ -69,7 +81,13 @@ export function stepPulseDriver(
 
   const invocation = ports.runPulse(config.runRoot);
   const outcome = classifyPulseExit(invocation.exitCode);
-  const mechanism = invocation.lockMechanism ?? parsePulseLockMechanism(invocation.stderr) ?? null;
+  const parsedLockMech = parsePulseLockMechanism(invocation.stderr);
+  const fallbackLockMech =
+    parsedLockMech !== undefined && parsedLockMech !== null ? parsedLockMech : null;
+  const mechanism =
+    invocation.lockMechanism !== undefined && invocation.lockMechanism !== null
+      ? invocation.lockMechanism
+      : fallbackLockMech;
   const attemptAtMs = ports.now();
   const nextCounters = applyPulseOutcome(
     counters,
@@ -108,11 +126,13 @@ export function runPulseDriver(
   config: PulseDriverConfig,
   initial: PulseDriverCounters,
   ports: PulseDriverPorts,
-  shouldContinue: (iteration: number, counters: PulseDriverCounters) => boolean,
+  shouldContinue?: (iteration: number, counters: PulseDriverCounters) => boolean,
 ): PulseDriverRunResult {
   let counters = initial;
   let iterations = 0;
-  while (shouldContinue(iterations, counters)) {
+  // Under CLOSING_FORBIDDEN_FOR_MIND, default cadence is infinite; clear queues never terminate unprompted
+  const continueFn = typeof shouldContinue === "function" ? shouldContinue : () => true;
+  while (continueFn(iterations, counters)) {
     const step = stepPulseDriver(config, counters, ports);
     counters = step.counters;
     iterations += 1;

@@ -1,11 +1,28 @@
 import type { PulseScheduleDecision, PulseScheduleInput } from "./types.ts";
 
+export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
 export const DEFAULT_MIN_PULSE_INTERVAL_MS = 60000;
 export const DEFAULT_MAX_WAIT_SLICE_MS = 60000;
 
 function clampSlice(waitMs: number, maxSliceMs: number): number {
   if (waitMs <= 0) return 0;
   return waitMs > maxSliceMs ? maxSliceMs : waitMs;
+}
+
+export function enforceInfiniteCadence(decision: PulseScheduleDecision): PulseScheduleDecision {
+  if (!decision.due && decision.waitMs <= 0) {
+    return {
+      ...decision,
+      due: true,
+      waitMs: 0,
+    };
+  }
+  return decision;
+}
+
+function isBlankTimestamp(ts: string | null): boolean {
+  if (ts === null) return true;
+  return ts.trim() === "";
 }
 
 export function decideNextPulse(input: PulseScheduleInput): PulseScheduleDecision {
@@ -15,22 +32,25 @@ export function decideNextPulse(input: PulseScheduleInput): PulseScheduleDecisio
   const cooldownRemainingMs =
     input.lastAttemptAtMs === null ? 0 : input.lastAttemptAtMs + minIntervalMs - input.nowMs;
 
-  const deadlineMs =
-    input.nextWakeAt === null || input.nextWakeAt.trim() === ""
-      ? null
-      : Date.parse(input.nextWakeAt);
+  const isBlank = isBlankTimestamp(input.nextWakeAt);
+  const deadlineMs = isBlank
+    ? null
+    : input.nextWakeAt !== null
+      ? Date.parse(input.nextWakeAt)
+      : null;
   const deadlineParsed = deadlineMs !== null && Number.isFinite(deadlineMs);
 
   if (cooldownRemainingMs > 0) {
-    return {
+    return enforceInfiniteCadence({
       due: false,
       waitMs: clampSlice(cooldownRemainingMs, maxSliceMs),
       reason: "cooldown",
       deadlineMs: deadlineParsed ? deadlineMs : null,
-    };
+    });
   }
 
-  if (input.nextWakeAt === null || input.nextWakeAt.trim() === "") {
+  if (isBlank) {
+    // Under CLOSING_FORBIDDEN_FOR_MIND, clear queues or absence of deadline triggers autonomous pulse immediately
     return { due: true, waitMs: 0, reason: "no_prior_pulse", deadlineMs: null };
   }
 
@@ -43,10 +63,10 @@ export function decideNextPulse(input: PulseScheduleInput): PulseScheduleDecisio
     return { due: true, waitMs: 0, reason: "deadline_passed", deadlineMs };
   }
 
-  return {
+  return enforceInfiniteCadence({
     due: false,
     waitMs: clampSlice(remainingMs, maxSliceMs),
     reason: remainingMs > maxSliceMs ? "slice_clamped" : "deadline_pending",
     deadlineMs,
-  };
+  });
 }

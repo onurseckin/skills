@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import { calibrateRepoGovernance, type RepoGovernanceStatus } from "../governance/index.ts";
 import { createInitialDashboardState, writeDashboardFilesSync } from "../reporting/index.ts";
 import {
@@ -10,6 +11,11 @@ import {
   isTestEnvironment,
 } from "../../core/index.ts";
 import { initCapsuleRun, transact } from "../../engine/store/index.ts";
+import { readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import {
+  bootstrapMindLifecycleWithCompanions,
+  deployMandatoryMindCompanions,
+} from "./mind-companions.ts";
 
 export const CANONICAL_BEDROCK_INVARIANTS_LIST = [
   "SUPERVISOR_ZERO_CODE_EDITS",
@@ -68,6 +74,7 @@ export function resolveOrGenerateCharter(
       ? customPath
       : path.join(workspaceRoot, customPath)
     : undefined;
+  const skipGlobalCharter = isTestEnvironment() ? true : isSandboxRepoRoot(workspaceRoot);
   const target =
     custom && fs.existsSync(custom)
       ? custom
@@ -75,7 +82,7 @@ export function resolveOrGenerateCharter(
           ...(isSkillHomeRepoRoot(workspaceRoot)
             ? [path.join(workspaceRoot, "olt", "agents", "mind.yaml")]
             : []),
-          ...(isTestEnvironment() || isSandboxRepoRoot(workspaceRoot)
+          ...(skipGlobalCharter
             ? []
             : [path.join(homedir(), ".agents", "skills", "olt", "agents", "mind.yaml")]),
         ].find(fs.existsSync);
@@ -160,7 +167,13 @@ export class AutonomousMindInitializer {
   private options: MindInitFlowOptions;
 
   constructor(options?: MindInitFlowOptions | string) {
-    this.options = typeof options === "string" ? { repo: options } : (options ?? {});
+    if (typeof options === "string") {
+      this.options = { repo: options };
+    } else if (options !== undefined) {
+      this.options = options;
+    } else {
+      this.options = {};
+    }
   }
 
   public async ingestInFlight(repoRoot: string): Promise<InFlightIngestionResult> {
@@ -183,39 +196,61 @@ export class AutonomousMindInitializer {
 
   public async initialize(overrideOptions?: MindInitFlowOptions): Promise<MindInitFlowResult> {
     const opts = { ...this.options, ...overrideOptions };
-    const repoRoot = opts.repo ?? opts.workspaceRoot ?? process.cwd();
-    const mindId = opts.mindId ?? "mind-gen-1";
-    const generation = opts.generation ?? 1;
-    const charterRes = resolveOrGenerateCharter(repoRoot, opts.charter ?? opts.charterPath);
+    const repoCandidate = opts.repo !== undefined ? opts.repo : opts.workspaceRoot;
+    const repoRoot = repoCandidate !== undefined ? repoCandidate : process.cwd();
+    const mindId = opts.mindId !== undefined ? opts.mindId : "mind-gen-1";
+    const generation = opts.generation !== undefined ? opts.generation : 1;
+    const charterCandidate = opts.charter !== undefined ? opts.charter : opts.charterPath;
+    const charterRes = resolveOrGenerateCharter(repoRoot, charterCandidate);
 
     const oltDir = path.join(repoRoot, ".olt");
     if (!fs.existsSync(oltDir)) fs.mkdirSync(oltDir, { recursive: true });
 
     calibrateRepoGovernance(repoRoot);
 
+    const promptText = charterRes.text.length > 0 ? charterRes.text : `# Run ${mindId}\n`;
     const { runRoot } = initCapsuleRun(mindId, {
       repo: repoRoot,
       allowExisting: true,
-      prompt: charterRes.text || `# Run ${mindId}\n`,
+      prompt: promptText,
     });
 
-    transact(runRoot, "system", `grant-mind-${mindId}`, {}, (draft) => {
-      const agents = Array.isArray(draft.agents) ? [...draft.agents] : [];
-      const hasMind = agents.some(
-        (a) => typeof a === "object" && a !== null && "id" in a && a.id === mindId,
-      );
+    const nowIso = new Date().toISOString();
+    const hostVal = opts.host !== undefined ? opts.host : "local";
+
+    // 1-shot batch co-deployment: atomic grant simultaneously granting Mind and mandatory companion auditors
+    transact(runRoot, "system", `grant-mind-and-companions-${mindId}`, {}, (draft) => {
+      const currentLedger = readAgentLedger(draft);
+      const agents: AgentGrantRecord[] = [...currentLedger];
+      const hasMind = agents.some((a) => a.id === mindId && a.role === "mind");
       if (!hasMind) {
         agents.push({
           id: mindId,
           role: "mind",
           parent_agent_id: null,
           parent_task_id: null,
-          host: "local",
-          granted_at: new Date().toISOString(),
+          host: hostVal,
+          granted_at: nowIso,
           status: "active",
         });
       }
-      draft.agents = agents;
+
+      // Deduplicate and reconnect existing mind_auditor/skill_auditor or deploy alongside Mind
+      const coDeployedLedger = bootstrapMindLifecycleWithCompanions(mindId, agents, {
+        host: hostVal,
+        now: nowIso,
+      });
+
+      writeAgentLedger(draft, coDeployedLedger);
+    });
+
+    // Deploy mandatory companions and ensure draft/ledger has active grants
+    const companionsDeployment = deployMandatoryMindCompanions(mindId, {
+      mindId,
+      runRoot,
+      repoRoot,
+      host: hostVal,
+      now: nowIso,
     });
 
     const lastPulsePath = path.join(runRoot, "last_pulse.json");
@@ -263,9 +298,9 @@ export class AutonomousMindInitializer {
       manifest: { name: "mind", version: "1.0.0" },
       governance,
       companions: {
-        deployed: true,
-        mindAuditorId: `${mindId}-mind-auditor`,
-        skillAuditorId: `${mindId}-skill-auditor`,
+        deployed: companionsDeployment.deployed,
+        mindAuditorId: companionsDeployment.mindAuditorId,
+        skillAuditorId: companionsDeployment.skillAuditorId,
       },
       snapshot: inFlight.snapshot,
       intent: inFlight.intent,
@@ -280,8 +315,8 @@ export class AutonomousMindInitializer {
       },
       mobilized_hierarchy: [
         { role: "mind", agentId: mindId },
-        { role: "mind-auditor", agentId: `${mindId}-mind-auditor` },
-        { role: "skill-auditor", agentId: `${mindId}-skill-auditor` },
+        { role: "mind-auditor", agentId: companionsDeployment.mindAuditorId },
+        { role: "skill-auditor", agentId: companionsDeployment.skillAuditorId },
         { role: "orchestrator", agentId: `${mindId}-orchestrator-1` },
       ],
       cadence_initialized: true,

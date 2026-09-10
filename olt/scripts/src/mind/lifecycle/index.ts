@@ -330,3 +330,17 @@ export {
   executeAutonomousMindInit,
   resolveOrGenerateCharter,
 } from "./mind-init-flow.ts";
+
+export {
+  MANDATORY_ORCHESTRATOR_COMPANION_ROLE,
+  assertOrchestratorCompanionPairing,
+  ensureOrchestratorCompanionAuditor,
+  isSkillAuditorEntity,
+  verifyOrchestratorCompanionPairing,
+} from "./orchestrator-companions.ts";
+export type {
+  AssertOrchestratorCompanionOptions,
+  EnsureOrchestratorCompanionOptions,
+  EnsureOrchestratorCompanionResult,
+  VerifyOrchestratorCompanionResult,
+} from "./orchestrator-companions.ts";

@@ -28,12 +28,44 @@ export interface MindCompanionDeploymentResult {
   readonly timestamp: string;
 }
 
+function isMindAuditorGrant(grant: AgentGrantRecord): boolean {
+  const roleStr: string = grant.role;
+  if (roleStr === "mind-auditor") return true;
+  if (roleStr === "mind_auditor") return true;
+  if (roleStr === "meta-auditor") return true;
+  if (grant.id.includes("mind-auditor")) return true;
+  if (grant.id.includes("mind_auditor")) return true;
+  return false;
+}
+
+function isSkillAuditorGrant(grant: AgentGrantRecord): boolean {
+  const roleStr: string = grant.role;
+  if (roleStr === "skill-auditor") return true;
+  if (roleStr === "skill_auditor") return true;
+  if (roleStr === "meta-auditor") return true;
+  if (grant.id.includes("skill-auditor")) return true;
+  if (grant.id.includes("skill_auditor")) return true;
+  return false;
+}
+
+function isActiveMindAuditor(grant: AgentGrantRecord): boolean {
+  if (grant.status !== "active") return false;
+  return isMindAuditorGrant(grant);
+}
+
+function isActiveSkillAuditor(grant: AgentGrantRecord): boolean {
+  if (grant.status !== "active") return false;
+  return isSkillAuditorGrant(grant);
+}
+
 export function createMandatoryMindCompanionGrants(
   mindId: string,
   options?: { host?: string | undefined; now?: string | undefined },
 ): AgentGrantRecord[] {
-  const nowIso = options?.now ?? new Date().toISOString();
-  const host = options?.host ?? "initialization";
+  const nowIso =
+    options !== undefined && options.now !== undefined ? options.now : new Date().toISOString();
+  const host =
+    options !== undefined && options.host !== undefined ? options.host : "initialization";
 
   const mindAuditorGrant: AgentGrantRecord = {
     id: `${mindId}-mind-auditor`,
@@ -63,43 +95,63 @@ export function bootstrapMindLifecycleWithCompanions(
   initialGrants: readonly AgentGrantRecord[],
   options?: { host?: string | undefined; now?: string | undefined },
 ): AgentGrantRecord[] {
-  const resultGrants = [...initialGrants];
-  const hasMindAuditor = resultGrants.some(
-    (g) =>
-      (g.role as string) === "mind-auditor" ||
-      (g.role as string) === "meta-auditor" ||
-      g.id.includes("mind-auditor"),
-  );
-  const hasSkillAuditor = resultGrants.some(
-    (g) =>
-      (g.role as string) === "skill-auditor" ||
-      (g.role as string) === "meta-auditor" ||
-      g.id.includes("skill-auditor"),
-  );
-
   const companionGrants = createMandatoryMindCompanionGrants(mindId, options);
+  const mindAuditorTemplate = companionGrants.find((g) => g.role === "mind-auditor");
+  const skillAuditorTemplate = companionGrants.find((g) => g.role === "skill-auditor");
 
-  if (!hasMindAuditor) {
-    const mindAuditor = companionGrants.find((g) => g.role === "mind-auditor");
-    if (mindAuditor) resultGrants.push(mindAuditor);
-  }
-  if (!hasSkillAuditor) {
-    const skillAuditor = companionGrants.find((g) => g.role === "skill-auditor");
-    if (skillAuditor) resultGrants.push(skillAuditor);
+  const result: AgentGrantRecord[] = [];
+  let foundMindAuditor = false;
+  let foundSkillAuditor = false;
+
+  for (const grant of initialGrants) {
+    if (isMindAuditorGrant(grant)) {
+      if (!foundMindAuditor) {
+        foundMindAuditor = true;
+        result.push({
+          ...grant,
+          role: "mind-auditor",
+          parent_agent_id: mindId,
+          status: "active",
+        });
+      }
+      continue;
+    }
+    if (isSkillAuditorGrant(grant)) {
+      if (!foundSkillAuditor) {
+        foundSkillAuditor = true;
+        result.push({
+          ...grant,
+          role: "skill-auditor",
+          parent_agent_id: mindId,
+          status: "active",
+        });
+      }
+      continue;
+    }
+    result.push(grant);
   }
 
-  return resultGrants;
+  if (!foundMindAuditor && mindAuditorTemplate !== undefined) {
+    result.push(mindAuditorTemplate);
+  }
+  if (!foundSkillAuditor && skillAuditorTemplate !== undefined) {
+    result.push(skillAuditorTemplate);
+  }
+
+  return result;
 }
 
 export function deployMandatoryMindCompanions(
   mindId: string,
   options?: MindCompanionDeploymentOptions,
 ): MindCompanionDeploymentResult {
-  const nowIso = options?.now ?? new Date().toISOString();
-  const host = options?.host ?? "initialization";
+  const nowIso =
+    options !== undefined && options.now !== undefined ? options.now : new Date().toISOString();
+  const host =
+    options !== undefined && options.host !== undefined ? options.host : "initialization";
   const companionGrants = createMandatoryMindCompanionGrants(mindId, { host, now: nowIso });
 
-  if (options?.runRoot) {
+  if (options !== undefined && options.runRoot !== undefined) {
     try {
       transact(
         options.runRoot,
@@ -124,14 +176,17 @@ export function deployMandatoryMindCompanions(
     }
   }
 
-  const mindAuditor = companionGrants.find((g) => g.role === "mind-auditor")!;
-  const skillAuditor = companionGrants.find((g) => g.role === "skill-auditor")!;
+  const mindAuditor = companionGrants.find((g) => g.role === "mind-auditor");
+  const skillAuditor = companionGrants.find((g) => g.role === "skill-auditor");
+
+  const mindAuditorId = mindAuditor !== undefined ? mindAuditor.id : `${mindId}-mind-auditor`;
+  const skillAuditorId = skillAuditor !== undefined ? skillAuditor.id : `${mindId}-skill-auditor`;
 
   return {
     deployed: true,
     deployedGrants: companionGrants,
-    mindAuditorId: mindAuditor.id,
-    skillAuditorId: skillAuditor.id,
+    mindAuditorId,
+    skillAuditorId,
     timestamp: nowIso,
   };
 }
@@ -142,16 +197,8 @@ export function verifyMindCompanionBootstrapping(activeAgents: readonly AgentGra
   readonly complete: boolean;
   readonly missing: readonly string[];
 } {
-  const mindAuditorPresent = activeAgents.some(
-    (a) =>
-      a.status === "active" &&
-      ((a.role as string) === "mind-auditor" || (a.role as string) === "meta-auditor"),
-  );
-  const skillAuditorPresent = activeAgents.some(
-    (a) =>
-      a.status === "active" &&
-      ((a.role as string) === "skill-auditor" || (a.role as string) === "meta-auditor"),
-  );
+  const mindAuditorPresent = activeAgents.some(isActiveMindAuditor);
+  const skillAuditorPresent = activeAgents.some(isActiveSkillAuditor);
 
   const missing: string[] = [];
   if (!mindAuditorPresent) missing.push("mind-auditor");
@@ -169,11 +216,19 @@ export function assertMindCompanionBootstrapping(
   activeAgents: readonly AgentGrantRecord[],
   repoRoot?: string,
 ): void {
-  if (repoRoot && !SkillAuditorPolicy.isMandatoryTarget(repoRoot)) {
-    return;
-  }
   const verification = verifyMindCompanionBootstrapping(activeAgents);
-  if (!verification.complete) {
+
+  if (!verification.mindAuditorPresent) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      "[INSEPARABLE_MIND_AUDITOR_CO_DEPLOYMENT_VIOLATION] Mandatory companion mind-auditor is missing or inactive. Tier 0 Mind requires inseparable co-deployment alongside active mind-auditor.",
+    );
+  }
+
+  const requiresSkillAuditor =
+    repoRoot !== undefined ? SkillAuditorPolicy.isMandatoryTarget(repoRoot) : true;
+
+  if (requiresSkillAuditor && !verification.skillAuditorPresent) {
     throw new HarnessError(
       "INVALID_STATE",
       `[MANDATORY_COMPANION_AUDITORS_VIOLATION] Missing mandatory companion auditor(s): ${verification.missing.join(", ")}. Both mind-auditor and skill-auditor must be deployed and active alongside Tier 0 Mind.`,

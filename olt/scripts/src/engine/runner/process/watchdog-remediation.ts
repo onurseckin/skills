@@ -5,6 +5,8 @@ import type {
   RemediationGuidance,
 } from "./watchdog-types.ts";
 
+export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
+
 export function buildRemediationGuidance(params: {
   childRole?: HierarchicalRole | string | undefined;
   role?: HierarchicalRole | string | undefined;
@@ -21,10 +23,11 @@ export function buildRemediationGuidance(params: {
         ? params.role
         : "worker";
 
-  const isCritic = role === "completeness_critic" || role === "critic";
-  const isImplementer = role === "task_implementer" || role === "implementer" || role === "worker";
+  const isCritic = ["completeness_critic", "critic"].includes(role);
+  const isImplementer = ["task_implementer", "implementer", "worker"].includes(role);
   const isCoordinator = role === "coordinator";
   const isOrchestrator = role === "orchestrator";
+  const isMind = ["mind", "tier0", "tier0_mind", "mind_product_manager"].includes(role);
 
   if (isCritic) {
     return {
@@ -93,22 +96,60 @@ export function buildRemediationGuidance(params: {
       defectReference:
         typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-24",
       supervisorTarget: "mind",
-      fallbackDirective: "Mind initiates autonomous wave replanning and lane repartitioning.",
+      fallbackDirective:
+        "Mind initiates autonomous wave replanning and lane repartitioning under CLOSING_FORBIDDEN_FOR_MIND rather than shutdown.",
     };
   }
 
+  if (isMind) {
+    return {
+      action: "autonomous_repair_routing",
+      summary:
+        "Stalled Mind supervisory execution detected. Enforcing CLOSING_FORBIDDEN_FOR_MIND: shutdown is strictly prohibited; commanding autonomous wave replanning and lane repartitioning.",
+      prescribedSteps: [
+        "Enforce CLOSING_FORBIDDEN_FOR_MIND invariant: absolute ban on shutdown, unhandled idle, or process termination.",
+        "Preserve cognitive memory and self-evolution state across pulse cadence.",
+        "Command autonomous wave replanning and dynamic lane repartitioning across active and pending domains rather than shutdown.",
+        "Re-ignite perpetual pulse driver with Mode A creative self-evolution flow.",
+      ],
+      defectReference:
+        typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-24",
+      supervisorTarget: "mind",
+      fallbackDirective:
+        "Preserve CLOSING_FORBIDDEN_FOR_MIND: Mind commands autonomous wave replanning and lane repartitioning rather than shutdown.",
+    };
+  }
+
+  const supervisor =
+    typeof params.supervisorTier === "string" ? params.supervisorTier : "coordinator";
+  const isSupervisorMind = supervisor === "mind";
+
   return {
     action: "autonomous_repair_routing",
-    summary: "Mechanical process timeout watchdog detected execution stall / timeout.",
-    prescribedSteps: [
-      "Terminate zombie process tree via SIGKILL.",
-      "Capture stdout/stderr diagnostics up to moment of termination.",
-      "Synthesize structured failure payload with exit status SIGKILL_TIMEOUT.",
-      "Notify supervising tier to initiate autonomous recovery.",
-    ],
+    summary: isSupervisorMind
+      ? "Process timeout watchdog detected stall under Mind supervisor. Enforcing CLOSING_FORBIDDEN_FOR_MIND: commanding autonomous wave replanning and lane repartitioning rather than shutdown."
+      : "Mechanical process timeout watchdog detected execution stall / timeout.",
+    prescribedSteps: isSupervisorMind
+      ? [
+          "Terminate zombie process tree via SIGKILL.",
+          "Preserve CLOSING_FORBIDDEN_FOR_MIND invariant: ban shutdown or unhandled idle.",
+          "Synthesize structured failure payload with exit status SIGKILL_TIMEOUT.",
+          "Command Mind autonomous wave replanning and lane repartitioning rather than shutdown.",
+        ]
+      : [
+          "Terminate zombie process tree via SIGKILL.",
+          "Capture stdout/stderr diagnostics up to moment of termination.",
+          "Synthesize structured failure payload with exit status SIGKILL_TIMEOUT.",
+          "Notify supervising tier to initiate autonomous recovery.",
+        ],
     defectReference:
       typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-28",
-    supervisorTarget:
-      typeof params.supervisorTier === "string" ? params.supervisorTier : "coordinator",
+    supervisorTarget: supervisor,
+    ...(isSupervisorMind
+      ? {
+          fallbackDirective:
+            "Preserve CLOSING_FORBIDDEN_FOR_MIND: command autonomous wave replanning and lane repartitioning rather than shutdown.",
+        }
+      : {}),
   };
 }

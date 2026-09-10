@@ -29,6 +29,8 @@ import type {
   ProductManagerExpansionResult,
 } from "./types.ts";
 
+export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
+
 export { discoverGroundedFeatures };
 
 function resolveFeedbackFile(options: MindProductManagerOptions): string | undefined {
@@ -46,14 +48,14 @@ export function evaluateMindMode(
   options: MindProductManagerOptions = {},
 ): ProductManagerEvaluationResult {
   const queue = readTaskQueue(options.queuePath);
-  const activeTasks = queue.filter(
-    (t) =>
-      t.status === "PENDING" ||
-      t.status === "ADMITTED" ||
-      t.status === "IN_PROGRESS" ||
-      t.status === "RUNNING" ||
-      t.status === "VALIDATING",
-  );
+  const activeStatuses: readonly string[] = [
+    "PENDING",
+    "ADMITTED",
+    "IN_PROGRESS",
+    "RUNNING",
+    "VALIDATING",
+  ];
+  const activeTasks = queue.filter((t) => activeStatuses.includes(t.status));
 
   const fbFile = resolveFeedbackFile(options);
   const feedbacks = readFeedbackQueue(fbFile);
@@ -77,13 +79,14 @@ export function evaluateMindMode(
     nextCommand = "bun harness.ts queue:wave";
   } else if (pendingFeedbacks.length > 0) {
     mode = "MODE_B_EXTERNAL_INTAKE";
-    reason = `Found ${pendingFeedbacks.length} pending feedback item(s) awaiting intake and triage.`;
+    reason = `Found ${pendingFeedbacks.length} pending feedback item(s) awaiting intake and triage under CLOSING_FORBIDDEN_FOR_MIND.`;
     recommendedAction = "PROCESS_FEEDBACK_INTAKE";
     nextCommand = "bun harness.ts mind:self-evolve";
   } else {
+    // Under CLOSING_FORBIDDEN_FOR_MIND, empty queue triggers autonomous 3-step self-evolution cycle rather than idling or completing
     mode = "MODE_A_CREATIVE_PRODUCT_MANAGER";
     reason =
-      "Task queue and feedback intake are clear or fully converged. Engaging Mode A Creative Product Manager for autonomous expansion and roadmap evolution.";
+      "Task queue and feedback intake are clear or fully converged. Under CLOSING_FORBIDDEN_FOR_MIND, idling or completing is strictly forbidden; engaging Mode A Creative Product Manager to continue the 3-step self-evolution cycle (Quality -> UI/UX Perfection -> Feature Ideation).";
     recommendedAction = "EXECUTE_AUTONOMOUS_PRODUCT_EXPANSION";
     nextCommand = "bun harness.ts mind:self-evolve";
   }
@@ -101,6 +104,17 @@ export function evaluateMindMode(
     },
   );
 
+  // Stagnation defects are never suppressed or ignored
+  if (antiStagnationState.preplanningStagnationDetected) {
+    reason = `Preplanning stagnation detected: ${openDefects.length} open defect(s) pending with 0 active execution. Under CLOSING_FORBIDDEN_FOR_MIND, stagnation defects are never suppressed; commanding autonomous defect resolution.`;
+    recommendedAction = "REMEDIATE_OPEN_DEFECTS";
+    nextCommand = "bun harness.ts mind:self-evolve";
+  } else if (antiStagnationState.creativeStagnationDetected) {
+    reason = `Creative stagnation detected (${antiStagnationState.consecutiveZeroDeltaCycles} zero-delta cycles, ${antiStagnationState.consecutiveMaintenanceCycles} maintenance cycles). Under CLOSING_FORBIDDEN_FOR_MIND, auto-waking 3-step self-evolution cycle.`;
+    recommendedAction = "EXECUTE_AUTONOMOUS_PRODUCT_EXPANSION";
+    nextCommand = "bun harness.ts mind:self-evolve";
+  }
+
   return {
     mode,
     reason,
@@ -117,24 +131,27 @@ export function evaluateMindMode(
 export function runMindProductManagerLoop(
   options: MindProductManagerOptions = {},
 ): ProductManagerExpansionResult {
-  const structure = detectRepositoryStructure(options.repoRoot ?? options.workspaceRoot);
-  const maxProposals = options.maxProposals ?? 5;
+  const repoOrWorkspace =
+    options.repoRoot !== undefined && options.repoRoot !== null
+      ? options.repoRoot
+      : options.workspaceRoot;
+  const structure = detectRepositoryStructure(repoOrWorkspace);
+  const maxProposals = typeof options.maxProposals === "number" ? options.maxProposals : 5;
   const proposals = discoverGroundedFeatures(structure, options.charterGoals, maxProposals);
 
   const multiOrchDispatch = buildProductManagerMultiOrchDispatch(proposals, options);
 
-  const isMultiOrch = Boolean(
-    (options.orchestratorCount && options.orchestratorCount > 1) ||
-    (options.orchestratorIds && options.orchestratorIds.length > 0) ||
-    multiOrchDispatch.orchestrator_count > 1,
-  );
+  const hasOrchCount =
+    typeof options.orchestratorCount === "number" && options.orchestratorCount > 1;
+  const hasOrchIds = Array.isArray(options.orchestratorIds) && options.orchestratorIds.length > 0;
+  const isMultiDispatch = multiOrchDispatch.orchestrator_count > 1;
+  const isMultiOrch = hasOrchCount ? true : hasOrchIds ? true : isMultiDispatch;
 
   const synthesizedTasks: SmartTaskPlan[] = proposals.map((prop, idx) => {
-    const dependencies = isMultiOrch
-      ? []
-      : idx > 0
-        ? [`task-${idx}-${proposals[idx - 1]!.id.replace(/^prop-/, "")}`]
-        : [];
+    const prevProp = idx > 0 ? proposals[idx - 1] : undefined;
+    const prevDep =
+      prevProp !== undefined ? [`task-${idx}-${prevProp.id.replace(/^prop-/, "")}`] : [];
+    const dependencies = isMultiOrch ? [] : prevDep;
 
     const taskPlan: SmartTaskPlan = {
       id: `task-${idx + 1}-${prop.id.replace(/^prop-/, "")}`,
@@ -170,10 +187,7 @@ export function runMindProductManagerLoop(
 
   let stagedTasks: readonly SmartTaskPlan[] = synthesizedTasks;
   let multiOrchPlan = undefined;
-  if (
-    (options.orchestratorCount && options.orchestratorCount > 1) ||
-    (options.orchestratorIds && options.orchestratorIds.length > 0)
-  ) {
+  if (hasOrchCount ? true : hasOrchIds) {
     const staged = stageTasksForMultiOrchestratorExecution(synthesizedTasks, {
       orchestratorIds: options.orchestratorIds,
       maxOrchestrators: options.orchestratorCount,
@@ -188,7 +202,7 @@ export function runMindProductManagerLoop(
       id: t.id,
       title: t.label,
       description: t.rationale,
-      priority: t.priority ?? "MEDIUM",
+      priority: t.priority !== undefined && t.priority !== null ? t.priority : "MEDIUM",
       write_scope: t.write_scope,
       gate: t.gate,
       charter_goals: t.charter_goals,

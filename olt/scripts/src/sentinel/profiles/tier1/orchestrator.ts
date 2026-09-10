@@ -1,6 +1,31 @@
-import { roleToTier } from "../../../authority/guards/spawn-validator.ts";
-import { inferRoleFromAgentId, normalizeRoleName } from "../../../authority/thread/index.ts";
+import {
+  inferRoleFromAgentId,
+  normalizeRoleName,
+  roleToTier,
+} from "../../../authority/thread/index.ts";
 import type { EvaluationContext, RoleDiagnosticProfile, SentinelViolation } from "../../types.ts";
+
+function isSkillAuditorRole(role: string): boolean {
+  if (typeof role !== "string") {
+    return false;
+  }
+  const trimmed = role.trim().toLowerCase();
+  if (trimmed === "skill-auditor") {
+    return true;
+  }
+  if (trimmed === "skill_auditor") {
+    return true;
+  }
+  const normalized = normalizeRoleName(role);
+  if (normalized === "skill-auditor") {
+    return true;
+  }
+  const inferred = inferRoleFromAgentId(role);
+  if (inferred === "skill-auditor") {
+    return true;
+  }
+  return false;
+}
 
 export const orchestratorProfile: RoleDiagnosticProfile = {
   role: "orchestrator",
@@ -43,24 +68,67 @@ export const orchestratorProfile: RoleDiagnosticProfile = {
     }
 
     const candidateRoles: string[] = [];
-    if (context.child_agent_roles) {
+    if (context.child_agent_roles !== undefined) {
       candidateRoles.push(...context.child_agent_roles);
     }
-    if (context.spawned_agent_roles) {
+    if (context.spawned_agent_roles !== undefined) {
       candidateRoles.push(...context.spawned_agent_roles);
-    }
-    if (context.spawned_roles) {
+    } else if (context.spawned_roles !== undefined) {
       candidateRoles.push(...context.spawned_roles);
     }
-    if (context.role_target) {
+    if (
+      context.spawned_roles !== undefined &&
+      context.spawned_agent_roles !== undefined &&
+      context.spawned_roles !== context.spawned_agent_roles
+    ) {
+      for (const r of context.spawned_roles) {
+        if (!context.spawned_agent_roles.includes(r)) {
+          candidateRoles.push(r);
+        }
+      }
+    }
+    if (context.role_target !== undefined) {
       candidateRoles.push(context.role_target);
+    }
+
+    let auditorCount = 0;
+    for (const role of candidateRoles) {
+      if (isSkillAuditorRole(role)) {
+        auditorCount += 1;
+      }
+    }
+
+    if (auditorCount > 1) {
+      violations.push({
+        code: "DUPLICATE_SKILL_AUDITOR_VIOLATION",
+        severity: "CRITICAL",
+        message:
+          "Tier 1 Orchestrator must only be paired with exactly one companion skill-auditor; duplicate skill-auditors detected.",
+        remediation_cmd: "bun harness.ts doctor --agent orchestrator",
+        documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-31",
+      });
     }
 
     const uniqueRoles = Array.from(new Set(candidateRoles));
 
     for (const childRole of uniqueRoles) {
-      const resolved = normalizeRoleName(childRole) ?? inferRoleFromAgentId(childRole);
-      if (roleToTier(resolved ?? childRole) !== 2) {
+      if (isSkillAuditorRole(childRole)) {
+        continue;
+      }
+      const normalized = normalizeRoleName(childRole);
+      let resolved: string | null = normalized;
+      if (resolved === null) {
+        resolved = inferRoleFromAgentId(childRole);
+      } else if (resolved === undefined) {
+        resolved = inferRoleFromAgentId(childRole);
+      }
+      let effectiveRole = childRole;
+      if (resolved !== null) {
+        if (resolved !== undefined) {
+          effectiveRole = resolved;
+        }
+      }
+      if (roleToTier(effectiveRole) !== 2) {
         violations.push({
           code: "CROSS_TIER_SPAWNING_VIOLATION",
           severity: "CRITICAL",
