@@ -1,3 +1,4 @@
+import { isJsonObject } from "../../core/contracts/index.ts";
 import {
   checkPlanningDag,
   checkAstPurity,
@@ -22,6 +23,7 @@ import {
 } from "./engines.ts";
 
 import { checkAgentCanonicalAlignment } from "./agent-canonical-engine.ts";
+import { checkCompanionAuditorsDoctor } from "./rules/companion-auditors.ts";
 
 export interface DiagnosticCollectionOptions {
   readonly repoRoot?: string | undefined;
@@ -43,6 +45,14 @@ function safeRunEngine(name: string, fn: () => DoctorCheckEngineResult): DoctorC
   try {
     return fn();
   } catch (err: unknown) {
+    let errorDetail = String(err);
+    if (err instanceof Error) {
+      if (typeof err.stack === "string") {
+        errorDetail = err.stack;
+      } else {
+        errorDetail = err.message;
+      }
+    }
     return {
       engine: name,
       passed: false,
@@ -53,7 +63,7 @@ function safeRunEngine(name: string, fn: () => DoctorCheckEngineResult): DoctorC
           engine: name,
           message: `Engine fault in ${name}: ${err instanceof Error ? err.message : String(err)}`,
           details: {
-            error: err instanceof Error ? (err.stack ?? err.message) : String(err),
+            error: errorDetail,
           },
         },
       ],
@@ -65,20 +75,35 @@ export function collectDiagnosticEngines(
   options: DiagnosticCollectionOptions,
 ): DiagnosticCollectionResult {
   const repository = options.repoRoot;
-  const state = options.state;
-  const events = options.events as readonly Record<string, unknown>[] | undefined;
+  const rawState = options.state;
+  const state = isJsonObject(rawState) ? rawState : undefined;
+  let events: readonly Record<string, unknown>[] | undefined = undefined;
+  if (Array.isArray(options.events)) {
+    const rawEvents: readonly unknown[] = options.events;
+    events = rawEvents.filter((e): e is Record<string, unknown> => isJsonObject(e));
+  }
+
+  const stateTasks = state !== undefined && isJsonObject(state.tasks) ? state.tasks : undefined;
+  const stateGraph =
+    state !== undefined && isJsonObject(state.graph)
+      ? (state.graph as { nodes?: []; edges?: [] })
+      : undefined;
+  const stateGrants = state !== undefined && Array.isArray(state.grants) ? state.grants : undefined;
+  const stateCommands =
+    state !== undefined && isJsonObject(state.commands) ? state.commands : undefined;
 
   const engine1 = safeRunEngine("checkPlanningDag", () =>
     checkPlanningDag({
-      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-      graph: (state?.graph as { nodes?: []; edges?: [] } | undefined) ?? null,
+      tasks: stateTasks,
+      graph: stateGraph,
     }),
   );
 
+  const writeScope = options.writeScope !== undefined ? options.writeScope : [];
   const engine2 = safeRunEngine("checkAstPurity", () =>
     checkAstPurity({
       repoRoot: repository,
-      writeScope: options.writeScope ?? [],
+      writeScope,
     }),
   );
 
@@ -93,9 +118,9 @@ export function collectDiagnosticEngines(
 
   const engine4 = safeRunEngine("checkAntiBatchingIsolation", () =>
     checkAntiBatchingIsolation({
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+      state,
+      tasks: stateTasks,
+      grants: stateGrants,
     }),
   );
 
@@ -103,27 +128,27 @@ export function collectDiagnosticEngines(
 
   const engine6 = safeRunEngine("checkCognitiveValidatorCommandLock", () =>
     checkCognitiveValidatorCommandLock({
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-      events: events ?? null,
-      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+      state,
+      commands: stateCommands,
+      events,
+      grants: stateGrants,
     }),
   );
 
   const engine7 = safeRunEngine("checkRoleBoundaryInterlock", () =>
     checkRoleBoundaryInterlock({
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-      events: events ?? null,
-      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+      state,
+      commands: stateCommands,
+      events,
+      grants: stateGrants,
     }),
   );
 
   const engine8 = safeRunEngine("checkPushbackQuotas", () =>
     checkPushbackQuotas({
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-      events: events ?? null,
+      state,
+      tasks: stateTasks,
+      events,
       repoRoot: repository,
     }),
   );
@@ -131,11 +156,11 @@ export function collectDiagnosticEngines(
   const engine9 = safeRunEngine("checkPolicyDoctor", () =>
     checkPolicyDoctor({
       repoRoot: repository,
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-      events: events ?? null,
-      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+      state,
+      tasks: stateTasks,
+      commands: stateCommands,
+      events,
+      grants: stateGrants,
     }),
   );
 
@@ -164,22 +189,30 @@ export function collectDiagnosticEngines(
     };
   });
 
-  const activeAgentIds = Array.isArray(state?.agents)
-    ? (state.agents as readonly unknown[])
-        .map((a) => {
-          if (typeof a === "string") return a;
-          if (a && typeof a === "object") {
-            const rec = a as Record<string, unknown>;
-            return typeof rec.id === "string"
-              ? rec.id
-              : typeof rec.agentId === "string"
-                ? rec.agentId
-                : undefined;
+  let activeAgentIds: readonly string[] | undefined = undefined;
+  if (state !== undefined && Array.isArray(state.agents)) {
+    const rawAgents: readonly unknown[] = state.agents;
+    const extractedIds: string[] = [];
+    for (const a of rawAgents) {
+      if (typeof a === "string") {
+        if (a.length > 0) {
+          extractedIds.push(a);
+        }
+      } else if (isJsonObject(a)) {
+        if (typeof a.id === "string") {
+          if (a.id.length > 0) {
+            extractedIds.push(a.id);
           }
-          return undefined;
-        })
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
-    : undefined;
+        } else if (typeof a.agentId === "string") {
+          if (a.agentId.length > 0) {
+            extractedIds.push(a.agentId);
+          }
+        }
+      }
+    }
+    activeAgentIds = extractedIds;
+  }
+
   const engine12 = safeRunEngine("checkMailboxHealth", () =>
     checkMailboxHealth({ repoRoot: repository, activeAgentIds, state }),
   );
@@ -197,7 +230,7 @@ export function collectDiagnosticEngines(
 
   const engine15 = safeRunEngine("checkTier0CompanionsHealth", () =>
     checkTier0CompanionsHealth({
-      state: (state as Record<string, unknown> | undefined) ?? null,
+      state,
       repoRoot: repository,
     }),
   );
@@ -205,34 +238,50 @@ export function collectDiagnosticEngines(
   const engine16 = safeRunEngine("checkAntiStagnationDoctor", () =>
     checkAntiStagnationDoctor({
       repoRoot: repository,
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      events: events ?? null,
-      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+      state,
+      events,
+      commands: stateCommands,
+      grants: stateGrants,
     }),
   );
 
   const engine17 = safeRunEngine("checkPlanQualityAndAgentUtilization", () =>
     checkPlanQualityAndAgentUtilization({
-      state: (state as Record<string, unknown> | undefined) ?? null,
-      events: events ?? null,
+      state,
+      events,
       repoRoot: repository,
     }),
   );
 
-  const rawAgents = state?.agents;
-  const activeAgents = Array.isArray(rawAgents)
-    ? rawAgents
-    : rawAgents && typeof rawAgents === "object"
-      ? Object.entries(rawAgents).map(([id, val]) =>
-          val && typeof val === "object"
-            ? { id, ...(val as Record<string, unknown>) }
-            : { id, role: String(val) },
-        )
-      : undefined;
+  let activeAgents: readonly unknown[] | undefined = undefined;
+  if (state !== undefined) {
+    const rawAgents = state.agents;
+    if (Array.isArray(rawAgents)) {
+      activeAgents = rawAgents;
+    } else if (isJsonObject(rawAgents)) {
+      const entries: unknown[] = [];
+      for (const [id, val] of Object.entries(rawAgents)) {
+        if (isJsonObject(val)) {
+          entries.push({ id, ...val });
+        } else {
+          entries.push({ id, role: String(val) });
+        }
+      }
+      activeAgents = entries;
+    }
+  }
 
   const engine18 = safeRunEngine("checkAgentCanonicalAlignment", () =>
     checkAgentCanonicalAlignment({ repoRoot: repository, activeAgents }),
+  );
+
+  const engine19 = safeRunEngine("checkCompanionAuditors", () =>
+    checkCompanionAuditorsDoctor({
+      repoRoot: repository,
+      state,
+      grants: stateGrants,
+      events,
+    }),
   );
 
   const engineResults: Record<string, DoctorCheckEngineResult> = {
@@ -254,6 +303,7 @@ export function collectDiagnosticEngines(
     checkAntiStagnationDoctor: engine16,
     checkPlanQualityAndAgentUtilization: engine17,
     checkAgentCanonicalAlignment: engine18,
+    checkCompanionAuditors: engine19,
   };
 
   const allEngineFindings: readonly DoctorDiagnosticFinding[] = Object.values(

@@ -12,9 +12,16 @@ import {
 } from "../../../core/shared/index.ts";
 import { SplitChannelDefectRouter } from "../../../reporting/index.ts";
 import { VerbatimRoleInjector, type StagnationTelemetry } from "../../../authority/index.ts";
-import { AuditorCursorStore } from "./types.ts";
+import { AuditorCursorStore, QUOTA_FREEZE_WORKER_TERMINATION_DEFECT } from "./types.ts";
 import { CognitiveChallengePromptGenerator } from "./challenge-generator.ts";
 import { auditAntiStagnationPassivity, executeStagnationShockRecovery } from "../index.ts";
+import {
+  checkQuotaCircuitBreaker,
+  resolveMeasuredQuotaPercentage,
+  streamQuotaTelemetryRecord,
+  verifyCronSuspension,
+  verifyZeroKillInvariant,
+} from "../../../telemetry/circuit-breaker.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
 
 export function auditMindPulseHelper(
@@ -221,11 +228,59 @@ export function auditMindPulseHelper(
   }
 
   if (parallelismProvocation.provocationDelivered) {
+    const provMessage =
+      parallelismProvocation.message !== undefined && parallelismProvocation.message !== null
+        ? parallelismProvocation.message
+        : "";
     injectionPrompt =
       injectionPrompt !== undefined
-        ? `${injectionPrompt}\n\n${parallelismProvocation.message ?? ""}`
+        ? `${injectionPrompt}\n\n${provMessage}`
         : parallelismProvocation.message;
   }
+
+  const measuredQuota = resolveMeasuredQuotaPercentage();
+  const quotaRemaining = measuredQuota !== undefined ? measuredQuota : null;
+  const circuitBreakerVerdict = checkQuotaCircuitBreaker(
+    quotaRemaining !== null ? quotaRemaining : 100,
+  );
+  const quotaCircuitBreakerTripped = circuitBreakerVerdict.tripped;
+  const cronsSuspended = verifyCronSuspension(quotaRemaining);
+
+  const workerPreservation = verifyZeroKillInvariant(
+    true,
+    options !== undefined &&
+      (options as { readonly workerTerminated?: boolean | undefined }).workerTerminated === true,
+  );
+  const workersPreservedInRam = workerPreservation.preserved;
+
+  if (workerPreservation.defectRequired) {
+    SplitChannelDefectRouter.routeDefect({
+      currentRepoRoot: repoRoot,
+      domain: "skill-framework",
+      defect: {
+        error_code: QUOTA_FREEZE_WORKER_TERMINATION_DEFECT,
+        title: "Active Worker Killed During Quota Freeze",
+        description:
+          "Zero-Kill Invariant violated: active worker was terminated while quota circuit breaker was frozen.",
+        actor: "mind-auditor",
+        context: {
+          quotaRemaining,
+          circuitBreakerTripped: quotaCircuitBreakerTripped,
+          cronsSuspended,
+        },
+      },
+    });
+  }
+
+  streamQuotaTelemetryRecord(repoRoot, {
+    timestamp: nowIso,
+    source: "pulse-auditor",
+    quotaRemainingPercentage: quotaRemaining,
+    circuitBreakerTripped: quotaCircuitBreakerTripped,
+    cronsSuspended,
+    workersPreservedInRam,
+    activeHost: agentId,
+  });
 
   const updatedCursor: AuditorCursor = {
     lastInspectedTimestamp: nowIso,
@@ -251,5 +306,9 @@ export function auditMindPulseHelper(
     parallelismProvocation,
     cursor: updatedCursor,
     timestamp: nowIso,
+    quotaRemainingPercentage: quotaRemaining,
+    quotaCircuitBreakerTripped,
+    cronsSuspended,
+    workersPreservedInRam,
   };
 }

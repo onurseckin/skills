@@ -66,6 +66,7 @@ export { dagRenderCommand, executeDagRenderCommand } from "./dag.ts";
 export { dagTraceCommand, executeDagTraceCommand } from "./dag.ts";
 export {
   doctorCommand,
+  doctorVerifyCommand,
   healthCommand,
   recoverCommand,
   repairProjectionCommand,

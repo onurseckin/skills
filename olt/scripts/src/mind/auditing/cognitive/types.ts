@@ -12,6 +12,9 @@ export interface AuditorCursor {
   readonly lastStagnationSignature?: string | undefined;
 }
 
+export const QUOTA_FREEZE_WORKER_TERMINATION_DEFECT =
+  "QUOTA_FREEZE_WORKER_TERMINATION_DEFECT";
+
 export interface MindAuditLiveResult {
   readonly stagnant: boolean;
   readonly idleDurationSeconds: number;
@@ -24,6 +27,10 @@ export interface MindAuditLiveResult {
   readonly parallelismProvocation?: AntiStagnationResult | undefined;
   readonly cursor: AuditorCursor;
   readonly timestamp: string;
+  readonly quotaRemainingPercentage?: number | null | undefined;
+  readonly quotaCircuitBreakerTripped?: boolean | undefined;
+  readonly cronsSuspended?: boolean | undefined;
+  readonly workersPreservedInRam?: boolean | undefined;
 }
 
 export interface SkillAuditLiveResult {
@@ -37,6 +44,10 @@ export interface SkillAuditLiveResult {
   readonly zero_delta?: boolean | undefined;
   readonly suppressed?: boolean | undefined;
   readonly delta_summary?: string | undefined;
+  readonly quotaRemainingPercentage?: number | null | undefined;
+  readonly quotaCircuitBreakerTripped?: boolean | undefined;
+  readonly cronsSuspended?: boolean | undefined;
+  readonly workersPreservedInRam?: boolean | undefined;
 }
 
 export interface StoredAuditorCursors {

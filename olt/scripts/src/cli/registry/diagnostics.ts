@@ -2,6 +2,7 @@ import { defectAuditCommand } from "../commands/index.ts";
 import { coverageCheckCommand } from "../commands/index.ts";
 import {
   doctorCommand,
+  doctorVerifyCommand,
   healthCommand,
   recoverCommand,
   repairProjectionCommand,
@@ -173,7 +174,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts doctor:verify --run .olt/capsules/<run-id>"],
-    handler: doctorCommand,
+    handler: doctorVerifyCommand,
   },
   {
     name: "doctor:repair",

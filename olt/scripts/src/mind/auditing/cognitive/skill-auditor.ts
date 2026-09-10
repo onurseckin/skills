@@ -1,7 +1,14 @@
 import { resolve } from "node:path";
 import { SplitChannelDefectRouter } from "../../../reporting/split-channel-defect-router.ts";
 import { discoverActiveTranscripts, type ForensicsIncident } from "../meta/index.ts";
-import { AuditorCursorStore } from "./types.ts";
+import { AuditorCursorStore, QUOTA_FREEZE_WORKER_TERMINATION_DEFECT } from "./types.ts";
+import {
+  checkQuotaCircuitBreaker,
+  resolveMeasuredQuotaPercentage,
+  streamQuotaTelemetryRecord,
+  verifyCronSuspension,
+  verifyZeroKillInvariant,
+} from "../../../telemetry/circuit-breaker.ts";
 import type {
   AuditorCursor,
   SkillAuditLiveResult,
@@ -56,12 +63,18 @@ export class SkillAuditorEngine {
     repoRoot: string,
     options?: SkillAuditOptions,
   ): SkillAuditLiveResult {
-    const nowIso = options?.now ?? new Date().toISOString();
+    const nowIso =
+      options !== undefined && options.now !== undefined
+        ? options.now
+        : new Date().toISOString();
     const explicitRunRoot = options?.capsuleRunRoot;
     const capsuleRoots = explicitRunRoot
       ? [resolve(explicitRunRoot)]
       : discoverCapsuleRoots(repoRoot);
-    const activeTranscripts = options?.transcripts ?? discoverActiveTranscripts(repoRoot);
+    const activeTranscripts =
+      options !== undefined && options.transcripts !== undefined
+        ? options.transcripts
+        : discoverActiveTranscripts(repoRoot);
 
     attachLiveHostMonitors(repoRoot, activeTranscripts, capsuleRoots);
 
@@ -95,9 +108,11 @@ export class SkillAuditorEngine {
       timestamp: nowIso,
     };
     const delta = compareSkillReportDelta(candidateResult, options?.previousReport);
-    const shouldSuppress =
-      (options?.suppressZeroDelta === true || options?.previousReport !== undefined) &&
-      delta.isZeroDelta;
+    const hasSuppressConfig =
+      options !== undefined && options.suppressZeroDelta === true
+        ? true
+        : options !== undefined && options.previousReport !== undefined;
+    const shouldSuppress = hasSuppressConfig && delta.isZeroDelta;
     let defectsLogged = 0;
     if (options?.logDefects !== false && !shouldSuppress) {
       for (const inc of incidents) {
@@ -122,14 +137,62 @@ export class SkillAuditorEngine {
     let interjectionsSent = 0;
     if (options?.interject !== false && !shouldSuppress) {
       for (const inc of incidents) {
+        const isInterjectionCategory =
+          inc.category === "FALSE_SERIALIZATION"
+            ? true
+            : inc.category === "ROLE_BOUNDARY_DEVIATION";
         if (
-          (inc.category === "FALSE_SERIALIZATION" || inc.category === "ROLE_BOUNDARY_DEVIATION") &&
+          isInterjectionCategory &&
           dispatchInterjection(repoRoot, inc, capsuleRoots)
         ) {
           interjectionsSent++;
         }
       }
     }
+
+    const measuredQuota = resolveMeasuredQuotaPercentage();
+    const quotaRemaining = measuredQuota !== undefined ? measuredQuota : null;
+    const circuitBreakerVerdict = checkQuotaCircuitBreaker(
+      quotaRemaining !== null ? quotaRemaining : 100,
+    );
+    const quotaCircuitBreakerTripped = circuitBreakerVerdict.tripped;
+    const cronsSuspended = verifyCronSuspension(quotaRemaining);
+
+    const workerPreservation = verifyZeroKillInvariant(
+      true,
+      options !== undefined &&
+        (options as { readonly workerTerminated?: boolean | undefined }).workerTerminated === true,
+    );
+    const workersPreservedInRam = workerPreservation.preserved;
+
+    if (workerPreservation.defectRequired) {
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: repoRoot,
+        domain: "skill-framework",
+        defect: {
+          error_code: QUOTA_FREEZE_WORKER_TERMINATION_DEFECT,
+          title: "Active Worker Killed During Quota Freeze",
+          description:
+            "Zero-Kill Invariant violated: active worker was terminated while quota circuit breaker was frozen.",
+          actor: "skill-auditor",
+          context: {
+            quotaRemaining,
+            circuitBreakerTripped: quotaCircuitBreakerTripped,
+            cronsSuspended,
+          },
+        },
+      });
+    }
+
+    streamQuotaTelemetryRecord(repoRoot, {
+      timestamp: nowIso,
+      source: "skill-auditor",
+      quotaRemainingPercentage: quotaRemaining,
+      circuitBreakerTripped: quotaCircuitBreakerTripped,
+      cronsSuspended,
+      workersPreservedInRam,
+    });
+
     return {
       ...candidateResult,
       defectsLogged,
@@ -137,6 +200,10 @@ export class SkillAuditorEngine {
       zero_delta: delta.isZeroDelta,
       suppressed: shouldSuppress,
       delta_summary: delta.summary,
+      quotaRemainingPercentage: quotaRemaining,
+      quotaCircuitBreakerTripped,
+      cronsSuspended,
+      workersPreservedInRam,
     };
   }
 }

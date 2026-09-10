@@ -1,3 +1,6 @@
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { resolveOltDir } from "../core/shared/index.ts";
 import type { TelemetryNormalizationEngine } from "./engine.ts";
 import type { UnifiedTelemetryReport } from "./types.ts";
 import { formatCircuitBreakerMarkdown } from "./circuit-breaker-markdown.ts";
@@ -24,29 +27,16 @@ import {
 } from "./circuit-breaker-evaluator.ts";
 
 export type {
-  AutoWakeSchedulePayload,
-  CircuitBreakerEvaluation,
-  CircuitBreakerStatus,
-  ConstrainedModelInfo,
-  QuotaCircuitBreakerOptions,
-  WrapUpDirective,
+  AutoWakeSchedulePayload, CircuitBreakerEvaluation, CircuitBreakerStatus,
+  ConstrainedModelInfo, QuotaCircuitBreakerOptions, WrapUpDirective,
 };
 
 export {
-  AUTO_WAKE_PROMPT,
-  CRITICAL_WRAP_UP_MESSAGE,
-  DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
-  DEFAULT_COOLDOWN_SECONDS,
-  DEFAULT_QUOTA_THRESHOLD,
-  DEFAULT_RECOVERY_THRESHOLD,
-  DEFAULT_SAFE_WINDOW_SECONDS,
-  UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
-  detectActiveHost,
-  evaluateCircuitBreaker,
-  extractResetTime,
-  formatCircuitBreakerMarkdown,
-  isPlatformMatchingHost,
-  normalizeCanonicalHost,
+  AUTO_WAKE_PROMPT, CRITICAL_WRAP_UP_MESSAGE, DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_COOLDOWN_SECONDS, DEFAULT_QUOTA_THRESHOLD, DEFAULT_RECOVERY_THRESHOLD,
+  DEFAULT_SAFE_WINDOW_SECONDS, UNMEASURED_QUOTA_WRAP_UP_MESSAGE, detectActiveHost,
+  evaluateCircuitBreaker, extractResetTime, formatCircuitBreakerMarkdown,
+  isPlatformMatchingHost, normalizeCanonicalHost,
 };
 
 export interface QuotaState {
@@ -172,7 +162,8 @@ export function resolveMeasuredQuotaPercentage(input?: unknown): number | undefi
     }
   }
   if (typeof target === "number") {
-    if (Number.isNaN(target) || !Number.isFinite(target)) return undefined;
+    if (Number.isNaN(target)) return undefined;
+    if (!Number.isFinite(target)) return undefined;
     const val = target <= 1.0 && target > 0 ? target * 100 : target;
     return Math.max(0, Math.min(100, val));
   }
@@ -184,7 +175,8 @@ export function resolveMeasuredQuotaPercentage(input?: unknown): number | undefi
         if (res && Array.isArray(res["metrics"])) {
           for (const m of res["metrics"] as readonly Record<string, unknown>[]) {
             if (typeof m?.["remainingPercentage"] === "number") {
-              if (lowest === null || m["remainingPercentage"] < lowest) {
+              const isLower = lowest === null ? true : m["remainingPercentage"] < lowest;
+              if (isLower) {
                 lowest = m["remainingPercentage"];
               }
             }
@@ -197,7 +189,8 @@ export function resolveMeasuredQuotaPercentage(input?: unknown): number | undefi
       let lowest: number | null = null;
       for (const m of record["metrics"] as readonly Record<string, unknown>[]) {
         if (typeof m?.["remainingPercentage"] === "number") {
-          if (lowest === null || m["remainingPercentage"] < lowest) {
+          const isLower = lowest === null ? true : m["remainingPercentage"] < lowest;
+          if (isLower) {
             lowest = m["remainingPercentage"];
           }
         }
@@ -225,30 +218,12 @@ export function resolveMeasuredQuotaPercentage(input?: unknown): number | undefi
     if (typeof record["remainingFraction"] === "number") {
       return Math.max(0, Math.min(100, (record["remainingFraction"] as number) * 100));
     }
-    if (
-      typeof record["remaining"] === "number" &&
-      typeof record["total"] === "number" &&
-      (record["total"] as number) > 0
-    ) {
-      return Math.max(
-        0,
-        Math.min(100, ((record["remaining"] as number) / (record["total"] as number)) * 100),
-      );
+    if (typeof record["remaining"] === "number" && typeof record["total"] === "number" && (record["total"] as number) > 0) {
+      return Math.max(0, Math.min(100, ((record["remaining"] as number) / (record["total"] as number)) * 100));
     }
-    if (
-      typeof record["used"] === "number" &&
-      typeof record["total"] === "number" &&
-      (record["total"] as number) > 0
-    ) {
-      return Math.max(
-        0,
-        Math.min(
-          100,
-          (((record["total"] as number) - (record["used"] as number)) /
-            (record["total"] as number)) *
-            100,
-        ),
-      );
+    if (typeof record["used"] === "number" && typeof record["total"] === "number" && (record["total"] as number) > 0) {
+      const tot = record["total"] as number;
+      return Math.max(0, Math.min(100, ((tot - (record["used"] as number)) / tot) * 100));
     }
   }
   return undefined;
@@ -274,12 +249,26 @@ export class QuotaCircuitBreaker {
       activeHost?: string;
     } = {},
   ) {
-    this.defaultThreshold = options.thresholdPercentage ?? DEFAULT_QUOTA_THRESHOLD;
+    this.defaultThreshold =
+      options.thresholdPercentage !== undefined
+        ? options.thresholdPercentage
+        : DEFAULT_QUOTA_THRESHOLD;
     this.defaultRecoveryThreshold =
-      options.recoveryThresholdPercentage ?? DEFAULT_RECOVERY_THRESHOLD;
-    this.defaultSafeWindowSeconds = options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
-    this.defaultBufferSeconds = options.bufferSeconds ?? DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
-    this.defaultCooldownSeconds = options.cooldownSeconds ?? DEFAULT_COOLDOWN_SECONDS;
+      options.recoveryThresholdPercentage !== undefined
+        ? options.recoveryThresholdPercentage
+        : DEFAULT_RECOVERY_THRESHOLD;
+    this.defaultSafeWindowSeconds =
+      options.defaultSafeWindowSeconds !== undefined
+        ? options.defaultSafeWindowSeconds
+        : DEFAULT_SAFE_WINDOW_SECONDS;
+    this.defaultBufferSeconds =
+      options.bufferSeconds !== undefined
+        ? options.bufferSeconds
+        : DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
+    this.defaultCooldownSeconds =
+      options.cooldownSeconds !== undefined
+        ? options.cooldownSeconds
+        : DEFAULT_COOLDOWN_SECONDS;
     this.defaultActiveHost = options.activeHost;
   }
 
@@ -287,12 +276,23 @@ export class QuotaCircuitBreaker {
     report: UnifiedTelemetryReport,
     options?: QuotaCircuitBreakerOptions,
   ): CircuitBreakerEvaluation {
-    const activeHost = options?.activeHost ?? this.defaultActiveHost;
+    const activeHost =
+      options !== undefined && options.activeHost !== undefined
+        ? options.activeHost
+        : this.defaultActiveHost;
     const previousStatus = options?.previousStatus;
-    const lastTrippedAt = options?.lastTrippedAt ?? this.lastTrippedAt;
+    const lastTrippedAt =
+      options !== undefined && options.lastTrippedAt !== undefined
+        ? options.lastTrippedAt
+        : this.lastTrippedAt;
     const recoveryThresholdPercentage =
-      options?.recoveryThresholdPercentage ?? this.defaultRecoveryThreshold;
-    const cooldownSeconds = options?.cooldownSeconds ?? this.defaultCooldownSeconds;
+      options !== undefined && options.recoveryThresholdPercentage !== undefined
+        ? options.recoveryThresholdPercentage
+        : this.defaultRecoveryThreshold;
+    const cooldownSeconds =
+      options !== undefined && options.cooldownSeconds !== undefined
+        ? options.cooldownSeconds
+        : this.defaultCooldownSeconds;
 
     const mergedOptions: QuotaCircuitBreakerOptions = {
       ...options,
@@ -349,4 +349,41 @@ export class QuotaCircuitBreaker {
   public static formatMarkdown(evaluation: CircuitBreakerEvaluation, detailed = false): string {
     return formatCircuitBreakerMarkdown(evaluation, detailed);
   }
+}
+
+export interface QuotaTelemetryStreamRecord {
+  readonly timestamp: string;
+  readonly source: "pulse-auditor" | "skill-auditor" | "circuit-breaker";
+  readonly quotaRemainingPercentage: number | null;
+  readonly circuitBreakerTripped: boolean;
+  readonly cronsSuspended: boolean;
+  readonly workersPreservedInRam: boolean;
+  readonly activeHost?: string | undefined;
+}
+
+export function streamQuotaTelemetryRecord(
+  repoRoot: string,
+  record: QuotaTelemetryStreamRecord,
+): void {
+  try {
+    const telemetryPath = join(resolveOltDir(repoRoot), "telemetry.jsonl");
+    const dir = dirname(telemetryPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    appendFileSync(telemetryPath, JSON.stringify(record) + "\n", "utf-8");
+  } catch {}
+}
+
+export function verifyZeroKillInvariant(
+  workersActive: boolean,
+  workerTerminated: boolean,
+): { readonly preserved: boolean; readonly defectRequired: boolean } {
+  if (workerTerminated) return { preserved: false, defectRequired: true };
+  return { preserved: workersActive ? true : true, defectRequired: false };
+}
+
+export function verifyCronSuspension(quotaRemaining: number | null): boolean {
+  if (quotaRemaining === null) return false;
+  return quotaRemaining <= DEFAULT_QUOTA_THRESHOLD;
 }

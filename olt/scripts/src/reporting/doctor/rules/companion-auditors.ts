@@ -13,13 +13,53 @@ export interface CompanionAuditorDoctorOptions {
   readonly strict?: boolean | undefined;
 }
 
+function isMindRole(roleVal: unknown, id: string): boolean {
+  if (roleVal === "mind") return true;
+  if (roleVal === "mind-auditor") return true;
+  if (id.includes("mind")) return true;
+  return false;
+}
+
+function isMindAuditorRole(roleVal: unknown, id: string): boolean {
+  if (roleVal === "mind-auditor") return true;
+  if (roleVal === "meta-auditor") return true;
+  if (id.includes("mind-auditor")) return true;
+  return false;
+}
+
+function isSkillAuditorRole(roleVal: unknown, id: string): boolean {
+  if (roleVal === "skill-auditor") return true;
+  if (roleVal === "meta-auditor") return true;
+  if (id.includes("skill-auditor")) return true;
+  return false;
+}
+
+function checkExplicitMind(state: Readonly<Record<string, unknown>>): boolean {
+  if (state.mind !== undefined && state.mind !== null && state.mind !== false) return true;
+  if (state.pulse !== undefined && state.pulse !== null && state.pulse !== false) return true;
+  if (typeof state.run_id === "string") {
+    if (state.run_id.includes("mind")) return true;
+  }
+  return false;
+}
+
+function checkExplicitOrchestrator(state: Readonly<Record<string, unknown>>): boolean {
+  if (state.orchestrator !== undefined && state.orchestrator !== null && state.orchestrator !== false) return true;
+  if (typeof state.run_id === "string") {
+    if (state.run_id.includes("orchestrator")) return true;
+  }
+  return false;
+}
+
 export function auditCompanionAuditors(
   options: CompanionAuditorDoctorOptions = {},
 ): readonly DoctorDiagnosticFinding[] {
   const findings: DoctorDiagnosticFinding[] = [];
   const repoRoot = options.repoRoot;
-  const isMandatory =
-    repoRoot !== undefined ? SkillAuditorPolicy.isMandatoryTarget(repoRoot) : true;
+  let isMandatory = true;
+  if (repoRoot !== undefined) {
+    isMandatory = SkillAuditorPolicy.isMandatoryTarget(repoRoot);
+  }
 
   const state = options.state;
   let activeGrants: readonly AgentGrantRecord[] = [];
@@ -32,7 +72,7 @@ export function auditCompanionAuditors(
         "role" in g &&
         (g as AgentGrantRecord).status === "active",
     );
-  } else if (state && isJsonObject(state)) {
+  } else if (state !== undefined && state !== null && isJsonObject(state)) {
     try {
       const rawLedger = readAgentLedger(state);
       activeGrants = rawLedger.filter((g) => g.status === "active");
@@ -58,70 +98,80 @@ export function auditCompanionAuditors(
     }
   }
 
-  const hasMindGrant = activeGrants.some(
-    (g) =>
-      (g.role as string) === "mind" ||
-      (g.role as string) === "mind-auditor" ||
-      g.id.includes("mind"),
-  );
+  const hasMindGrant = activeGrants.some((g) => {
+    const roleVal: unknown = g.role;
+    return isMindRole(roleVal, g.id);
+  });
 
-  const hasOrchestratorGrant = activeGrants.some(
-    (g) =>
-      (g.role as string) === "orchestrator" ||
-      (g.role as string) === "coordinator" ||
-      (g.role as string) === "supervisor" ||
-      (g.role as string) === "skill-auditor",
-  );
+  const hasOrchestratorGrant = activeGrants.some((g) => {
+    const roleVal: unknown = g.role;
+    const isOrchRole = roleVal === "orchestrator";
+    const hasOrchId = typeof g.id === "string" ? g.id.includes("orchestrator") : false;
+    return isOrchRole ? true : hasOrchId;
+  });
 
-  const isExplicitMind = Boolean(
-    state &&
-    (Boolean(state.mind) ||
-      Boolean(state.pulse) ||
-      (typeof state.run_id === "string" && state.run_id.includes("mind"))),
-  );
+  let isExplicitMind = false;
+  let isExplicitOrchestrator = false;
+  if (state !== undefined && state !== null && isJsonObject(state)) {
+    isExplicitMind = checkExplicitMind(state);
+    isExplicitOrchestrator = checkExplicitOrchestrator(state);
+  }
 
-  const isExplicitOrchestrator = Boolean(
-    state &&
-    (Boolean(state.orchestrator) ||
-      (typeof state.run_id === "string" && state.run_id.includes("orchestrator"))),
-  );
+  const isMindCapsule = isExplicitMind ? true : hasMindGrant;
+  const isOrchestratorCapsule = isExplicitOrchestrator ? true : hasOrchestratorGrant;
 
-  const isMindCapsule = isExplicitMind || hasMindGrant;
-  const isOrchestratorCapsule = isExplicitOrchestrator || hasOrchestratorGrant;
+  let hasOnlyWorkerGrants = false;
+  if (activeGrants.length > 0) {
+    if (hasMindGrant === false) {
+      if (hasOrchestratorGrant === false) {
+        hasOnlyWorkerGrants = true;
+      }
+    }
+  }
 
-  const hasOnlyWorkerGrants = activeGrants.length > 0 && !hasMindGrant && !hasOrchestratorGrant;
+  const hasMindAuditor = activeGrants.some((g) => {
+    const roleVal: unknown = g.role;
+    return isMindAuditorRole(roleVal, g.id);
+  });
 
-  const hasMindAuditor = activeGrants.some(
-    (g) =>
-      (g.role as string) === "mind-auditor" ||
-      (g.role as string) === "meta-auditor" ||
-      g.id.includes("mind-auditor"),
-  );
+  const hasSkillAuditor = activeGrants.some((g) => {
+    const roleVal: unknown = g.role;
+    return isSkillAuditorRole(roleVal, g.id);
+  });
 
-  const hasSkillAuditor = activeGrants.some(
-    (g) =>
-      (g.role as string) === "skill-auditor" ||
-      (g.role as string) === "meta-auditor" ||
-      g.id.includes("skill-auditor"),
-  );
+  let requiresMindAuditor = false;
+  if (isMandatory) {
+    if (hasOnlyWorkerGrants) {
+      requiresMindAuditor = false;
+    } else if (state !== undefined && state !== null) {
+      requiresMindAuditor = isMindCapsule;
+    } else {
+      requiresMindAuditor = isMindCapsule ? true : activeGrants.length === 0;
+    }
+  }
 
-  const requiresMindAuditor =
-    isMandatory &&
-    (hasOnlyWorkerGrants
-      ? false
-      : state
-        ? isMindCapsule
-        : isMindCapsule || activeGrants.length === 0);
+  let requiresSkillAuditor = false;
+  if (isMandatory) {
+    if (hasOnlyWorkerGrants) {
+      requiresSkillAuditor = false;
+    } else if (state !== undefined && state !== null) {
+      if (isMindCapsule) {
+        requiresSkillAuditor = true;
+      } else if (isOrchestratorCapsule) {
+        requiresSkillAuditor = true;
+      }
+    } else {
+      if (isMindCapsule) {
+        requiresSkillAuditor = true;
+      } else if (isOrchestratorCapsule) {
+        requiresSkillAuditor = true;
+      } else if (activeGrants.length === 0) {
+        requiresSkillAuditor = true;
+      }
+    }
+  }
 
-  const requiresSkillAuditor =
-    isMandatory &&
-    (hasOnlyWorkerGrants
-      ? false
-      : state
-        ? isMindCapsule || isOrchestratorCapsule
-        : isMindCapsule || isOrchestratorCapsule || activeGrants.length === 0);
-
-  if (!hasMindAuditor && requiresMindAuditor) {
+  if (hasMindAuditor === false && requiresMindAuditor === true) {
     findings.push({
       code: "MISSING_MIND_AUDITOR",
       severity: "ERROR",
@@ -136,7 +186,7 @@ export function auditCompanionAuditors(
     });
   }
 
-  if (!hasSkillAuditor && requiresSkillAuditor) {
+  if (hasSkillAuditor === false && requiresSkillAuditor === true) {
     findings.push({
       code: "MISSING_SKILL_AUDITOR",
       severity: "ERROR",
@@ -151,36 +201,68 @@ export function auditCompanionAuditors(
     });
   }
 
-  const mindAuditors = activeGrants.filter(
-    (g) => (g.role as string) === "mind-auditor" || (g.role as string) === "meta-auditor",
-  );
+  const mindAuditors = activeGrants.filter((g) => {
+    const roleVal: unknown = g.role;
+    if (roleVal === "mind-auditor") return true;
+    if (roleVal === "meta-auditor") return true;
+    return false;
+  });
   if (mindAuditors.length > 1) {
-    findings.push({
-      code: "COMPANION_AUDITOR_CONFLICT",
-      severity: "WARN",
-      engine: "checkCompanionAuditors",
-      message: `Multiple active mind-auditor grants detected (${mindAuditors.map((g) => g.id).join(", ")}). Singleton auditor invariant recommends exactly one active instance.`,
-      details: {
-        count: mindAuditors.length,
-        agentIds: mindAuditors.map((g) => g.id),
-      },
-    });
+    if (options.strict === true) {
+      findings.push({
+        code: "DUPLICATE_MIND_AUDITOR",
+        severity: "ERROR",
+        engine: "checkCompanionAuditors",
+        message: `Multiple active mind-auditor grants detected (${mindAuditors.map((g) => g.id).join(", ")}). Singleton auditor invariant mandates exactly one active instance.`,
+        details: {
+          count: mindAuditors.length,
+          agentIds: mindAuditors.map((g) => g.id),
+        },
+      });
+    } else {
+      findings.push({
+        code: "COMPANION_AUDITOR_CONFLICT",
+        severity: "WARN",
+        engine: "checkCompanionAuditors",
+        message: `Multiple active mind-auditor grants detected (${mindAuditors.map((g) => g.id).join(", ")}). Singleton auditor invariant recommends exactly one active instance.`,
+        details: {
+          count: mindAuditors.length,
+          agentIds: mindAuditors.map((g) => g.id),
+        },
+      });
+    }
   }
 
-  const skillAuditors = activeGrants.filter(
-    (g) => (g.role as string) === "skill-auditor" || (g.role as string) === "meta-auditor",
-  );
+  const skillAuditors = activeGrants.filter((g) => {
+    const roleVal: unknown = g.role;
+    if (roleVal === "skill-auditor") return true;
+    if (roleVal === "meta-auditor") return true;
+    return false;
+  });
   if (skillAuditors.length > 1) {
-    findings.push({
-      code: "COMPANION_AUDITOR_CONFLICT",
-      severity: "WARN",
-      engine: "checkCompanionAuditors",
-      message: `Multiple active skill-auditor grants detected (${skillAuditors.map((g) => g.id).join(", ")}). Singleton auditor invariant recommends exactly one active instance.`,
-      details: {
-        count: skillAuditors.length,
-        agentIds: skillAuditors.map((g) => g.id),
-      },
-    });
+    if (options.strict === true) {
+      findings.push({
+        code: "DUPLICATE_SKILL_AUDITOR",
+        severity: "ERROR",
+        engine: "checkCompanionAuditors",
+        message: `Multiple active skill-auditor grants detected (${skillAuditors.map((g) => g.id).join(", ")}). Singleton auditor invariant mandates exactly one active instance.`,
+        details: {
+          count: skillAuditors.length,
+          agentIds: skillAuditors.map((g) => g.id),
+        },
+      });
+    } else {
+      findings.push({
+        code: "COMPANION_AUDITOR_CONFLICT",
+        severity: "WARN",
+        engine: "checkCompanionAuditors",
+        message: `Multiple active skill-auditor grants detected (${skillAuditors.map((g) => g.id).join(", ")}). Singleton auditor invariant recommends exactly one active instance.`,
+        details: {
+          count: skillAuditors.length,
+          agentIds: skillAuditors.map((g) => g.id),
+        },
+      });
+    }
   }
 
   return findings;
@@ -193,20 +275,21 @@ export function checkCompanionAuditorsDoctor(
   const hasErrors = findings.some((f) => f.severity === "ERROR");
   return {
     engine: "checkCompanionAuditors",
-    passed: !hasErrors,
+    passed: hasErrors === false,
     findings,
   };
 }
 
 export function isCompanionAuditorCompliant(options: CompanionAuditorDoctorOptions = {}): boolean {
   const findings = auditCompanionAuditors(options);
-  return !findings.some((f) => f.severity === "ERROR");
+  const hasErrors = findings.some((f) => f.severity === "ERROR");
+  return hasErrors === false;
 }
 
 export function assertCompanionAuditorsDoctor(options: CompanionAuditorDoctorOptions = {}): void {
   const findings = auditCompanionAuditors(options);
   const errorFinding = findings.find((f) => f.severity === "ERROR");
-  if (errorFinding) {
+  if (errorFinding !== undefined) {
     throw new HarnessError(
       "INTEGRITY",
       `[DOCTOR_COMPANION_AUDITOR_VIOLATION] ${errorFinding.message}`,

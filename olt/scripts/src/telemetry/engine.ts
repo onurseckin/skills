@@ -63,7 +63,8 @@ export class TelemetryNormalizationEngine {
     options: TelemetryNormalizationEngineOptions = {},
   ) {
     this.defaultOptions = options;
-    this.reservoir = options.tokenReservoir ?? new TokenReservoir();
+    this.reservoir =
+      options.tokenReservoir !== undefined ? options.tokenReservoir : new TokenReservoir();
     if (collectors.length === 0) {
       const defaultIsolate =
         options.isolateActiveHost !== undefined ? options.isolateActiveHost : true;
@@ -102,15 +103,25 @@ export class TelemetryNormalizationEngine {
   }
 
   public detectHost(options?: ProbeAllOptions): HostDetectionResult {
+    const processEnv = typeof process !== "undefined" ? process.env : {};
+    const defaultEnv =
+      this.defaultOptions.env !== undefined ? this.defaultOptions.env : processEnv;
     const mergedEnv =
-      options?.env ??
-      this.defaultOptions.env ??
-      (typeof process !== "undefined" ? process.env : {});
+      options !== undefined && options.env !== undefined ? options.env : defaultEnv;
     const detectionOpts: HostDetectionOptions = {
       env: mergedEnv,
-      processTree: options?.processTree ?? this.defaultOptions.processTree,
-      model: options?.activeModel ?? this.defaultOptions.activeModel,
-      explicitHost: options?.activeHost ?? this.defaultOptions.activeHost,
+      processTree:
+        options !== undefined && options.processTree !== undefined
+          ? options.processTree
+          : this.defaultOptions.processTree,
+      model:
+        options !== undefined && options.activeModel !== undefined
+          ? options.activeModel
+          : this.defaultOptions.activeModel,
+      explicitHost:
+        options !== undefined && options.activeHost !== undefined
+          ? options.activeHost
+          : this.defaultOptions.activeHost,
     };
     return detectActiveHost(detectionOpts);
   }
@@ -123,8 +134,10 @@ export class TelemetryNormalizationEngine {
       if (outcome.status === "fulfilled") return outcome.value;
       const error =
         outcome.reason instanceof Error ? outcome.reason : new Error(String(outcome.reason));
+      const collector = collectorList[i];
+      const platformId = collector !== undefined ? collector.platformId : "unknown";
       return {
-        platformId: collectorList[i]!.platformId,
+        platformId,
         isDetected: false,
         primaryTierUsed: null,
         metrics: [],
@@ -135,8 +148,14 @@ export class TelemetryNormalizationEngine {
 
     const hostDetection = this.detectHost(options);
     const activeHost = hostDetection.activeHost;
+    const defaultIsolate =
+      this.defaultOptions.isolateActiveHost !== undefined
+        ? this.defaultOptions.isolateActiveHost
+        : true;
     const isolateActiveHost =
-      options?.isolateActiveHost ?? this.defaultOptions.isolateActiveHost ?? true;
+      options !== undefined && options.isolateActiveHost !== undefined
+        ? options.isolateActiveHost
+        : defaultIsolate;
 
     for (const res of results) {
       const isActiveHost = isPlatformMatchingHost(res.platformId, activeHost);
@@ -180,17 +199,21 @@ export class TelemetryNormalizationEngine {
 
     const activeWarnings: string[] = [];
     if (lowestRemainingQuota !== null && lowestRemainingQuota < 20) {
-      const provider = lowestMetric?.canonicalProvider ?? activeHost;
-      const label = lowestMetric?.rawMetricName ?? "quota";
+      const provider =
+        lowestMetric !== null && lowestMetric !== undefined && lowestMetric.canonicalProvider !== undefined
+          ? lowestMetric.canonicalProvider
+          : activeHost;
+      const label =
+        lowestMetric !== null && lowestMetric !== undefined && lowestMetric.rawMetricName !== undefined
+          ? lowestMetric.rawMetricName
+          : "quota";
       activeWarnings.push(`Low quota warning: ${provider} (${label}) at ${lowestRemainingQuota}%`);
     }
 
     const isolatedWarnings: string[] = [];
-    if (
-      isolateActiveHost &&
-      isolatedCaches.length > 0 &&
-      (lowestRemainingQuota === null || lowestRemainingQuota >= 20)
-    ) {
+    const isNominalOrUnmeasured =
+      lowestRemainingQuota === null ? true : lowestRemainingQuota >= 20;
+    if (isolateActiveHost && isolatedCaches.length > 0 && isNominalOrUnmeasured) {
       for (const ext of isolatedCaches) {
         isolatedWarnings.push(
           `[Isolated External Cache] Provider '${ext.platformId}' (${ext.metricName}) reports ${ext.quota}% (inactive host, isolated from active host '${activeHost}')`,
@@ -202,10 +225,21 @@ export class TelemetryNormalizationEngine {
     const reconciliation = reconcileNormalizedMetrics(allMetrics);
 
     const reservoirStatus = this.reservoir.getStatus();
+    const agentsCount =
+      options !== undefined && options.activeAgentsCount !== undefined
+        ? options.activeAgentsCount
+        : 0;
     const effectiveQuota = this.reservoir.calculateEffectiveQuota(
       lowestRemainingQuota,
-      options?.activeAgentsCount ?? 0,
+      agentsCount,
     );
+
+    const defaultModel =
+      this.defaultOptions.activeModel !== undefined ? this.defaultOptions.activeModel : null;
+    const activeModel =
+      options !== undefined && options.activeModel !== undefined
+        ? options.activeModel
+        : defaultModel;
 
     const summary: Record<string, unknown> = {
       totalCollectors: collectorList.length,
@@ -220,7 +254,7 @@ export class TelemetryNormalizationEngine {
       activePlatformId: hostDetection.primaryPlatformId,
       activeHostSignal: hostDetection.signal,
       activeHostQuotaRemaining: activeLowest,
-      activeModel: options?.activeModel ?? this.defaultOptions.activeModel ?? null,
+      activeModel,
       isolateActiveHost,
       externalProviderCachesIsolated: externalCachesIsolated,
       isolatedExternalPlatforms: externalPlatforms,
@@ -240,17 +274,22 @@ export class TelemetryNormalizationEngine {
     const isolatedCaches: { platformId: string; metricName: string; quota: number }[] = [];
 
     for (const res of results) {
-      if (!res.isDetected || res.metrics.length === 0) continue;
+      if (!res.isDetected) continue;
+      if (res.metrics.length === 0) continue;
       const isHost = isPlatformMatchingHost(res.platformId, activeHost);
       if (!isHost) externalPlatforms.push(res.platformId);
 
       for (const m of res.metrics) {
         if (m.remainingPercentage === null) continue;
-        if (globalLowest === null || m.remainingPercentage < globalLowest) {
+        const isGlobalLower =
+          globalLowest === null ? true : m.remainingPercentage < globalLowest;
+        if (isGlobalLower) {
           globalLowest = m.remainingPercentage;
           globalMetric = m;
         }
-        if (isHost && (activeLowest === null || m.remainingPercentage < activeLowest)) {
+        const isActiveLower =
+          activeLowest === null ? true : m.remainingPercentage < activeLowest;
+        if (isHost && isActiveLower) {
           activeLowest = m.remainingPercentage;
           activeMetric = m;
         }
