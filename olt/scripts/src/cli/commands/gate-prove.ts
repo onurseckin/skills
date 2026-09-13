@@ -10,7 +10,7 @@ import {
   type GateProofRecord,
   type GateProveOutcome,
 } from "../../graph/gate-proof.ts";
-import { commandIsWeak } from "../../graph/gate-command-policy.ts";
+import { commandIsWeak, diagnoseCommandPolicy } from "../../graph/gate-command-policy.ts";
 
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
@@ -21,7 +21,8 @@ import { readPlanBindings } from "./plan-replan-bindings.ts";
 // A record persisted before this fix has no `outcome` field; derive its equivalent so drift
 // comparisons treat "falsifiable: true" the same whether or not the field was ever written.
 function recordOutcome(record: Pick<GateProofRecord, "falsifiable" | "outcome">): GateProveOutcome {
-  return record.outcome ?? (record.falsifiable ? "falsifiable" : "not_falsifiable");
+  if (record.outcome !== undefined && record.outcome !== null) return record.outcome;
+  return record.falsifiable ? "falsifiable" : "not_falsifiable";
 }
 
 // The machine-readable `outcome` value uses snake_case; this renders the same value the way the
@@ -40,7 +41,8 @@ function humanOutcome(outcome: GateProveOutcome): string {
 function claimedBaseShaFor(state: JsonObject, taskId: string): string | undefined {
   if (!isJsonObject(state.tasks)) return undefined;
   const task = state.tasks[taskId];
-  if (!isJsonObject(task) || !Array.isArray(task.attempts)) return undefined;
+  if (!isJsonObject(task)) return undefined;
+  if (!Array.isArray(task.attempts)) return undefined;
   const attempt = task.attempts.at(-1);
   if (!isJsonObject(attempt)) return undefined;
   const sha = attempt.claimed_base_sha;
@@ -50,15 +52,35 @@ function claimedBaseShaFor(state: JsonObject, taskId: string): string | undefine
 }
 
 export function gateProveCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
-  const taskId = textFlag(flags, "task")!;
+  const run = textFlag(flags, "run");
+  if (typeof run !== "string") {
+    throw new HarnessError("INVALID_ARGUMENT", "missing required --run flag");
+  }
+  if (run.length === 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "missing required --run flag");
+  }
+  const taskId = textFlag(flags, "task");
+  if (typeof taskId !== "string") {
+    throw new HarnessError("INVALID_ARGUMENT", "missing required --task flag");
+  }
+  if (taskId.length === 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "missing required --task flag");
+  }
   const actor = actorFlag(flags);
   const explicitBase = textFlag(flags, "base", false);
   const wallTimeoutMs = integerFlag(flags, "timeout-ms", { minimum: 1_000 });
   const maxFiles = integerFlag(flags, "max-files", { minimum: 1 });
 
   const loaded = loadRun(run);
-  const base = explicitBase ?? claimedBaseShaFor(loaded.state, taskId) ?? DEFAULT_BASE_REF;
+  let base = DEFAULT_BASE_REF;
+  if (typeof explicitBase === "string" && explicitBase.length > 0) {
+    base = explicitBase;
+  } else {
+    const claimed = claimedBaseShaFor(loaded.state, taskId);
+    if (typeof claimed === "string" && claimed.length > 0) {
+      base = claimed;
+    }
+  }
   const binding = readPlanBindings(loaded.state).tasks.find((task) => task.id === taskId);
   if (!binding) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
   if (binding.gate === undefined) {
@@ -74,9 +96,11 @@ export function gateProveCommand(flags: Flags): Record<string, unknown> {
     );
   }
   if (commandIsWeak(binding.gate)) {
+    const diag = diagnoseCommandPolicy(binding.gate);
+    const diagDetail = diag ? `\n\n${diag.diagnostic}` : "";
     throw new HarnessError(
       "INVALID_STATE",
-      `task ${taskId}'s compiled gate ${JSON.stringify(binding.gate)} fails the gate-command-policy re-check at execution time; gate:prove refuses to spawn it. Re-run plan:compile to regenerate a compliant gate.`,
+      `task ${taskId}'s compiled gate ${JSON.stringify(binding.gate)} fails the gate-command-policy re-check at execution time; gate:prove refuses to spawn it. Re-run plan:compile to regenerate a compliant gate.${diagDetail}`,
     );
   }
 
@@ -117,9 +141,11 @@ export function gateProveCommand(flags: Flags): Record<string, unknown> {
     (draft) => appendGateProof(draft, record),
   );
 
+  const effectiveScope =
+    outcome.revertedScope.length > 0 ? outcome.revertedScope.join(", ") : "none";
   const verdictLine =
     outcome.outcome === "refused_absent_at_base"
-      ? `**REFUSED**: \`${taskId}\`'s effective write scope (${outcome.revertedScope.join(", ") || "none"}) has no representation at \`${outcome.base}\` — there is nothing to revert to, so gate:prove will not certify a falsifiability verdict against an absent counterfactual.`
+      ? `**REFUSED**: \`${taskId}\`'s effective write scope (${effectiveScope}) has no representation at \`${outcome.base}\` — there is nothing to revert to, so gate:prove will not certify a falsifiability verdict against an absent counterfactual.`
       : outcome.timedOut
         ? "**UNPROVEN**: the gate timed out against the reverted tree; falsifiability could not be established."
         : outcome.falsifiable
@@ -157,7 +183,10 @@ export function gateProveCommand(flags: Flags): Record<string, unknown> {
     restored_paths: outcome.restoredPaths,
     deleted_paths: outcome.deletedPaths,
     reverted_scope: outcome.revertedScope,
-    previous_falsifiable: previous?.falsifiable ?? null,
+    previous_falsifiable:
+      previous !== undefined && previous.falsifiable !== undefined
+        ? previous.falsifiable
+        : null,
     previous_outcome: previous ? recordOutcome(previous) : null,
     gate_proofs: state.gate_proofs,
   };

@@ -1,9 +1,10 @@
 import { isIdentifier, isNonblank, isRepoRelativePath } from "../requirements/predicates.ts";
 import { unsafeOperand } from "./gate-argv-policy.ts";
-import { commandIsWeak } from "./gate-command-policy.ts";
+import { commandIsWeak, diagnoseCommandPolicy } from "./gate-command-policy.ts";
 
 function validCommand(value: unknown): boolean {
-  return isNonblank(value) || (Array.isArray(value) && value.length > 0 && value.every(isNonblank));
+  if (isNonblank(value)) return true;
+  return Array.isArray(value) && value.length > 0 && value.every(isNonblank);
 }
 
 function commandOperands(value: unknown): readonly string[] {
@@ -38,8 +39,13 @@ export function validateGates(
             `(absolute paths, UNC/drive-letter paths, "file:" URLs, parent-traversal, and ` +
             `reserved Win32 device names are rejected)`,
         );
-      else if (commandIsWeak(gate.command))
+      else if (commandIsWeak(gate.command)) {
         issues.push(`${prefix}.command must perform substantive verification`);
+        const diag = diagnoseCommandPolicy(gate.command);
+        if (diag !== null) {
+          issues.push(`${prefix}.command: ${diag.diagnostic}`);
+        }
+      }
     }
     if (!isRepoRelativePath(gate.cwd, true))
       issues.push(`${prefix}.cwd must be a normalized repository-relative path`);
@@ -56,8 +62,8 @@ export function validateGates(
       issues.push(`${prefix}.requirement_ids must be empty for a run gate`);
     const referenced = new Set<string>();
     for (const id of gate.requirement_ids) {
-      if (typeof id !== "string" || !requirementIds.has(id))
-        issues.push(`${prefix} references unknown requirement`);
+      if (typeof id !== "string") issues.push(`${prefix} references unknown requirement`);
+      else if (!requirementIds.has(id)) issues.push(`${prefix} references unknown requirement`);
       else if (referenced.has(id)) issues.push(`${prefix} repeats requirement ${id}`);
       else {
         referenced.add(id);

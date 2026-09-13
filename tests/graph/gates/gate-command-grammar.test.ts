@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import {
+  diagnoseCommandPolicy,
+  PERMITTED_RUNNERS_LIST,
+} from "../../../olt/scripts/src/graph/gate-command-policy.ts";
 import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
 import { validPlanningDocuments } from "../validation/fixtures.ts";
 
@@ -7,16 +11,23 @@ const pathFormMarker = "must be a repository-relative path";
 
 function commandIssues(command: string[]): string[] {
   const { graph, requirements } = validPlanningDocuments();
-  (graph.gates as Record<string, unknown>[])[0]!.command = command;
+  const gates = graph.gates as Record<string, unknown>[];
+  const firstGate = gates[0];
+  if (firstGate) {
+    firstGate.command = command;
+  }
   return validateGraph(graph, requirements);
 }
 
 function expectWeak(commands: string[][]): void {
   for (const command of commands) {
     const issues = commandIssues(command);
-    expect(issues.some((issue) => issue === weakIssue || issue.includes(pathFormMarker))).toBe(
-      true,
-    );
+    expect(
+      issues.some((issue) => {
+        if (issue === weakIssue) return true;
+        return issue.includes(pathFormMarker);
+      }),
+    ).toBe(true);
   }
 }
 
@@ -152,5 +163,20 @@ describe("strict gate command grammar", () => {
       ["./scripts/check", "src/check.ts"],
       ["scripts/check", "src/check.ts"],
     ]);
+  });
+
+  test("provides actionable diagnostics for prohibited bunx and permitted runners", () => {
+    const diag = diagnoseCommandPolicy(["bunx", "oxlint", "src"]);
+    expect(diag).not.toBeNull();
+    if (diag) {
+      expect(diag.rule).toBe("PROHIBITED_RUNNER_BUNX");
+      expect(diag.diagnostic).toContain("PROHIBITED_RUNNER_BUNX");
+      expect(diag.diagnostic).toContain(PERMITTED_RUNNERS_LIST);
+      expect(diag.diagnostic).toContain("Suggested replacement command: bun run oxlint src");
+    }
+
+    const issues = commandIssues(["bunx", "oxlint", "src"]);
+    expect(issues.some((i) => i.includes("PROHIBITED_RUNNER_BUNX"))).toBe(true);
+    expect(issues.some((i) => i.includes("Permitted runners:"))).toBe(true);
   });
 });

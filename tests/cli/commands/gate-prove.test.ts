@@ -109,8 +109,8 @@ describe("gate:prove CLI Command Coverage Suite", () => {
       run,
       task: "task-core",
       actor: "tester",
-      "timeout-ms": 2000,
-      "max-files": 50,
+      "timeout-ms": "2000",
+      "max-files": "50",
     });
 
     expect(res.outcome).toBe("falsifiable");
@@ -157,8 +157,11 @@ describe("gate:prove CLI Command Coverage Suite", () => {
     transact(run, "coordinator", "corrupt-prior-outcome", {}, (draft) => {
       const proofs = draft.gate_proofs as Array<Record<string, unknown>>;
       if (proofs && proofs.length > 0) {
-        delete proofs[0]!.outcome;
-        proofs[0]!.falsifiable = false;
+        const first = proofs[0];
+        if (first) {
+          delete first.outcome;
+          first.falsifiable = false;
+        }
       }
     });
 
@@ -254,8 +257,11 @@ describe("gate:prove CLI Command Coverage Suite", () => {
     transact(run, "coordinator", "legacy-falsifiable-prior", {}, (draft) => {
       const proofs = draft.gate_proofs as Array<Record<string, unknown>>;
       if (proofs && proofs.length > 0) {
-        delete proofs[proofs.length - 1]!.outcome;
-        proofs[proofs.length - 1]!.falsifiable = true;
+        const last = proofs[proofs.length - 1];
+        if (last) {
+          delete last.outcome;
+          last.falsifiable = true;
+        }
       }
     });
 
@@ -284,5 +290,30 @@ describe("gate:prove CLI Command Coverage Suite", () => {
     expect(resRefused.markdown).toContain(
       "**REGRESSED** — was falsifiable, now refused (absent at base)",
     );
+  });
+
+  test("gate:prove rejection includes actionable diagnostics and permitted runners", async () => {
+    const { run } = await setupCompiledRun("gate-diag", roots);
+
+    transact(run, "coordinator", "bunx-gate", {}, (draft) => {
+      draft.gates = [{ id: "gate-core", scope: "task", command: ["bunx", "oxlint", "src"] }];
+    });
+
+    let thrownError: HarnessError | null = null;
+    try {
+      gateProveCommand({ run, task: "task-core", actor: "tester" });
+    } catch (err) {
+      if (err instanceof HarnessError) {
+        thrownError = err;
+      }
+    }
+
+    expect(thrownError).not.toBeNull();
+    if (thrownError) {
+      expect(thrownError.code).toBe("INVALID_STATE");
+      expect(thrownError.message).toContain("PROHIBITED_RUNNER_BUNX");
+      expect(thrownError.message).toContain("Permitted runners:");
+      expect(thrownError.message).toContain("Suggested replacement command: bun run oxlint src");
+    }
   });
 });
