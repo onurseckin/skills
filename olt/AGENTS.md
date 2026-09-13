@@ -81,7 +81,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - Cognitive Validators (domain: `code-quality`, `product`, `security`, `system-design`, `ui-design`, and general `validator`) are strictly locked out of command execution (0 `run:exec`, 0 tests, 0 bash scripts, 0 build tools), dedicating 100% bandwidth to code reading and Socratic critique.
     - Implementers own 100% of unit test execution.
 21. **Script-Backed Scheduler Diagnostics Engine:**
-    - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `dag`, `report`) before generating telemetry.
+    - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `report`, `report:dag`, `dag:check`) before generating telemetry.
     - Embeds live CLI receipts with SHA-256 cryptographic hashes and ASCII DAG badges into pulse briefs and coordination reports.
 22. **Zero-Exploration Exact-Anchor Briefings & Fast Incremental Verification (`task:check`):**
     - Coordinators must dispatch workers with exact file paths, line ranges (`StartLine`, `EndLine`), symbols, and drop-in replacements (`task:brief`), driving immediate Turn 1 edits with 0 exploratory discovery reads.
@@ -134,7 +134,18 @@ Every agent executing within this repository must adhere to the following non-ne
     - When remaining quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`) or provider rate limit (429) is encountered, supervisory agents gracefully suspend recurring background crons (`mind:pulse`, live auditors, round supervisors).
     - **Zero-Kill Invariant:** Active subagents are NEVER terminated or killed (`manage_subagents kill` strictly forbidden during freeze). Subprocesses sleep in RAM in an IDLE state, preserving uncommitted working tree changes and in-memory epistemic context.
     - **Auto-Wake Resume:** A single one-shot sentinel timer is scheduled (`resetTime + 60s` buffer). Upon sentinel wakeup, supervisory agents re-register stopped crons, restore DAG coordinates from `.olt/quota-dag-snapshot.json`, and resume multi-round convergence.
-36. **Headful Visual Screenshot Review & Optical Inspection Mandate (`HEADFUL_VISUAL_SCREENSHOT_REVIEW`):**
+36. **Zero Backwards-Compatibility Code & Dead Code Elimination Invariant (`ZERO_BACKWARDS_COMPATIBILITY_INVARIANT`):**
+    - When modernizing, modularizing, refactoring, or completing any feature in the repository, agents must **never** create or leave behind backwards-compatibility shims, deprecated forwarding files, stub wrappers, or dead code.
+    - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new, canonical modular structure.
+    - Any obsolete, superseded, or legacy single-file representations (e.g. `schema.ts`, `generator.ts`, `rbac-engine.ts`) must be permanently deleted immediately rather than retained as forwarding aliases.
+37. **Codebase Modularity Invariants, Density Budgets & Clean Facades (`MODULARITY_RATCHET_INVARIANTS`):**
+    - **Strict File Line Budget:** Every TypeScript and source file must remain strictly $\le 400$ physical lines.
+    - **Strict Directory Fanout Budget:** Every directory must contain $\le 10$ files.
+    - **Explicit Named Facade Invariant:** Every TypeScript module directory must expose an explicit `index.ts` facade containing named exports. Wildcard exports (`export * from ...`) are strictly prohibited to maintain deterministic AST import graphs and avoid namespace pollution.
+    - **Zero Facade Bypass Invariant:** Cross-directory imports must strictly target destination `index.ts` facades (e.g. `import { foo } from "../policy/index.ts"`), never reaching across directory boundaries to private internal submodule paths.
+    - **Zero Circular Dependencies:** Import graphs must form a strict directed acyclic graph (DAG). Strongly connected component (SCC) dependency cycles are strictly prohibited.
+    - **Pre-Commit Modularity Ratchet:** All staged changes must pass `bun run modularity:staged` before committing.
+38. **Headful Visual Screenshot Review & Optical Inspection Mandate (`HEADFUL_VISUAL_SCREENSHOT_REVIEW`):**
     - **Automated Tests Are Strictly Only Half the Job:** Automated Playwright test execution and DOM rendering checks verify compilation, DOM node presence, and absence of JavaScript exceptions, but are strictly **ONLY HALF OF THE JOB**. They cannot perceive human aesthetics, optical spacing rhythm, typography balance, descender clipping, color harmony, or visual defects.
     - **Mandatory Headful Review of Screenshot Image Files:** Cognitive UI Validators MUST perform headful visual review of actual captured screenshot image artifacts (`.png`, `.jpg`, `.webp` $\ge 1024$ bytes) saved under `.olt/capsules/<run>/evidence/screenshots/` (using host file/image view tools `view_file` or `evidence:screenshots`).
     - **Mandatory 4-Tier Viewport Resolution Matrix:** Reviewers must visually inspect rendered pixels across all 4 mandatory viewports:
@@ -144,6 +155,68 @@ Every agent executing within this repository must adhere to the following non-ne
       - **Mobile (390x844)**: stacked single-column layout, bottom sheets, full-width cards, 44px+ touch targets.
     - **The 8 Optical Dimensions of Visual Inspection:** Inspect for optical and visual defects across: (1) layout & visual hierarchy, (2) optical spacing & rhythm, (3) typography & font rendering (no descender clipping), (4) clipping & overflow (no `overflow-x` leaks), (5) APCA lightness contrast (`Lc >= 60` for body, `Lc >= 45` for large text), (6) theme harmony across both Light and Dark modes, (7) z-index stacking & overlays, and (8) touch target bounds ($\ge 44\times 44\text{px}$).
     - **Strict Ban on Superficial Approvals:** Approving a UI task based solely on Playwright code pass assertions or headless DOM text logs without opening and visually inspecting actual screenshot image files across all 4 viewports is strictly prohibited (`SUPERFICIAL_UI_APPROVAL`).
+39. **UI Design System Standards & Living Ground Truths (`UI_DESIGN_SYSTEM_GROUND_TRUTH`):**
+    - Domain thinking and UX implementations across universal mobile, tablet, and web clients must strictly conform to the canonical domain cognitive framework (`docs/references/CHAUFFEUR_COGNITIVE_FRAMEWORK.md`) and design system references (`docs/references/luxury-design-system/`, `packages/tokens/`, and component living specs).
+    - Enforce obsidian dark foundations (`#0B0A0D`), layered surface ladders (`#050507` to `#2E2A3D`), 1px top specular hairlines (`border-t-white/15` / `rgba(255, 255, 255, 0.15)`), tabular monospace numeral telemetry, APCA contrast (`Lc >= 60` / WCAG AAA $\ge 7.0:1$), and interactive touch target hitbox floors ($\ge 44\times 44\text{pt}$ standard, $\ge 48\times 48\text{pt}$ for in-transit HUDs).
+    - Storybook catalog (`app/(dev)/storybook/`) and Developer Studio (`app/(dev)/`) serve as canonical living ground-truth specifications for visual regression and responsive component inspection.
+40. **Semantic Plan Naming & Completed Wave Archival Lifecycle (`SEMANTIC_PLAN_ARCHIVAL_LIFECYCLE`):**
+    - Wave planning folders must follow clear semantic descriptive slugs: `docs/planning/wave-<num>-<descriptive-slug>/` for active waves.
+    - All completed wave artifacts, implementation DAGs, and validation manifests must be systematically archived into `docs/planning/completed/wave-<num>-<descriptive-slug>/` upon wave closure.
+    - Ephemeral or obsolete handoff scratch files (`docs/planning/handoff/`) must be purged to maintain clean planning hierarchies.
+    - Permanent architecture blueprints, domain cognitive models (`docs/references/CHAUFFEUR_COGNITIVE_FRAMEWORK.md`), and design tokens must be consolidated into `docs/references/` as ground-truth references rather than left in transient planning directories.
+41. **Elevation of Policy Discovery to Tier 0 Autonomous Governance Bootstrapper (`TIER0_POLICY_DISCOVERY_BOOTSTRAPPER`):**
+    - `policy-discovery` is elevated to Tier 0 Autonomous Governance Bootstrapper (domain: `governance`, manifest: `olt/agents/policy-discovery.yaml`).
+    - It autonomously scans repository signatures, deeply inspects toolchains (package manager, test runner, linter, typechecker, formatter), empirically validates commands without guessing, scaffolds canonical `.olt/policy.json`, and audits repository governance readiness for the Mind and Companion Auditors.
+    - Operates with empirical non-guessing validation, zero code modifications outside governance policy scope, and zero destructive filesystem commands.
+42. **Mandatory One-Time `policy:init` / Auto-Discovery Phase (`MANDATORY_POLICY_INIT_PHASE`):**
+    - Mind initialization (`mind:init`), top-level planning (`plan:init`, `orchestrate`), and harness execution mandate a one-time `policy:init` auto-discovery check.
+    - When `.olt/policy.json` is missing or uncalibrated, the harness automatically invokes `policy:init --auto-discover` to empirically calibrate repository settings before planning, DAG compilation, or worker dispatch begin.
+    - This bootstrapping phase is completely idempotent, ensuring every subsequent phase executes against authoritative, empirically validated toolchains and RBAC rules.
+43. **Mandatory Companion Auditors Lifecycle, Supervisory Cadences & Doctor Health Checks (`MANDATORY_COMPANION_AUDITORS_LIFECYCLE`):**
+    - The repository strictly mandates the 2-Auditor Companion Architecture:
+      - **`mind-auditor` (Tier 0 Companion)**: Dedicated out-of-band observer for Mind (`mind:audit:live`, `mind:pulse`), continuously monitoring strategic loop liveness, 120s anti-stagnation watchdog, creative stagnation (`MIND_CREATIVE_STAGNATION`), preplanning stagnation (`MIND_PREPLANNING_STAGNATION`), and enforcing Zero-Delta Message Suppression.
+      - **`skill-auditor` (Tier 0 Fleet Auditor)**: Consolidated out-of-band observer for Tiers 1-3 (`skill:audit:live`, `meta-audit`), continuously monitoring delta event streams (`events.jsonl`), Work/Span concurrency scaling, and deep behavioral forensics across 7 root-cause heuristics (`TOKEN_BURNING`, `FALSE_SERIALIZATION`, `ROLE_BOUNDARY_DEVIATION`, `POLLING_WASTE`, `CONTEXT_OVERFLOW`, `GHOST_LEASE`, `STRAGGLER`), autonomously injecting remediation proposals into `.olt/backlog.jsonl` via `--inject`.
+    - **1-Shot Batch Auto-Deployment**: When `/olt mind` is invoked, the entrypoint MUST deploy both `mind` and `mind-auditor` in a single 1-shot batch invocation (`Subagents: [{ Role: "mind", ... }, { Role: "mind-auditor", ... }]`).
+    - **Supervisory Cadence & Liveness**: Supervisory pulses (`mind:pulse`) actively inspect companion auditor liveness and report health status.
+    - **Doctor Health Verification**: Pre-completion doctor checks (`doctor`, `doctor:verify`, `doctor:repair`) validate companion auditor configuration, mailbox IPC channels, lock integrity, cursor state, and policy calibration before any task or wave completes.
+44. **100% In-Memory Virtual Mocking Invariant (`ZERO_DISK_IO_TESTING_INVARIANT`):**
+    - **Absolute Ban on Real Disk I/O in Unit Tests:** Unit tests across all domains (`tests/<domain>/*`) must NEVER perform real filesystem writes (`writeFileSync`, `mkdirSync`, `rmSync`, `appendFileSync`, `unlinkSync`, etc.), read real files from disk for testing, spawn real subprocesses for unit testing (`child_process`, `execSync`, `spawnSync`, `Bun.spawn`, `Bun.$`), or create directories/files (such as `./runtime/`, `.tmp/`, or root scratch files).
+    - **Mandatory In-Memory Mocking & Virtual Adapters:** All test suites must strictly execute using in-memory virtual engines and adapters (`VirtualMemoryFS`, `MemoryFsAdapter`, `createVirtualFSSession()`), synthetic in-memory metadata (`enableInMemoryAgentMetadata()` / `disableInMemoryAgentMetadata()`), synthetic virtual clocks, and deterministic in-memory fixtures.
+    - **Strict Ban on Static AST & Source Scanning in Unit Tests:** Unit tests must test isolated module runtime behavior in RAM. Asserting file line counts ($\le 400$), zero `any` types, zero suppressions, or running static AST/directory scanners against repository files within unit tests is strictly prohibited; all static codebase structural rules belong exclusively to `task:check`, oxlint, and pre-commit hooks (see [unit-testing-standards.md](file:///Users/onurseckinsenoglu/repos/skills/olt/references/unit-testing-standards.md)).
+    - **Automated AST Guardrail Enforcement:** The `unit_test_purity` AST linter guardrail mechanically validates all unit test files, rejecting physical filesystem imports/calls, unmocked subprocesses, and heavyweight AST compilation outside in-memory virtual mocks.
+    - **Sub-10ms Execution & Parallel Isolation:** In-memory virtual mocked tests must execute in milliseconds ($P_{90} \le 10\text{ms}$ per test file), ensuring 100% parallel isolation, zero disk contention, zero lock collisions, and instantaneous whole-monorepo verification.
+    - **Triple-100% Coverage Mandate:** Every unit test suite must push for 100% line coverage, 100% statement coverage, and 100% function coverage across all touched source files using comprehensive in-memory mock branches.
+45. **Permanent Live Host-Aware Quota Telemetry Evaluation Across Pulses & Operations (`LIVE_HOST_AWARE_QUOTA_TELEMETRY`):**
+    - Live host-aware quota telemetry is permanently evaluated on every supervisory pulse (`mind:pulse`), command execution, and run iteration.
+    - Host telemetry probes (`host-telemetry-probe`, `host-cadence`) actively inspect provider token usage, rate limits, and remaining execution budget, streaming structured metrics to `.olt/telemetry.jsonl` and embedding quota receipts into pulse briefs.
+    - When remaining quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`), recurring supervisory crons are gracefully suspended while active workers sleep in RAM (Zero-Kill Invariant) until auto-wake sentinel resumption.
+46. **Perpetual Creative Product Owner Invariant & Zero-Idle Cadence (`PERPETUAL_CREATIVE_PRODUCT_OWNER`):**
+    - When active queues and feedback backlogs are clear, Tier 0 Mind is **strictly forbidden from remaining passive, sleeping, or reporting `waiting_for_dependents`**.
+    - Mind must immediately engage Mode A Autonomous Self-Evolution across the 3-Step Flow: (1) Baseline Quality & Invariants Audit, (2) Multi-Viewport UI/UX Perfection (390px, 768px, 1440px, 1920px), (3) Creative Feature Ideation & Roadmap Authoring.
+    - Mind dynamically leverages git worktrees (`workspace_mode: 'branch' | 'share'`) to parallelize independent feature waves without working-tree file collisions.
+47. **Mandatory Tier 0 Companion Fleet & Zero-Termination Invariant (`TIER_0_FLEET_ZERO_TERMINATION`):**
+    - Deploying Tier 0 Mind automatically bootstraps `mind-auditor` and `skill-auditor` companions.
+    - Tier 0 companions are permanently active and immune to automatic teardown or timeout expiration when child campaigns finish.
+    - If Mind reports back-to-back zero-delta pulses ($\ge 2$ consecutive cycles in `idle` or `waiting_for_dependents`), Mind Auditor immediately delivers an authoritative Socratic cognitive shock via Mailbox IPC (`.olt/mailboxes/mind.jsonl`), forcing Mind out of stagnation.
+48. **Mailbox IPC Capabilities & Main-Thread Silence (`MAILBOX_IPC_CAPABILITIES`):**
+    - Inter-agent communication, supervisory heartbeats, and audit receipts flow exclusively through flock-protected mailboxes under `<repo-root>/.olt/mailboxes/` using `msg:send`, `msg:recv`, and `msg:poll`.
+    - **Structured Asynchronous Messaging**: Messages include structured payload types (`DISPATCH_TASK`, `HANDOFF_RECEIPT`, `DIRECTIVE`, `STATUS_UPDATE`), correlation tracking (`--correlation-id`), sender/recipient attribution, and strict payload isolation.
+    - **Main-Thread Noise Elimination**: Agents must NEVER spam the main interactive thread with routine watchdog ticks, pulse summaries, or inter-agent gossip. The main thread is reserved strictly for fatal unrecoverable errors and user-requested milestones.
+49. **Decoupled DAG Engine & Algorithmic Cycle Detection (`DECOUPLED_DAG_ENGINE`):**
+    - The execution graph analysis, topological sorting, and graph health engine is fully decoupled from command execution into `olt/scripts/src/engine/dag/`.
+    - **`dag:check` (Acyclicity & Scope Collision Audit)**: Verifies topological integrity, checks for disjoint write scope conflicts, and detects dependency cycles using Tarjan's Strongly Connected Components (SCC) algorithm alongside Brent's cycle detection algorithm.
+    - **`dag:heal` (Autonomous Graph & Lock Healing)**: Autonomously heals broken dependency edges, repairs corrupted node states, and reclaims stale file-locks under `<repo-root>/.olt/locks/` under concurrent executions or orphaned agent crashes without requiring full run teardown.
+50. **Unified Report Entrypoint & Sugiyama Visualizer (`UNIFIED_REPORT_AND_SUGIYAMA_DAG`):**
+    - All status, progress, telemetry, and graph reporting are unified under `bun harness.ts report` and `bun harness.ts report:dag`.
+    - **Sugiyama Hierarchical DAG Visualizer**: `report:dag` implements the Sugiyama layered layout algorithm (`src/reporting/sugiyama-dag`, `src/graph/sugiyama.ts`), rendering true topological levels, cross-layer edge routing, active status badges (`[● ACTIVE]`, `[✓ DONE]`, `[○ READY]`, `[🚨 ESCALATED]`), and dependency hierarchies in ASCII/Unicode boxed formatting.
+    - **Command Purge**: The legacy root `dag` and `run:status` commands are permanently purged. Old commands fail cleanly with the standard unknown command error without deprecation or redirection shims.
+51. **Hierarchical Escalation Dispatch Protocol (`HIERARCHICAL_ESCALATION_DISPATCH`):**
+    - Task blockers, finding exhaustion, and boundary anomalies must strictly escalate through the 4-tier supervisory chain:
+      - **Tier 3 Worker In-Lease Micro-Cycles**: Fast in-lease review cycles (up to 3 rounds) between Implementer and paired Validator without lease teardown (`task:reject --in-lease`). If unresolvable within budget, the task is escalated to Tier 2 Coordinator (`task:reject`, `changes_requested`).
+      - **Tier 2 Coordinator Repair & Wave Arbitration**: Manages wave-level repair allocation (`max_repair_rounds`) and branch bounds (`max_branch_depth`). Upon exhaustion of repair rounds or repeated deterministic failures, marks task `escalated` and escalates to Tier 1 Orchestrator.
+      - **Tier 1 Orchestrator Recovery & Supervision**: Automated dead-agent lease reclamation, dead-end task classification, and supervisor recovery (`orchestrator:supervise`). If run-level deadlocks or unresolvable gate conflicts occur, escalates to Tier 0 Mind (`mind:escalate`, recording in `escalation.md`).
+      - **Tier 0 Mind Pareto Arbitration**: Evaluates macro strategic trade-offs, initiates strategic replanning or self-evolution adaptation. If external human authority is required, escalates cleanly to the user with full evidence chains and handoff receipts.
+      - **Strict Parent-Child Invariant**: Bypassing tiers (e.g. Tier 3 reaching Tier 0, or Tier 0 directly intervening in Tier 3) is mechanically barred; all escalations must flow hierarchically through the immediate parent supervisor.
 
 ---
 
@@ -156,26 +229,24 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 │                       4-TIER AGENT ARCHITECTURE                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  [ Tier 0: Mind Supervisor & Autonomous Creative Product Manager ]          │
-│    • 30,000-ft strategic consciousness, candidate admission & PO mode       │
-│    • 3-Step Self-Evolution (Baseline Hygiene -> UX -> Creative Ideation)    │
+│  [ Tier 0: Strategic Autonomous Supervisors, Bootstrappers & Auditors ]      │
+│    • mind: Autonomous Creative Product Manager, PO mode, 3-step evolution    │
+│    • policy-discovery: Autonomous Governance Bootstrapper & Ecosystem Probe  │
+│    • mind-auditor: Out-of-band Stagnation (120s) & Pulse Liveness Observer  │
+│    • skill-auditor: Out-of-band Fleet Auditor, Concurrency & Meta-Audit     │
 │    • Dynamic Repository Authority (`repo_roots: ["."]`)                     │
-│    • Zero-Delta Silence & Anti-Repetition Rules                             │
-│    • Atomic Admission-to-Dispatch Chaining (Zero paused admitted items)      │
-│    • Concurrent multi-orchestrator pre-planning & Work/Span tracking         │
+│    • Mandatory one-time policy:init auto-discovery & Zero-Delta Silence      │
 │    • Dispatches ONLY Tier 1 Orchestrators; NEVER spawns Tier 2/3 directly   │
 │                          │                                                  │
 │                          ▼                                                  │
 │  [ Tier 1: Meta-Orchestrator & Loop Runner ]                                │
 │    • Multi-round capsule chaining (up to 10 rounds) & defect synthesis      │
-│    • Background watchdog monitoring & auto-wake                              │
+│    • Background watchdog monitoring, live quota tracking & auto-wake        │
 │    • Dispatches ONLY Tier 2 Coordinators; NEVER spawns Tier 3 directly      │
 │                          │                                                  │
 │                          ▼                                                  │
-│  [ Tier 2: Background Run Coordinator & Meta-Auditor Forensics ]             │
+│  [ Tier 2: Background Run Coordinator ]                                     │
 │    • coordinator: Owns capsule lifecycle, wave dispatch & Tier 3 supervision │
-│    • meta-auditor: Deep behavioral forensics, 7 heuristics & efficiency score│
-│    • Autonomous remediation injection (--inject) to FEEDBACK_QUEUE.jsonl    │
 │    • Employs Zero-Exploration Exact-Anchor Briefings (task:brief)           │
 │    • Direct parental supervision over Tier 3 Workers (hard resets on kill)  │
 │    • Enforces Cognitive Validator Hard-Lock (0 commands) & Mechanic tasks   │
@@ -186,6 +257,8 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 │    • plan-validator: Adversarial auditor of compiled planning topology      │
 │    • implementer: Leased worker executing within disjoint write scope       │
 │    • validator: Cognitive reviewer executing Socratic analysis (0 commands) │
+│    • ui-headless-validator: Playwright runs, 4-viewport capture & hitboxes  │
+│    • ui-optical-validator: Headful screenshot review & cognitive critique   │
 │    • completeness-critic: Whole-run reviewer against original prompt        │
 │                          │                                                  │
 │                          ▼                                                  │
@@ -201,12 +274,12 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 
 The repository standardizes across 4 Canonical Host Platforms with strict model, thinking level, and scheduler assignments. Generic fallbacks and speculative model aliasing are strictly prohibited; CLI and IDE share 100% identical configuration:
 
-| Host Platform     | Supervisory Tier Roles (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator) | Execution Tier Roles (Tier 3 Implementer, Validator, Critic, Subagents) | Thinking Level                          | Scheduler Cadence              | Consistency Contract                                        |
-| :---------------- | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------- | :-------------------------------------- | :----------------------------- | :---------------------------------------------------------- |
-| **`antigravity`** | `gemini-3.7-flash` (High Thinking)                                            | `gemini-3.7-flash` (Medium Thinking)                                    | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
-| **`claude_code`** | `claude-5-opus` (`claude-opus-5`) (High Thinking)                             | `claude-5-sonnet` (`claude-sonnet-5`) (Medium Thinking)                 | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration (No 3.7 references) |
-| **`codex`**       | `gpt-5.6-sol` (High Thinking)                                                 | `gpt-5.6-terra` (Medium Thinking)                                       | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration                     |
-| **`cursor`**      | Cursor latest stable model (High Thinking)                                    | Cursor latest stable model (Medium Thinking)                            | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
+| Host Platform     | Supervisory & Governance Tier Roles (Tier 0 Mind, Policy Discovery, Mind Auditor, Skill Auditor, Tier 1 Orchestrator, Tier 2 Coordinator) | Execution Tier Roles (Tier 3 Implementer, Validator, Critic, Subagents) | Thinking Level                          | Scheduler Cadence              | Consistency Contract                                        |
+| :---------------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- | :-------------------------------------- | :----------------------------- | :---------------------------------------------------------- |
+| **`antigravity`** | `gemini-3.7-flash` (High Thinking)                                                                                                        | `gemini-3.7-flash` (Medium Thinking)                                    | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
+| **`claude_code`** | `claude-5-opus` (`claude-opus-5`) (High Thinking)                                                                                         | `claude-5-sonnet` (`claude-sonnet-5`) (Medium Thinking)                 | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration (No 3.7 references) |
+| **`codex`**       | `gpt-5.6-sol` (High Thinking)                                                                                                             | `gpt-5.6-terra` (Medium Thinking)                                       | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration                     |
+| **`cursor`**      | Cursor latest stable model (High Thinking)                                                                                                | Cursor latest stable model (Medium Thinking)                            | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
 
 #### Canonical Host Directives:
 
@@ -216,20 +289,25 @@ The repository standardizes across 4 Canonical Host Platforms with strict model,
 
 ### Role Contracts & Prohibitions
 
-| Role                      | Tier | Key Responsibilities                                                                                                                                                                                                                                                                                                                                                                                                                          | Non-Negotiable Prohibitions (`must_not`)                                                                                                                                                                                                                                 |
-| :------------------------ | :--: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`mind`**                |  0   | Autonomous Creative Product Manager & Infinite Product Owner, 3-Step Self-Evolution flow (Baseline Hygiene -> Product & UX Perfection -> Creative Ideation), dynamic repository authority (`repo_roots: ["."]`), Zero-Delta Silence & Anti-Repetition rules, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.olt/`), memory persistence, non-idle autonomous discovery. | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, or permit paused admitted items to linger. Strict zero direct code edits.                                                                                                        |
-| **`orchestrator`**        |  1   | Multi-round orchestration, capsule chaining, convergence governance, watchdog cadence, final synthesis, release syncing.                                                                                                                                                                                                                                                                                                                      | **Must not** implement tasks directly, run raw test suites, spawn Tier 3 workers directly, or spill work onto main thread. Strict zero direct code edits.                                                                                                                |
-| **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot exact-anchor briefings, wave dispatching, hard resets, git commits/pushes/sync, Tier 3 supervision.                                                                                                                                                                                                                                                                                       | **Must not** write repository code, claim tasks, assign commands to Cognitive Validators, or execute raw test suites (`bun test`). Strict zero direct code edits.                                                                                                        |
-| **`meta-auditor`**        |  2   | Post-wave and post-run deep behavioral forensics, 7 anomaly detection heuristics, deterministic efficiency scoring (0.0% - 100.0%), autonomous remediation injection (`--inject`), zero-exploration exact-anchor enforcement.                                                                                                                                                                                                                 | **Must not** make direct source code edits, claim code write leases, execute task tests directly, rubber-stamp passes, or bypass 4-tier hierarchy.                                                                                                                       |
-| **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                                                                                                                                                                                                                                                                                                                                        | **Must not** implement code or execute task write scopes.                                                                                                                                                                                                                |
-| **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                                                                                                                                                                                                                                                                                                                                             | **Must not** touch task implementation or alter runtime code.                                                                                                                                                                                                            |
-| **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing; Turn 1 exact edits.                                                                                                                                                                                                                                                                                                                          | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                                                                                                                                                   |
-| **`validator`**           |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review, headful visual screenshot review (`.png`/`.jpg`/`.webp` across all 4 viewports).                                                                                                                                                                                                                                                                    | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, validate own work, or issue `SUPERFICIAL_UI_APPROVAL` by approving UI tasks without headful visual review of captured screenshot files across all 4 viewports. |
-| **`completeness-critic`** |  3   | Whole-run verification against original user prompt.                                                                                                                                                                                                                                                                                                                                                                                          | **Must not** approve runs with unmapped requirements or failing gates.                                                                                                                                                                                                   |
-| **`sub-implementer`**     |  3   | Narrow branch sub-task execution.                                                                                                                                                                                                                                                                                                                                                                                                             | **Must not** exceed parent's write scope subset.                                                                                                                                                                                                                         |
-| **`sub-validator`**       |  3   | Command execution and evidence gathering.                                                                                                                                                                                                                                                                                                                                                                                                     | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                                                                                                                                          |
-| **`sub-investigator`**    |  3   | Read-only diagnosis and root-cause analysis.                                                                                                                                                                                                                                                                                                                                                                                                  | **Must not** modify filesystem state or write code.                                                                                                                                                                                                                      |
+| Role                        | Tier | Key Responsibilities                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Non-Negotiable Prohibitions (`must_not`)                                                                                                                                                                                                                                                             |
+| :-------------------------- | :--: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`mind`**                  |  0   | Autonomous Creative Product Manager & Infinite Product Owner, 3-Step Self-Evolution flow (Baseline Hygiene -> Product & UX Perfection -> Creative Ideation), dynamic repository authority (`repo_roots: ["."]`), Zero-Delta Silence & Anti-Repetition rules, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.olt/`), memory persistence, natural human-grade critique without robotic checklists. | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, fall into idle traps, or permit paused admitted items to linger. Strict zero direct code edits.                                                                                                              |
+| **`policy-discovery`**      |  0   | Autonomous Governance Bootstrapper & Toolchain Scaffolder. Acts as Tier 0 cold-start first responder that validates repo commands empirically, discovers package managers, test runners, linters, and typecheckers, generates canonical `.olt/policy.json`, scaffolds baseline governance records, and triggers awakening of Mind, Mind Auditor, and Skill Auditor.                                                                                                     | **Must not** guess commands without empirical validation, edit code files outside policy/governance scope, execute destructive commands (`rm -rf /`, `git reset --hard`), or bypass mailbox IPC.                                                                                                     |
+| **`mind-auditor`**          |  0   | Dedicated Out-of-Band Companion Auditor for Mind. Continuously audits Mind pulse cadence (`mind:audit:live`, `mind:pulse`), eliminates idle traps (>120s), identifies creative stagnation (`MIND_CREATIVE_STAGNATION`) and preplanning stagnation (`MIND_PREPLANNING_STAGNATION`), delivers natural human-grade cognitive critique, and enforces Zero-Delta Message Suppression.                                                                                        | **Must not** write repository code, execute unit tests, emit duplicate telemetry when delta between consecutive reports is 0, fall into idle traps, or bypass mailbox IPC.                                                                                                                           |
+| **`skill-auditor`**         |  0   | Consolidated Out-of-Band Fleet Auditor for Tiers 1–3 running on a **1-minute high-frequency tracking cadence**. Audits delta event telemetry (`events.jsonl`, `skill:audit:live`), enforces Brent Work/Span concurrency, executes deep behavioral forensics (`meta-audit`) across 7 root-cause heuristics, computes deterministic efficiency scores (0.0%–100.0%), and autonomously injects remediation proposals via `--inject`.                                       | **Must not** write repository code, claim code write leases, execute task unit tests directly, rubber-stamp approvals, or bypass mailbox IPC.                                                                                                                                                        |
+| **`orchestrator`**          |  1   | Multi-round orchestration, capsule chaining, convergence governance, watchdog cadence, final synthesis, release syncing.                                                                                                                                                                                                                                                                                                                                                | **Must not** implement tasks directly, run raw test suites, spawn Tier 3 workers directly, or spill work onto main thread. Strict zero direct code edits.                                                                                                                                            |
+| **`coordinator`**           |  2   | Run lifecycle ownership, agent registration, 1-shot exact-anchor briefings, wave dispatching, hard resets, git commits/pushes/sync, Tier 3 supervision.                                                                                                                                                                                                                                                                                                                 | **Must not** write repository code, claim tasks, assign commands to Cognitive Validators, or execute raw test suites (`bun test`). Strict zero direct code edits.                                                                                                                                    |
+| **`meta-auditor`**          |  2   | Legacy alias for Tier 0 fleet behavioral forensics (`meta-audit`), unified under `skill-auditor`.                                                                                                                                                                                                                                                                                                                                                                       | **Must not** make direct source code edits, claim code write leases, execute task tests directly, or bypass role hierarchy.                                                                                                                                                                          |
+| **`planner`**               |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                                                                                                                                                                                                                                                                                                                                                                  | **Must not** implement code or execute task write scopes.                                                                                                                                                                                                                                            |
+| **`plan-validator`**        |  3   | Adversarial inspection of compiled plan topology.                                                                                                                                                                                                                                                                                                                                                                                                                       | **Must not** touch task implementation or alter runtime code.                                                                                                                                                                                                                                        |
+| **`implementer`**           |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing; Turn 1 exact edits.                                                                                                                                                                                                                                                                                                                                                    | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                                                                                                                                                                               |
+| **`validator`**             |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review, headful visual screenshot review (`.png`/`.jpg`/`.webp` across all 4 viewports).                                                                                                                                                                                                                                                                                              | **Must not** execute ANY bash/test commands (`run:exec`, `can_execute_shell: false`, 0 command privileges), pass without probe round, validate own work, or issue `SUPERFICIAL_UI_APPROVAL` by approving UI tasks without headful visual review of captured screenshot files across all 4 viewports. |
+| **`ui-headless-validator`** |  3   | Specialized UI Mechanic Validator: Automated Playwright execution, headless browser rendering, DOM element hitbox inspection (>=44pt hitbox floor, >=48pt for cockpit HUD), and multi-viewport screenshot capture across all 4 viewports into `.olt/capsules/<run>/evidence/screenshots/`.                                                                                                                                                                              | **Must not** re-run unit tests, edit code, or approve UI tasks without capturing full screenshot image artifacts for cognitive visual review. Automated Playwright checks are strictly ONLY HALF OF THE JOB.                                                                                         |
+| **`ui-optical-validator`**  |  3   | Specialized UI Cognitive Validator: Mandatory headful visual screenshot review (`view_file`), human-grade Socratic visual and architectural critique, 8-dimension optical inspection (layout, spacing, typography, descenders, APCA contrast `Lc >= 60`, theme harmony, z-index, touch targets >= 44x44px).                                                                                                                                                             | **Must not** execute bash/test commands (`can_execute_shell: false`, 0 command privileges), edit files, approve without headful screenshot viewing, or emit robotic checklist boilerplate.                                                                                                           |
+| **`completeness-critic`**   |  3   | Whole-run verification against original user prompt.                                                                                                                                                                                                                                                                                                                                                                                                                    | **Must not** approve runs with unmapped requirements or failing gates.                                                                                                                                                                                                                               |
+| **`sub-implementer`**       |  3   | Narrow branch sub-task execution.                                                                                                                                                                                                                                                                                                                                                                                                                                       | **Must not** exceed parent's write scope subset.                                                                                                                                                                                                                                                     |
+| **`sub-validator`**         |  3   | Command execution and evidence gathering.                                                                                                                                                                                                                                                                                                                                                                                                                               | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                                                                                                                                                                      |
+| **`sub-investigator`**      |  3   | Read-only diagnosis and root-cause analysis.                                                                                                                                                                                                                                                                                                                                                                                                                            | **Must not** modify filesystem state or write code.                                                                                                                                                                                                                                                  |
 
 ### Mind Charter Goals & The Cognitive Pillars
 
@@ -375,6 +453,50 @@ To eliminate sycophantic bias and accelerate execution convergence, validation e
 4. **Transitive Bypass Prevention:**
    - Dependency DAGs must maintain strict topological integrity. Downstream consumer tasks cannot bypass intermediate validator nodes to directly depend on implementer tasks.
 
+### Dual UI Validator Separation (Headless Playwright + Optical Visual Inspection)
+
+For all UI tasks touching frontend components, pages, visual templates, or styling, validation enforces a strict **Dual UI Validator Separation**:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     DUAL UI VALIDATOR SEPARATION PIPELINE                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ UI Task Submission (task:submit) ]                                       │
+│                         │                                                   │
+│                         ▼                                                   │
+│  [ Gate 1: UI Headless Mechanic Validator (ui-headless-validator) ]         │
+│    • Executes automated Playwright test suites via run:exec                 │
+│    • Renders headless browser across all 4 mandatory viewports              │
+│    • Captures PNG/JPG/WEBP screenshots (>= 1024 bytes) into evidence dir    │
+│    • Audits DOM hitbox metrics (>= 44x44px floor, >= 48px cockpit HUD)      │
+│    • Note: Automated Playwright passes are strictly ONLY HALF OF THE JOB    │
+│                         │                                                   │
+│                         ▼ (Receipts + Screenshots Verified)                 │
+│  [ Gate 2: UI Optical Cognitive Validator (ui-optical-validator) ]          │
+│    • Mandatory headful visual screenshot inspection via view_file           │
+│    • Audits 8 optical dimensions: hierarchy, spacing rhythm, typography,    │
+│      descenders, APCA contrast (Lc >= 60), light/dark harmony, z-index      │
+│    • Delivers natural, human-grade Socratic critique (0 commands)           │
+│    • Hardlock: can_execute_shell: false, 0 bash/terminal commands           │
+│                         │                                                   │
+│                         ▼                                                   │
+│  [ Final UI Task Approval (task:review --status pass) ]                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Gate 1: Headless Mechanical Capture & DOM Metrics (`ui-headless-validator`)**:
+   - Executes Playwright test suites and headless rendering.
+   - Generates screenshot artifacts across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844).
+   - Audits DOM element geometry and ensures interactive element hitboxes satisfy the quantitative floor ($\ge 44\text{pt} \times 44\text{pt}$, $\ge 48\text{pt}$ for chauffeur cockpit HUD).
+   - Automated tests are strictly **ONLY HALF OF THE JOB**. Approving UI tasks based solely on automated test runs is prohibited as `SUPERFICIAL_UI_APPROVAL`.
+2. **Gate 2: Optical Visual Inspection & Socratic Critique (`ui-optical-validator`)**:
+   - Dedicated cognitive validator performing headful visual pixel inspection of actual screenshot image artifacts (`view_file`).
+   - Evaluates optical spacing rhythm, typographic balance, font descender clipping, APCA lightness contrast (`Lc >= 60`), theme harmony, and overlay z-index stacking.
+   - Operates under Cognitive Validator Hard-Lock (`can_execute_shell: false`, 0 command privileges).
+   - Replaces rigid robotic checklists with natural human-grade Socratic critique.
+
 ---
 
 ## 5. Anti-Blunder Guidelines & Operational Guardrails
@@ -400,7 +522,7 @@ To protect repository state and prevent common LLM blunder modes:
    - **Never** read, parse, or inject a whole reference tree at once (e.g. every file under `references/cli-capabilities/`).
    - Always discover commands via targeted CLI help: `bun harness.ts help <command>`, a single grep of `references/cli-capabilities/index.jsonl`, or error diagnostics via `bun harness.ts explain <ERROR_CODE>`.
 7. **Monolithic Default Output & Step Guidance:**
-   - Rely on unified status views (`summary:view` / `report` / `run:status`) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
+   - Rely on unified status views (`summary:view` / `report` / `report:dag`, superseding legacy `run:status` and root `dag` which are permanently purged) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
    - Always follow the structured `nextRecommendedCommand` guidance emitted in CLI briefs.
 8. **Bearer Token Confidentiality & Hygiene:**
    - Bearer tokens (`--token <token>`) are authorization credentials that must **only** appear as CLI arguments in direct harness invocations.
@@ -450,10 +572,45 @@ To protect repository state and prevent common LLM blunder modes:
     - Main thread and supervisory tiers strictly refrain from direct source file modifications and test suite executions. Zero main-thread implementation is an absolute repository invariant (0 code edits, 0 unit test runs, 0 PR reviews on the main interactive thread).
 24. **4 Canonical Hosts, Models & Thinking Levels Governance:**
     - Strictly use the 4 canonical host configurations (`antigravity`: `gemini-3.7-flash` (high thinking supervisory, medium thinking execution/implementer), 5m; `claude_code`: `claude-5-opus` (high thinking supervisory) / `claude-5-sonnet` (medium thinking execution/implementer), 15m; `codex`: `gpt-5.6-sol` (high thinking supervisory) / `gpt-5.6-terra` (medium thinking execution/implementer), 15m; `cursor`: Cursor latest stable model (high thinking supervisory, medium thinking execution/implementer), 5m). Generic fallbacks are strictly banned.
-25. **Headful Visual Screenshot Review Mandate & Anti-Superficial UI Approval:**
+25. **Zero Backwards-Compatibility Code & Dead Code Elimination Invariant (`ZERO_BACKWARDS_COMPATIBILITY_INVARIANT`):**
+    - When modernizing, modularizing, or refactoring features, agents must **never** leave backwards-compatibility shims, deprecated forwarding files, wrapper aliases, or dead code behind.
+    - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new canonical modular structure.
+    - Any obsolete, superseded, or legacy single-file representations (e.g. `schema.ts`, `generator.ts`, `rbac-engine.ts`) must be permanently deleted from disk and git index immediately.
+26. **Codebase Modularity Invariants, Density Budgets & Clean Facades (`MODULARITY_RATCHET_INVARIANTS`):**
+    - Every source and test file must remain strictly $\le 400$ physical lines.
+    - Every directory must contain $\le 10$ files.
+    - Every directory must expose an explicit `index.ts` facade containing named exports. Wildcard exports (`export * from ...`) are strictly prohibited.
+    - Cross-directory imports must strictly target destination `index.ts` facades, never reaching across directory boundaries to private internal submodule paths.
+    - Import graphs must form a strict DAG with 0 dependency cycles. All staged changes must pass `bun run modularity:staged` before committing.
+27. **Headful Visual Screenshot Review Mandate & Anti-Superficial UI Approval:**
     - Never approve a UI surface based solely on green Playwright test logs, headless DOM node assertions, or JSX source inspection. Automated DOM checks and script runs are strictly **ONLY HALF OF THE JOB**.
     - Cognitive UI Validators MUST open and visually inspect actual screenshot image files (`.png`, `.jpg`, `.webp` $\ge 1024$ bytes) across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844) in both Light and Dark themes.
     - Inspect the 8 optical dimensions: visual layout & hierarchy, optical spacing & rhythm, font rendering & typography, clipping/overflow (no `overflow-x` leaks), APCA contrast (`Lc >= 60`), theme harmony, z-index layering, and touch target bounds ($\ge 44\times 44\text{px}$). Approving without visual inspection is audited as `SUPERFICIAL_UI_APPROVAL`.
+28. **Semantic Test Directory Mirroring & Ban on Arbitrary `suite-XX` Numbering (`SEMANTIC_TEST_MIRRORING_INVARIANT`):**
+    - Test files must strictly mirror the application source code domain directory hierarchy (e.g., `apps/universal/src/features/fleet/demand-rebalancing/` $\to$ `apps/universal/tests/features/fleet/demand-rebalancing.test.tsx`).
+    - Arbitrary numbered suite folders (`suite-01/`, `suite-12/`, `suite-26/`, `suite-32/`) are strictly prohibited as mechanical anti-patterns.
+    - Test modularity follows the same rules as source code: $\le 400$ physical lines per file, $\le 10$ files per folder, modularized with semantic subdirectories matching domain concepts (e.g., `tests/features/fleet/rebalancing/`), never artificial numbered suites.
+    - **Repository Root Scratch Cleanliness:** All agent scratch scripts, one-off python/shell tools, and experimental output directories belong strictly in `.tmp/` (gitignored). Never pollute the root directory.
+29. **UI Design System Compliance & Token Ground Truth (`UI_DESIGN_SYSTEM_GROUND_TRUTH`):**
+    - All UI components, screens, and design tokens must strictly adhere to canonical domain cognitive models (`docs/references/HOW_TO_THINK.md`) and design system references (`docs/references/luxury-design-system/`, `packages/tokens/`).
+    - Hardcoding ad-hoc hex values, skipping specular top hairlines (`border-t-white/15`), violating APCA contrast (`Lc >= 60`), or using interactive touch targets $< 44\times 44\text{pt}$ is strictly prohibited.
+30. **Semantic Plan Naming & Completed Wave Archival Lifecycle (`SEMANTIC_PLAN_ARCHIVAL_LIFECYCLE`):**
+    - Active wave planning directories must follow semantic hyphenated names (`docs/planning/wave-<num>-<descriptive-slug>/`).
+    - Completed waves must be systematically archived to `docs/planning/completed/wave-<num>-<descriptive-slug>/` upon gate sign-off.
+    - Stale or ephemeral handoff documents (e.g. `docs/planning/handoff/`) must be removed, and permanent design system/architecture specs (`docs/references/HOW_TO_THINK.md`) must reside under `docs/references/`.
+31. **Multi-Wave Parallel Concurrency via Git Worktrees & 50-Subagent Capacity Floor (`MULTI_WAVE_WORKTREE_CONCURRENCY`):**
+    - Multiple disjoint waves can execute concurrently using isolated Git worktrees (`Workspace: "branch"` or `git worktree add .tmp/worktrees/wave-XX`).
+    - Clean rebase and branch consolidation: when a wave finishes, rebase cleanly onto latest `main`, run gates, and merge cleanly (zero `--force` or `--no-verify`). Clean up worktree directory and branch upon completion.
+    - Global Subagent Concurrency Floor: Maximum 50 total active subagents across the monorepo ($P \le 50$) to prevent token burn and provider quota exhaustion.
+    - Dynamic non-blocking wave intake: Mind continually admits and compiles subsequent waves while prior waves are executing in parallel worktrees.
+32. **Interactive End-to-End UI & Cognitive Validation Protocol (`INTERACTIVE_UI_COGNITIVE_VALIDATION`):**
+    - Strict ban on raw Playwright runner report screenshots.
+    - Interactive user journey testing: UI Validators must deploy headless/headful browser automation to actually interact with the living app (fill form fields, trigger gestures, scroll viewports, request rides, test fake data flows across all 4 personas).
+    - Human-like Socratic cognitive critiques assessing luxury aesthetics, Obsidian depth, typography descenders, touch hitboxes, and real-world chauffeur ergonomics.
+    - Mandatory Turn 1 initial reading of `AGENTS.md` by every deployed subagent across all tiers.
+33. **Strict Ban on Wave Numbers in Source Code, Storybook, Fixtures & Tests (`STRICT_BAN_ON_WAVE_NUMBERS_IN_CODE`):**
+    - Wave numbers are ephemeral planning constructs only. They must never appear in application components, Storybook stories (`Wave14Stories.tsx`), fixtures (`wave14-fixtures.ts`), mock data, test files (`wave2-ui-primitives.tsx`), or test folders (`tests/unit/ui/wave14/`).
+    - All code, storybook stories, and test suites must be named strictly by their permanent semantic business domain (e.g., `ShiftHandoverStories.tsx`, `tests/features/fleet/instant-payouts.test.ts`).
 
 ---
 
@@ -466,12 +623,16 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
    - External boundaries must use strict runtime schema validations or TypeScript type guards.
 2. **Zero Compiler & Linter Suppressions:**
    - Exactly **0 compiler/linter suppressions** (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) are permitted anywhere in the repository.
-3. **Context-Friendly File Size Budgets:**
-   - Production source files must remain compact and modular: $\le 400$ physical lines per file.
+3. **Context-Friendly File Size Budgets & Modularity Ratchet:**
+   - Production source files and unit test suites must remain strictly bounded: $\le 400$ physical lines per file, $\le 10$ files per directory fanout.
+   - Zero backwards-compatibility code, zero dead code, explicit named facade exports, zero facade bypasses, and zero circular dependencies.
 4. **100% Host-Agnostic & Zero Runtime Dependencies:**
    - Harness and scripts must run using native runtime APIs (`bun` / `node` built-ins). No external runtime `node_modules` or runtime `npm install` requirements.
 5. **File-Scoped Falsifiable Test Coverage:**
    - Execute ONLY file-scoped test commands (`bun test <path.test.ts>`) matching the modified scope. Whole-repo test suites are strictly prohibited during task execution.
+6. **In-Memory Testing Purity & Sub-10ms Performance Benchmark:**
+   - All unit tests must adhere strictly to `ZERO_DISK_IO_TESTING_INVARIANT` using `VirtualMemoryFS` and in-memory mocks ($P_{90} \le 10\text{ms}$ per test file).
+   - Real disk I/O, subprocess execution (`child_process`, `Bun.spawn`, `Bun.$`), and repository static AST inspection in unit tests are strictly banned, enforced mechanically via AST linter guardrail `unit_test_purity`. Codebase-wide structural and AST checks are enforced out-of-band via `task:check` and pre-commit hooks (see [unit-testing-standards.md](file:///Users/onurseckinsenoglu/repos/skills/olt/references/unit-testing-standards.md)).
 
 ---
 
@@ -667,6 +828,85 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### G. Tier 0 Policy Discovery & Toolchain Bootstrapping Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│          TIER 0 POLICY DISCOVERY & TOOLCHAIN BOOTSTRAPPING STEP-MACHINE     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Auto-Discover & Scaffold Canonical Policy:                              │
+│     bun harness.ts policy:init --calibrate                                  │
+│     (Empirically probes package managers, test runners, linters, types)     │
+│                                                                             │
+│  2. Inspect or Query Policy Settings:                                       │
+│     bun harness.ts policy:get --key test_runner.default_command             │
+│                                                                             │
+│  3. Update Governance Key Value with Atomic Locking:                         │
+│     bun harness.ts policy:set --key review_protocol.cognitive_pushes --val 5│
+│                                                                             │
+│  4. Check Policy File Drift & Checksum Integrity:                           │
+│     bun harness.ts policy:check-drift --rearm                               │
+│                                                                             │
+│  5. Audit Governance Readiness for Mind and Companion Auditors:             │
+│     bun harness.ts policy:audit                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### H. Mandatory Companion Auditor Lifecycle & Doctor Health Check Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│    MANDATORY COMPANION AUDITORS & DOCTOR HEALTH CHECK STEP-MACHINE          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Deploy Mind + Mind Auditor Companions in 1-Shot Batch:                  │
+│     (Antigravity: invoke_subagent with Mind & Mind-Auditor verbatim YAML)   │
+│                                                                             │
+│  2. Audit Mind Liveness & Detect Stagnation (>120s):                        │
+│     bun harness.ts mind:audit:live                                          │
+│     (Flags MIND_CREATIVE_STAGNATION or MIND_PREPLANNING_STAGNATION)         │
+│                                                                             │
+│  3. Supervisory Cadence Pulse Verification:                                 │
+│     bun harness.ts mind:pulse --run <run>                                   │
+│     (Inspects companion auditor liveness, Work/Span, Zero-Delta status)     │
+│                                                                             │
+│  4. Fleet Telemetry & Behavioral Forensics Audit:                           │
+│     bun harness.ts skill:audit:live                                         │
+│     bun harness.ts meta-audit --run <run> --inject                          │
+│                                                                             │
+│  5. Pre-Completion Doctor Health Verification:                               │
+│     bun harness.ts doctor --run <run>                                       │
+│     bun harness.ts doctor:verify                                            │
+│     (Requires Healthy: yes; auto-heals locks, mailboxes, and worktrees)     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### I. Live Host-Aware Quota Telemetry & Circuit-Breaker Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│       LIVE HOST-AWARE QUOTA TELEMETRY & CIRCUIT-BREAKER STEP-MACHINE        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Evaluate Host Quota Telemetry Live Across Pulses & Operations:          │
+│     bun harness.ts mind:pulse                                               │
+│     (Host telemetry probe evaluates remaining tokens, RPM/TPM headroom)     │
+│                                                                             │
+│  2. Inspect Streamed Quota Records:                                         │
+│     (Metrics appended continuously to .olt/telemetry.jsonl)                 │
+│                                                                             │
+│  3. Graceful Quota Freeze (<10% Threshold):                                 │
+│     (Suspends recurring crons; active subagents sleep in RAM: Zero-Kill)    │
+│                                                                             │
+│  4. Auto-Wake Resume on Sentinel Timer:                                     │
+│     (Restores DAG coordinates from .olt/quota-dag-snapshot.json & resumes)   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 8. Deep Behavioral Forensics Taxonomy & Exact-Anchor Protocol
@@ -728,4 +968,4 @@ When executed with `--inject` (`bun harness.ts meta-audit --run <run> --inject`)
    - Enforces strict monorepo quality gates (0 TypeScript `any`, 0 compiler suppressions, zero-fallback error codes) in milliseconds.
 
 3. **1-Shot Batch Auto-Deployment of Mind and Mind-Auditor (`/olt mind`)**:
-   - Dispatches both Tier 0 `mind` and Tier 1 `mind-auditor` companions concurrently in a single atomic batch invocation.
+   - Dispatches both Tier 0 `mind` and Tier 0 `mind-auditor` companions concurrently in a single atomic batch invocation (`invoke_subagent`).

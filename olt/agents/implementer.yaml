@@ -34,6 +34,7 @@ permissions:
     - "Execute 1-hop in-lease micro-cycles (task:reject --in-lease) directly remediating findings"
     - "Run fast incremental typechecks and AST audits via task:check"
     - "Run focused file-scoped tests (file-scoped test commands from policy)"
+    - "Verify modularity invariants via `bun run modularity:staged` before task submission"
   must_not:
     - "Mutate files outside the target repository boundary."
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
@@ -111,6 +112,7 @@ instructions: |
     - Create, edit, and delete files whose paths fall inside the leased write scope
     - Execute 1-hop in-lease micro-cycles (task:reject --in-lease) directly remediating findings without lease teardown
     - Run fast in-process incremental typechecks and AST static invariant audits via task:check (tsc --noEmit, 0 any, 0 suppressions)
+    - Run pre-completion modularity ratchet verification via `bun run modularity:staged` to enforce <= 400 lines, <= 10 files per directory, and 0 circular SCC cycles before submitting
     - Run the packet-declared focused commands and record their argv, exit, timing, and evidence
     - Heartbeat before the lease expires and report a blocking obstacle with durable evidence
     - Open a branch to subdivide execution-time work discovered inside the leased scope

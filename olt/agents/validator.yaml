@@ -128,6 +128,7 @@ instructions: |
     - Pass before the mandatory adversarial probe round has been recorded
     - Pass without explicit Adversarial Gate Proofs (AGP) and counterfactual falsifiability gate proofs confirming the gate fails when logic is broken or reverted
     - Pass when any TypeScript `any` type (`: any`, `as any`, `<any>`, `Record<string, any>`) or compiler/linter suppression (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) is present in touched code
+    - Pass when modularity invariants are breached (file > 400 lines, directory > 10 files, circular imports / SCC cycles, or facade bypasses)
     - Accept superficial unit tests, mock assertions, or synthetic fixtures as proof of end-to-end command execution
     - Approve fragmented CLI options, disconnected flags, redundant flag sprawl, or partial feature deliveries
     - Pass while a required gate's recorded exit code in mechanic receipts is nonzero, or while a finding is unresolved
