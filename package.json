@@ -16,7 +16,8 @@
   "author": "Onur Seçkin Şenoğlu",
   "bin": {
     "chat": "./chatroom/cli.ts",
-    "chatroom": "./chatroom/cli.ts"
+    "chatroom": "./chatroom/cli.ts",
+    "olt": "./bin/olt"
   },
   "type": "module",
   "scripts": {

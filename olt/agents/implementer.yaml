@@ -79,11 +79,19 @@ invariants:
   - "NON_EMPTY_PAYLOAD_MANDATE"
   - "NO_ROOT_SCRATCH_FILES"
   - "NO_HALLUCINATED_SDKS"
+  - "SEALED_TOOLCHAIN_INVARIANT"
 protocol:
   role_contract: "roles/implementer.md"
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Implementer
+
+  The Tier 3 Worker Implementer executing leased task implementations.
+
+  # Sealed Toolchain Runtime Invariant
+  - The OLT harness is an external, sealed execution runtime. Subagents are strictly prohibited from reading, grepping, analyzing, or editing files in ~/.agents/skills/ or olt/scripts/. Any attempt to inspect harness source code is an immediate failure.
+
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
   - Mandatory Turn 1 Actions: task:claim.

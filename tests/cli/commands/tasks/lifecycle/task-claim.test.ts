@@ -102,7 +102,9 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
     expect(lines[0]).toBe("=".repeat(80));
     expect(lines[1]).toContain(`LEASE ACQUIRED: ${claim.token}`);
     expect(lines[2]).toContain("EXPIRES AT:");
-    expect(lines[3]).toContain(`SUBMIT WITH: bun harness.ts task:submit --run ${run} --task ${TASK_ID} --token ${claim.token}`);
+    expect(lines[3]).toContain(
+      `SUBMIT WITH: bun harness.ts task:submit --run ${run} --task ${TASK_ID} --token ${claim.token}`,
+    );
     expect(lines[4]).toBe("=".repeat(80));
     expect(lines[5]).toBe("");
     expect(lines[6]).toContain(`### Task Leased: ${TASK_ID}`);
@@ -124,13 +126,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
     const activeToken = String(claim.token);
 
     // Test task:token text mode (default)
-    const tokenRes = await execute([
-      "task:token",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-    ]);
+    const tokenRes = await execute(["task:token", "--run", run, "--task", TASK_ID]);
     expect(tokenRes.token).toBe(activeToken);
     expect(tokenRes.status).toBe("leased");
     expect(typeof tokenRes.expires_in_seconds).toBe("number");
@@ -139,14 +135,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
     expect(String(tokenRes.markdown)).toContain("STATUS=leased");
 
     // Test task:token json mode
-    const tokenJson = await execute([
-      "task:token",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--json",
-    ]);
+    const tokenJson = await execute(["task:token", "--run", run, "--task", TASK_ID, "--json"]);
     expect(tokenJson.token).toBe(activeToken);
     const parsedJson = JSON.parse(String(tokenJson.markdown));
     expect(parsedJson.token).toBe(activeToken);
@@ -154,13 +143,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
     expect(parsedJson.task_id).toBe(TASK_ID);
 
     // Test task:lease alias
-    const leaseRes = await execute([
-      "task:lease",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-    ]);
+    const leaseRes = await execute(["task:lease", "--run", run, "--task", TASK_ID]);
     expect(leaseRes.token).toBe(activeToken);
     expect(leaseRes.status).toBe("leased");
   });

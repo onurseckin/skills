@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import {
+  checkRuntimeToolchainSealing,
+  isSealedHarnessPath,
+  SEALED_TOOLCHAIN_INVARIANT,
+  validateWriteScopeSealing,
+} from "../../../olt/scripts/src/reporting/doctor/verification/index.ts";
 import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/sync/olt-bin.ts";
 import {
   cleanupVirtualSyncFS,
@@ -187,5 +193,129 @@ describe("ensureGlobalOltBinary", () => {
     const result = ensureGlobalOltBinary({ homeDir: root });
     expect(result.binaryPath).toBe(join(root, ".local", "bin", "olt"));
     expect(vfs.existsSync(result.binaryPath)).toBe(true);
+  });
+});
+
+describe("bin/olt wrapper script and package.json bin entry", () => {
+  test("bin/olt script format and executable permissions in virtual filesystem", () => {
+    const root = scratchRoot(import.meta.path, "olt-bin-wrapper");
+    const binDir = join(root, "bin");
+    const binOltPath = join(binDir, "olt");
+    vfs.mkdirSync(binDir, { recursive: true });
+    vfs.writeFileSync(
+      binOltPath,
+      '#!/usr/bin/env bash\nDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\nexec bun "${DIR}/../olt/scripts/harness.ts" "$@"\n',
+      { mode: 0o755 },
+    );
+    session.chmodSync(binOltPath, 0o755);
+
+    expect(vfs.existsSync(binOltPath)).toBe(true);
+    const stats = session.statSync(binOltPath);
+    expect((stats.mode & 0o111) !== 0).toBe(true);
+
+    const content = vfs.readFileSync(binOltPath, "utf-8");
+    expect(content).toContain("#!/usr/bin/env bash");
+    expect(content).toContain('exec bun "${DIR}/../olt/scripts/harness.ts" "$@"');
+  });
+
+  test("package.json exposes bin/olt under olt command in virtual filesystem", () => {
+    const root = scratchRoot(import.meta.path, "olt-pkg-bin");
+    const pkgPath = join(root, "package.json");
+    vfs.writeFileSync(
+      pkgPath,
+      JSON.stringify({
+        name: "@onurseckin/skills",
+        bin: {
+          chat: "./chatroom/cli.ts",
+          chatroom: "./chatroom/cli.ts",
+          olt: "./bin/olt",
+        },
+      }),
+    );
+
+    expect(vfs.existsSync(pkgPath)).toBe(true);
+    const parsed = JSON.parse(vfs.readFileSync(pkgPath, "utf-8")) as {
+      bin?: Record<string, string>;
+    };
+    expect(parsed.bin).toBeDefined();
+    expect(parsed.bin?.olt).toBe("./bin/olt");
+    expect(parsed.bin?.chat).toBe("./chatroom/cli.ts");
+    expect(parsed.bin?.chatroom).toBe("./chatroom/cli.ts");
+  });
+});
+
+describe("toolchain sealing invariants and runtime-doctor-checker", () => {
+  test("identifies sealed harness paths correctly", () => {
+    expect(isSealedHarnessPath("olt/scripts/harness.ts")).toBe(true);
+    expect(isSealedHarnessPath("olt/scripts/src/cli/execute.ts")).toBe(true);
+    expect(isSealedHarnessPath("~/.agents/skills/olt/scripts/harness.ts")).toBe(true);
+    expect(isSealedHarnessPath(".agents/skills/something.ts")).toBe(true);
+
+    expect(isSealedHarnessPath("src/index.ts")).toBe(false);
+    expect(isSealedHarnessPath("bin/olt")).toBe(false);
+    expect(isSealedHarnessPath("package.json")).toBe(false);
+  });
+
+  test("validates write scope and blocks workers from editing sealed harness files", () => {
+    const permittedScope = ["bin/olt", "package.json", "tests/sync/shell/olt-bin.test.ts"];
+    const permittedFindings = validateWriteScopeSealing(permittedScope, "worker-1");
+    expect(permittedFindings.length).toBe(0);
+
+    const prohibitedScope = ["src/code.ts", "olt/scripts/harness.ts"];
+    const prohibitedFindings = validateWriteScopeSealing(prohibitedScope, "worker-bad");
+    expect(prohibitedFindings.length).toBe(1);
+    const firstFinding = prohibitedFindings[0];
+    expect(firstFinding).toBeDefined();
+    if (firstFinding !== undefined) {
+      expect(firstFinding.invariant).toBe(SEALED_TOOLCHAIN_INVARIANT);
+      expect(firstFinding.severity).toBe("ERROR");
+      expect(firstFinding.path).toBe("olt/scripts/harness.ts");
+    }
+  });
+
+  test("checkRuntimeToolchainSealing verifies repository root and bin/olt integrity using virtual fs", () => {
+    const root = scratchRoot(import.meta.path, "olt-doctor-verify");
+    const binDir = join(root, "bin");
+    const binOltPath = join(binDir, "olt");
+    vfs.mkdirSync(binDir, { recursive: true });
+    vfs.writeFileSync(binOltPath, '#!/usr/bin/env bash\nexec bun harness.ts "$@"\n', {
+      mode: 0o755,
+    });
+    session.chmodSync(binOltPath, 0o755);
+
+    const result = checkRuntimeToolchainSealing({
+      repoRoot: root,
+      writeScopes: [["bin/olt", "package.json"]],
+      fs: {
+        existsSync: (p: string) => vfs.existsSync(p),
+        statSync: (p: string) => session.statSync(p),
+      },
+    });
+    expect(result.passed).toBe(true);
+    expect(result.invariant).toBe(SEALED_TOOLCHAIN_INVARIANT);
+    expect(result.findings.length).toBe(0);
+  });
+
+  test("agent manifests declare SEALED_TOOLCHAIN_INVARIANT and instructions in virtual filesystem", () => {
+    const root = scratchRoot(import.meta.path, "olt-manifest-verify");
+    const manifestPaths = [
+      "olt/agents/skill-auditor.yaml",
+      "olt/agents/coordinator.yaml",
+      "olt/agents/implementer.yaml",
+      "olt/agents/validator.yaml",
+    ];
+
+    for (const relPath of manifestPaths) {
+      const fullPath = join(root, relPath);
+      vfs.mkdirSync(join(fullPath, ".."), { recursive: true });
+      vfs.writeFileSync(
+        fullPath,
+        `invariants:\n  - "SEALED_TOOLCHAIN_INVARIANT"\ninstructions: |\n  The OLT harness is an external, sealed execution runtime.\n`,
+      );
+      expect(vfs.existsSync(fullPath)).toBe(true);
+      const content = vfs.readFileSync(fullPath, "utf-8");
+      expect(content).toContain("SEALED_TOOLCHAIN_INVARIANT");
+      expect(content).toContain("The OLT harness is an external, sealed execution runtime");
+    }
   });
 });

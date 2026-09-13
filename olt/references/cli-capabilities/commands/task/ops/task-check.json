@@ -47,6 +47,13 @@
       "default": null
     },
     {
+      "name": "inspect",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "format",
       "type": "string",
       "required": false,

@@ -1,5 +1,9 @@
 import { taskBriefCommand } from "../../commands/task-brief.ts";
-import { taskCheckCommand } from "../../commands/task-check.ts";
+import {
+  taskCheckCommand,
+  taskInspectCommand,
+  capsuleSummaryCommand,
+} from "../../commands/task-check.ts";
 import { taskProbeCommand } from "../../commands/task-ops.ts";
 import { taskListCommand } from "../../commands/task-queue-ops.ts";
 import { DEFAULT_EXIT_CODES, type CommandSpec, type ExitCodeSpec } from "../types.ts";
@@ -57,6 +61,11 @@ export const taskCheckSpec: CommandSpec = taskCmd(
     opt("actor", "string", "Who is running the check."),
     opt("typecheck", "bool", "Force the typecheck pass to run."),
     opt("lint", "bool", "Run only the AST lint audit."),
+    opt(
+      "inspect",
+      "bool",
+      "Inspect task status, gate command, gate proof hash, and review verdicts.",
+    ),
     opt("format", "string", "Output format (json, text, etc.)."),
   ],
   taskCheckCommand,
@@ -85,11 +94,45 @@ export const taskListSpec: CommandSpec = taskCmd(
   ["bun harness.ts task:list --status PENDING"],
 );
 
+export const taskInspectSpec: CommandSpec = taskCmd(
+  "task:inspect",
+  "Concise read-model projection of task status, gate command, gate proof hash, and review verdicts.",
+  "Provides a compact projection of task state and verification metadata directly from capsule state.",
+  [
+    req("run", "string", "Capsule run root."),
+    req("task", "string", "Task ID to inspect."),
+    opt("format", "string", "Output format (markdown or json)."),
+  ],
+  taskInspectCommand,
+  ["bun harness.ts task:inspect --run <capsule> --task <task-id>"],
+);
+
+export const capsuleSummarySpec: CommandSpec = taskCmd(
+  "capsule:summary",
+  "Wave-level summary projection of the capsule run.",
+  "Provides a concise overview of task progress grouped by wave without dumping raw events.",
+  [
+    req("run", "string", "Capsule run root."),
+    opt("format", "string", "Output format (markdown or json)."),
+  ],
+  capsuleSummaryCommand,
+  ["bun harness.ts capsule:summary --run <capsule>"],
+);
+
 export const TASK_INSPECTION_COMMANDS: readonly CommandSpec[] = [
   taskBriefSpec,
   taskProbeSpec,
   taskCheckSpec,
   taskListSpec,
+  taskInspectSpec,
+  capsuleSummarySpec,
 ];
 
-export { taskBriefCommand, taskCheckCommand, taskListCommand, taskProbeCommand };
+export {
+  taskBriefCommand,
+  taskCheckCommand,
+  taskListCommand,
+  taskProbeCommand,
+  taskInspectCommand,
+  capsuleSummaryCommand,
+};

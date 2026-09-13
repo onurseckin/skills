@@ -12,8 +12,7 @@ export interface AuditorCursor {
   readonly lastStagnationSignature?: string | undefined;
 }
 
-export const QUOTA_FREEZE_WORKER_TERMINATION_DEFECT =
-  "QUOTA_FREEZE_WORKER_TERMINATION_DEFECT";
+export const QUOTA_FREEZE_WORKER_TERMINATION_DEFECT = "QUOTA_FREEZE_WORKER_TERMINATION_DEFECT";
 
 export interface MindAuditLiveResult {
   readonly stagnant: boolean;

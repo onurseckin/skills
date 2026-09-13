@@ -184,9 +184,7 @@ export function gateProveCommand(flags: Flags): Record<string, unknown> {
     deleted_paths: outcome.deletedPaths,
     reverted_scope: outcome.revertedScope,
     previous_falsifiable:
-      previous !== undefined && previous.falsifiable !== undefined
-        ? previous.falsifiable
-        : null,
+      previous !== undefined && previous.falsifiable !== undefined ? previous.falsifiable : null,
     previous_outcome: previous ? recordOutcome(previous) : null,
     gate_proofs: state.gate_proofs,
   };

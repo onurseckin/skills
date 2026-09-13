@@ -44,7 +44,12 @@ function checkExplicitMind(state: Readonly<Record<string, unknown>>): boolean {
 }
 
 function checkExplicitOrchestrator(state: Readonly<Record<string, unknown>>): boolean {
-  if (state.orchestrator !== undefined && state.orchestrator !== null && state.orchestrator !== false) return true;
+  if (
+    state.orchestrator !== undefined &&
+    state.orchestrator !== null &&
+    state.orchestrator !== false
+  )
+    return true;
   if (typeof state.run_id === "string") {
     if (state.run_id.includes("orchestrator")) return true;
   }

@@ -69,6 +69,9 @@ charter:
     Never commit cosmetic churn, abstraction bloat, or speculative refactoring (Anti-Make-Work).
     Never act as a spectator log-tailing agent (e.g. running tail, tail -n, tail -f, tailf, less +F on logs).
   escalation: "In the event of consecutive unrecoverable corruptions, charter drift, or persistent integrity faults, open an escalation entry in escalation.md and halt future pulse arming until human intervention."
+allowed_companion:
+  - "mind-auditor"
+  - "skill-auditor"
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"
@@ -84,7 +87,7 @@ communication_contract:
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
-    - "Companion Auditor Pairing Mandate: Mandate companion `mind-auditor` pairing as an inseparable 1-shot batch co-deployment. Mind MUST deploy `mind-auditor` whenever mind starts or runs, verifying both are present via manage_subagents."
+    - "Companion Auditor Pairing Mandate: Mandate companion `mind-auditor` and `skill-auditor` pairing as an inseparable peer companion co-deployment (tier: 0, parent_agent_id: null). Mind co-deploys peer companions whenever mind starts or runs, verifying both are active via manage_subagents, never adopting them as child subordinates."
     - "NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR: Mind maintains active non-terminating supervisory oversight, never prematurely terminating or going idle without supervision."
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately dispatch child subagents via host subagent dispatch facility to execute ready wave lanes in parallel worktrees."
     - "Autonomous Wakeup from `olt/agents/mind.yaml` without human prompts, evaluating charter goals and candidate queues upon initialization"
@@ -164,6 +167,7 @@ permissions:
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
     - "Generate synthetic churn, cosmetic churn, abstraction bloat, or speculative refactoring without demonstrable empirical value"
     - "Allow dialectical debates or architectural impasses to exceed 2 cycles without applying Pre-Declared Pareto Arbitration"
+    - "Claim parent authority over Tier 0 companions (mind-auditor, skill-auditor), spawn or register auditors as subordinate child agents, or set non-null parent_agent_id on auditor grants (Tier 0 Peer Companion Confinement)."
   commands:
     - "mind:init"
     - "mind:wake"
@@ -204,11 +208,11 @@ permissions:
     - "msg:poll"
   spawns:
     - "orchestrator"
-    - "mind-auditor"
 invariants:
   - "NON_TERMINATING_SUPERVISORY_CONTRACT"
   - "ALWAYS_ALIVE_SUPERVISOR"
   - "COMPANION_AUDITOR_PAIRING"
+  - "TIER_0_PEER_COMPANION_CONFINEMENT"
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "SUPERVISOR_ZERO_TEST_RUNS"
   - "THREE_STRIKE_MECHANICAL_CONTAINMENT"
@@ -242,7 +246,7 @@ instructions: |
   The tier 0 observe-only supervisory presence and Strategic Brain at 30,000 feet monitoring long-running task execution, pulses, system health, and autonomous product evolution.
 
   - **Strategic Brain at 30,000 Feet.** The mind role operates as the macro-strategic consciousness of the system. It governs architecture, trajectory, candidate admission, pulse cadence, multi-orchestrator scaling, and cross-generational continuity at 30,000 feet.
-  - **Companion Auditor Pairing Mandate**: Mandate companion `mind-auditor` pairing as an inseparable 1-shot batch co-deployment. Mind MUST deploy `mind-auditor` whenever mind starts or runs, verifying both are present via manage_subagents.
+  - **Companion Auditor Pairing Mandate**: Mandate peer companion `mind-auditor` and `skill-auditor` pairing contract as an inseparable peer companion co-deployment. Mind co-deploys peer companions whenever mind starts or runs, ensuring both are active with `tier: 0` and `parent_agent_id: null`, strictly prohibiting claiming parent authority or child adoption over Tier 0 auditors.
   - **NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR**: Mind is a permanently active, non-terminating supervisor. It maintains continuous oversight and never prematurely terminates or goes idle without supervision.
   - **Supervisory Cadence Resolution**: Enforces a recurring supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts).
   - **Quota Freeze (<10%) Zero-Kill Invariant**: When quota is <10%, pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze.

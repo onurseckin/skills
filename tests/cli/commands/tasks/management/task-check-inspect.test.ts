@@ -4,13 +4,18 @@ import {
   collectSourceFilesRecursively,
   findNearestTsconfig,
   formatTaskCheckMarkdown,
+  formatTaskInspectMarkdown,
   isSupportedSourceFile,
   performAstLintCheck,
   performIncrementalTypecheck,
+  projectTaskInspection,
+  taskCheckCommand,
+  taskInspectCommand,
   SUPPORTED_EXTENSIONS,
   type TaskCheckSummary,
 } from "../../../../../olt/scripts/src/cli/commands/task-check.ts";
 import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -197,5 +202,153 @@ describe("task:check - File Inspection & AST Linting", () => {
     expect(failMd).toContain("File `src/single.ts`");
     expect(failMd).toContain("additional type errors");
     expect(failMd).toContain("additional invariant violations");
+  });
+
+  function createMockCapsule(prefix: string, stateData: Record<string, unknown>): string {
+    const root = createVirtualDir(prefix);
+    const runId = typeof stateData.run_id === "string" ? stateData.run_id : "test-run";
+    const runDir = initRun(root, runId, new TextEncoder().encode("test prompt"), "file", true);
+    if (stateData.tasks && typeof stateData.tasks === "object") {
+      transact(
+        runDir,
+        "tester",
+        "task-init",
+        { tasks: stateData.tasks as Record<string, unknown> },
+        (draft) => {
+          (draft as Record<string, unknown>)["tasks"] = stateData.tasks;
+        },
+      );
+    }
+    return runDir;
+  }
+
+  test("projectTaskInspection and taskInspectCommand project task status, gate info, and review verdicts", async () => {
+    const stateData = {
+      run_id: "test-inspection-run",
+      tasks: {
+        "task-alpha": {
+          id: "task-alpha",
+          label: "Implement Alpha",
+          status: "COMPLETED",
+          dependencies: [],
+          write_scope: ["src/alpha.ts"],
+          target_files: ["src/alpha.ts"],
+          gate_command: ["bun", "test", "tests/alpha.test.ts"],
+          gate_proof_hash: "proof_hash_abc123",
+          reviews: [
+            {
+              validator_id: "val-1",
+              domain: "correctness",
+              verdict: "APPROVED",
+              reviewed_at: "2026-09-13T12:00:00Z",
+              summary: "All requirements met",
+            },
+          ],
+          lease: {
+            agent_id: "agent-alpha",
+            expires_at: "2026-09-13T14:00:00Z",
+            lease_token: "tok_secret_lease_123456",
+          },
+        },
+      },
+    };
+
+    const runDir = createMockCapsule("inspect-task", stateData);
+
+    const projection = projectTaskInspection(runDir, "task-alpha");
+    expect(projection.taskId).toBe("task-alpha");
+    expect(projection.label).toBe("Implement Alpha");
+    expect(projection.status).toBe("COMPLETED");
+    expect(projection.gateCommand).toEqual(["bun", "test", "tests/alpha.test.ts"]);
+    expect(projection.gateProofHash).toBe("proof_hash_abc123");
+    expect(projection.reviewVerdicts.length).toBe(1);
+    expect(projection.reviewVerdicts[0]?.validatorId).toBe("val-1");
+    expect(projection.reviewVerdicts[0]?.verdict).toBe("APPROVED");
+    expect(projection.lease?.agentId).toBe("agent-alpha");
+    expect(projection.lease?.tokenSnippet).toBe("tok_se...3456");
+
+    const markdown = formatTaskInspectMarkdown(projection);
+    expect(markdown).toContain("Task Inspection: `task-alpha`");
+    expect(markdown).toContain("Implement Alpha");
+    expect(markdown).toContain("COMPLETED");
+    expect(markdown).toContain("proof_hash_abc123");
+    expect(markdown).toContain("APPROVED");
+    expect(markdown).toContain("agent-alpha");
+
+    // Command execution in markdown format
+    const cmdResult = await taskInspectCommand({
+      run: runDir,
+      task: "task-alpha",
+    });
+    expect(cmdResult.format).toBe("markdown");
+    expect(cmdResult.task_id).toBe("task-alpha");
+    expect(cmdResult.status).toBe("COMPLETED");
+    expect(typeof cmdResult.markdown).toBe("string");
+
+    // Command execution in json format
+    const jsonResult = await taskInspectCommand({
+      run: runDir,
+      task: "task-alpha",
+      format: "json",
+    });
+    expect(jsonResult.format).toBe("json");
+    expect(jsonResult.task_id).toBe("task-alpha");
+    expect(jsonResult.gate_proof_hash).toBe("proof_hash_abc123");
+  });
+
+  test("projectTaskInspection throws error for unknown task", () => {
+    const runDir = createMockCapsule("inspect-missing", {
+      run_id: "missing-task-run",
+      tasks: {},
+    });
+
+    expect(() => projectTaskInspection(runDir, "unknown-task")).toThrow();
+  });
+
+  test("taskCheckCommand supports --inspect flag", async () => {
+    const stateData = {
+      run_id: "check-inspect-run",
+      tasks: {
+        "task-check-inspect": {
+          id: "task-check-inspect",
+          label: "Inspectable Task",
+          status: "IN_PROGRESS",
+          gate_command: ["bun", "test", "gate.test.ts"],
+          gate_proof_hash: "hash_xyz789",
+        },
+      },
+    };
+
+    const runDir = createMockCapsule("check-inspect", stateData);
+
+    // Without explicit files, standalone task inspect projection is returned
+    const result = await taskCheckCommand({
+      run: runDir,
+      task: "task-check-inspect",
+      inspect: true,
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.inspect).toBeDefined();
+    const inspectObj = result.inspect as Record<string, unknown>;
+    expect(inspectObj.taskId).toBe("task-check-inspect");
+    expect(inspectObj.gateProofHash).toBe("hash_xyz789");
+    expect(String(result.markdown)).toContain("Inspectable Task");
+
+    // With explicit clean file, checks file and appends inspection projection
+    const cleanFile = join(runDir, "clean.ts");
+    vfs.writeFileSync(cleanFile, "export const value: number = 100;");
+
+    const fileResult = await taskCheckCommand({
+      run: runDir,
+      task: "task-check-inspect",
+      file: cleanFile,
+      inspect: true,
+    });
+
+    expect(fileResult.passed).toBe(true);
+    expect(fileResult.inspect).toBeDefined();
+    expect(String(fileResult.markdown)).toContain("Inspectable Task");
+    expect(String(fileResult.markdown)).toContain("Incremental Verification");
   });
 });

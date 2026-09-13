@@ -201,35 +201,62 @@ export const taskReleaseSpec: CommandSpec = taskCmd(
   ["bun harness.ts task:release --run <run> --task t1 --agent w1"],
 );
 
-export const taskTokenSpec: CommandSpec = {
-  ...taskCmd(
-    "task:token",
-    "Query the active lease token for a task.",
-    "Inspects active lease metadata and returns the bearer token, time remaining, and status.",
-    [
-      opt("task", "string", "Task ID to query."),
-      opt("task-id", "string", "Alias for --task."),
-      opt("id", "string", "Alias for --task."),
-      opt("run", "string", "Capsule run root directory."),
-      opt("queue-path", "string", "Path to task queue JSON file."),
-      opt("path", "string", "Alias for --queue-path."),
-      opt("json", "bool", "Output results in JSON format."),
-      opt("agent-id", "string", "Agent ID (when claiming queue lease)."),
-      opt("lease-duration", "int", "Lease duration in seconds (when claiming queue lease)."),
-      opt("duration-seconds", "int", "Alias for --lease-duration."),
-      opt("duration", "int", "Alias for --lease-duration."),
-    ],
-    taskLeaseCommand,
-    [
-      "bun harness.ts task:token --run <run> --task <task-id>",
-      "bun harness.ts task:token --run <run> --task <task-id> --json",
-      "bun harness.ts task:lease --task <task-id>",
-    ],
-  ),
-  aliases: ["task:lease"],
-};
+export const taskTokenSpec: CommandSpec = taskCmd(
+  "task:token",
+  "Query the active lease token for a task.",
+  "Inspects active lease metadata and returns the bearer token, time remaining, and status.",
+  [
+    opt("task", "string", "Task ID to query."),
+    opt("task-id", "string", "Alias for --task."),
+    opt("id", "string", "Alias for --task."),
+    opt("run", "string", "Capsule run root directory."),
+    opt("queue-path", "string", "Path to task queue JSON file."),
+    opt("path", "string", "Alias for --queue-path."),
+    opt("json", "bool", "Output results in JSON format."),
+    opt("format", "string", "Output format (json or text)."),
+    opt("agent", "string", "Agent identifier."),
+    opt("agent-id", "string", "Agent ID (when claiming queue lease)."),
+    opt("lease-duration", "int", "Lease duration in seconds (when claiming queue lease)."),
+    opt("duration-seconds", "int", "Alias for --lease-duration."),
+    opt("duration", "int", "Alias for --lease-duration."),
+    opt("trace-id", "string", "Trace identifier."),
+    opt("span-id", "string", "Span identifier."),
+    opt("parent-span-id", "string", "Parent span identifier."),
+    opt("trace-sampled", "bool", "Whether trace is sampled."),
+  ],
+  taskLeaseCommand,
+  [
+    "bun harness.ts task:token --run <run> --task <task-id>",
+    "bun harness.ts task:token --run <run> --task <task-id> --json",
+  ],
+);
 
-export const taskLeaseSpec: CommandSpec = taskTokenSpec;
+export const taskLeaseSpec: CommandSpec = taskCmd(
+  "task:lease",
+  "Claim an active lease on a task in the queue or inspect lease details.",
+  "Claims an active lease or inspects lease metadata for an agent worker.",
+  [
+    opt("task", "string", "Task ID to query or lease."),
+    opt("task-id", "string", "Alias for --task."),
+    opt("id", "string", "Alias for --task."),
+    opt("run", "string", "Capsule run root directory."),
+    opt("queue-path", "string", "Path to task queue JSON file."),
+    opt("path", "string", "Alias for --queue-path."),
+    opt("json", "bool", "Output results in JSON format."),
+    opt("format", "string", "Output format (json or text)."),
+    opt("agent", "string", "Agent identifier."),
+    opt("agent-id", "string", "Agent ID (when claiming queue lease)."),
+    opt("lease-duration", "int", "Lease duration in seconds (when claiming queue lease)."),
+    opt("duration-seconds", "int", "Alias for --lease-duration."),
+    opt("duration", "int", "Alias for --lease-duration."),
+    opt("trace-id", "string", "Trace identifier."),
+    opt("span-id", "string", "Span identifier."),
+    opt("parent-span-id", "string", "Parent span identifier."),
+    opt("trace-sampled", "bool", "Whether trace is sampled."),
+  ],
+  taskLeaseCommand,
+  ["bun harness.ts task:lease --task <task-id>"],
+);
 
 export const TASK_LIFECYCLE_COMMANDS: readonly CommandSpec[] = [
   taskClaimSpec,
@@ -241,6 +268,7 @@ export const TASK_LIFECYCLE_COMMANDS: readonly CommandSpec[] = [
   taskAbandonSpec,
   taskReleaseSpec,
   taskTokenSpec,
+  taskLeaseSpec,
 ];
 
 export {

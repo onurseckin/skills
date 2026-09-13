@@ -174,7 +174,8 @@ export function checkRoleBoundaryInterlock(
     if (lower.startsWith("user")) return "user";
     if (lower.startsWith("human")) return "user";
     const inferred: unknown = inferRoleFromAgentId(agentId);
-    if (inferred !== undefined && inferred !== null && typeof inferred === "string") return inferred;
+    if (inferred !== undefined && inferred !== null && typeof inferred === "string")
+      return inferred;
     return "";
   }
 

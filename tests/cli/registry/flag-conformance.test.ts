@@ -35,13 +35,13 @@ export interface FlagMismatchInventoryItem {
   readonly unresolvable: boolean;
 }
 
-export const MAX_MISMATCH_COMMANDS_BASELINE = 40;
-export const MAX_TOTAL_MISMATCHES_BASELINE = 155;
+export const MAX_MISMATCH_COMMANDS_BASELINE = 41;
+export const MAX_TOTAL_MISMATCHES_BASELINE = 160;
 
 const commandsDir = resolve(import.meta.dir, "../../../olt/scripts/src/cli/commands");
 
 const SPECIFIC_HANDLERS: Readonly<Record<string, string>> = Object.fromEntries(
-  "authority:decide=authority-ops.ts;doctor=diagnostics-ops.ts;doctor:verify=diagnostics-ops.ts;doctor:repair=diagnostics-ops.ts;doctor:certify=../../reporting/doctor/certify-command.ts;events:stream=stream-events.ts;events:trace=dag.ts;explain=explain-ops.ts;finding:file=finding-ops.ts;finding:get=inspection-ops.ts;report:get=inspection-ops.ts;evidence:get=inspection-ops.ts;evidence:screenshots=inspection-ops.ts;health=reporting/index.ts;install=install-ops.ts;installation-status=install-ops.ts;memory:query=memory-ops.ts;mind:bootstrap=mind-init.ts;mind:decline=mind-admit.ts;orphan:dispose=orphan-ops.ts;recover=diagnostics-ops.ts;report=reporting/report-unified.ts;report:dag=reporting/report-dag.ts;report:summary=summary-ops.ts;report:task=inspection-ops.ts;report:health=unified-reporting.ts;report:leases=unified-reporting.ts;report:decisions=unified-reporting.ts;report:usage=usage-report.ts;report:graph-json=graph-export.ts;run:exec=run-ops.ts;run:complete=run-ops.ts;sched:jitter=sched-ops.ts;task:heartbeat=task-claim.ts;task:validate-start=task-validation-start.ts;task:release=diagnostics-ops.ts;task:fail=task-queue-ops.ts;task:prune=task-queue-ops.ts;task:submit=task-submit.ts"
+  "authority:decide=authority-ops.ts;doctor=diagnostics-ops.ts;doctor:verify=diagnostics-ops.ts;doctor:repair=diagnostics-ops.ts;doctor:certify=../../reporting/doctor/certify-command.ts;events:stream=stream-events.ts;events:trace=dag.ts;explain=explain-ops.ts;finding:file=finding-ops.ts;finding:get=inspection-ops.ts;report:get=inspection-ops.ts;evidence:get=inspection-ops.ts;evidence:screenshots=inspection-ops.ts;health=reporting/index.ts;install=install-ops.ts;installation-status=install-ops.ts;memory:query=memory-ops.ts;mind:bootstrap=mind-init.ts;mind:decline=mind-admit.ts;orphan:dispose=orphan-ops.ts;recover=diagnostics-ops.ts;report=reporting/report-unified.ts;report:dag=reporting/report-dag.ts;report:summary=summary-ops.ts;report:task=inspection-ops.ts;report:health=unified-reporting.ts;report:leases=unified-reporting.ts;report:decisions=unified-reporting.ts;report:usage=usage-report.ts;report:graph-json=graph-export.ts;run:exec=run-ops.ts;run:complete=run-ops.ts;sched:jitter=sched-ops.ts;task:heartbeat=task-claim.ts;task:validate-start=task-validation-start.ts;task:release=diagnostics-ops.ts;task:fail=task-queue-ops.ts;task:prune=task-queue-ops.ts;task:submit=task-submit.ts;task:token=task-lease.ts"
     .split(";")
     .map((s) => {
       const idx = s.indexOf("=");

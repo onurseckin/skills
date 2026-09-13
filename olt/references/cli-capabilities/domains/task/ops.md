@@ -85,6 +85,41 @@ Records the validator's finding and returns the task to the implementer.
 bun harness.ts task:reject --run <run> --task t1 --reason "fail"
 ```
 
+### `task:token`
+
+Query the active lease token for a task.
+
+Inspects active lease metadata and returns the bearer token, time remaining, and status.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--task` | string | no | no | - | Task ID to query. |
+| `--task-id` | string | no | no | - | Alias for --task. |
+| `--id` | string | no | no | - | Alias for --task. |
+| `--run` | string | no | no | - | Capsule run root directory. |
+| `--queue-path` | string | no | no | - | Path to task queue JSON file. |
+| `--path` | string | no | no | - | Alias for --queue-path. |
+| `--json` | bool | no | no | - | Output results in JSON format. |
+| `--format` | string | no | no | - | Output format (json or text). |
+| `--agent` | string | no | no | - | Agent identifier. |
+| `--agent-id` | string | no | no | - | Agent ID (when claiming queue lease). |
+| `--lease-duration` | int | no | no | - | Lease duration in seconds (when claiming queue lease). |
+| `--duration-seconds` | int | no | no | - | Alias for --lease-duration. |
+| `--duration` | int | no | no | - | Alias for --lease-duration. |
+| `--trace-id` | string | no | no | - | Trace identifier. |
+| `--span-id` | string | no | no | - | Span identifier. |
+| `--parent-span-id` | string | no | no | - | Parent span identifier. |
+| `--trace-sampled` | bool | no | no | - | Whether trace is sampled. |
+
+```bash
+bun harness.ts task:token --run <run> --task <task-id>
+bun harness.ts task:token --run <run> --task <task-id> --json
+```
+
 ### `task:check`
 
 Incremental verification.
@@ -103,6 +138,7 @@ Check the files using AST lint audit and TypeScript typecheck pass.
 | `--actor` | string | no | no | - | Who is running the check. |
 | `--typecheck` | bool | no | no | - | Force the typecheck pass to run. |
 | `--lint` | bool | no | no | - | Run only the AST lint audit. |
+| `--inspect` | bool | no | no | - | Inspect task status, gate command, gate proof hash, and review verdicts. |
 | `--format` | string | no | no | - | Output format (json, text, etc.). |
 
 ```bash

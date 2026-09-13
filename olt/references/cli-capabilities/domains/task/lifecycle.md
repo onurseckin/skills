@@ -97,9 +97,9 @@ bun harness.ts task:release --run <run> --task t1 --agent w1
 
 ### `task:lease`
 
-Claim an active lease on a task in the queue.
+Claim an active lease on a task in the queue or inspect lease details.
 
-Claims an exclusive active lease on a task for an agent worker.
+Claims an active lease or inspects lease metadata for an agent worker.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -107,21 +107,24 @@ Claims an exclusive active lease on a task for an agent worker.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--task` | string | no | no | - | Task ID. |
-| `--task-id` | string | no | no | - | Alias for task ID. |
-| `--id` | string | no | no | - | Alias of task ID. |
-| `--agent-id` | string | no | no | - | Agent ID claiming the lease. |
-| `--lease-duration` | int | no | no | - | Lease duration in seconds. |
-| `--duration-seconds` | int | no | no | - | Alias of lease duration. |
-| `--duration` | int | no | no | - | Alias of lease duration. |
-| `--queue-path` | string | no | no | - | Custom task queue file path. |
-| `--path` | string | no | no | - | Alias for queue-path. |
-| `--run` | string | no | no | - | Capsule run root or custom queue path. |
-| `--trace-id` | string | no | no | - | Trace correlation ID. |
-| `--span-id` | string | no | no | - | Span ID. |
-| `--parent-span-id` | string | no | no | - | Parent span correlation ID. |
-| `--trace-sampled` | bool | no | no | - | Sampled tracing flag. |
+| `--task` | string | no | no | - | Task ID to query or lease. |
+| `--task-id` | string | no | no | - | Alias for --task. |
+| `--id` | string | no | no | - | Alias for --task. |
+| `--run` | string | no | no | - | Capsule run root directory. |
+| `--queue-path` | string | no | no | - | Path to task queue JSON file. |
+| `--path` | string | no | no | - | Alias for --queue-path. |
+| `--json` | bool | no | no | - | Output results in JSON format. |
+| `--format` | string | no | no | - | Output format (json or text). |
+| `--agent` | string | no | no | - | Agent identifier. |
+| `--agent-id` | string | no | no | - | Agent ID (when claiming queue lease). |
+| `--lease-duration` | int | no | no | - | Lease duration in seconds (when claiming queue lease). |
+| `--duration-seconds` | int | no | no | - | Alias for --lease-duration. |
+| `--duration` | int | no | no | - | Alias for --lease-duration. |
+| `--trace-id` | string | no | no | - | Trace identifier. |
+| `--span-id` | string | no | no | - | Span identifier. |
+| `--parent-span-id` | string | no | no | - | Parent span identifier. |
+| `--trace-sampled` | bool | no | no | - | Whether trace is sampled. |
 
 ```bash
-bun harness.ts task:lease --task task-1 --agent-id worker-1
+bun harness.ts task:lease --task <task-id>
 ```

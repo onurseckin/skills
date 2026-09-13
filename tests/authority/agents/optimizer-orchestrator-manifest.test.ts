@@ -33,6 +33,7 @@ const EXPECTED_INVARIANTS = [
   "REAL_TIME_AUDITOR_PREEMPTION",
   "QUIESCENT_ZERO_TOKEN_DRIFT",
   "QUOTA_FREEZE_ZERO_KILL_RESUME",
+  "TIER_0_PEER_COMPANION_CONFINEMENT",
 ] as const;
 
 interface RawManifestDoc {
@@ -147,7 +148,7 @@ describe("Tier 1 Optimizer-Orchestrator Manifest & Role Contract Authority Tests
     expect(commands).toContain("worktree:clean");
   });
 
-  it("contains all 10 architectural invariants exactly", () => {
+  it("contains all 11 architectural invariants exactly", () => {
     const rawYaml = rawYamlText;
     const manifest = parseUnifiedAgentManifest(rawYaml, MANIFEST_PATH);
 

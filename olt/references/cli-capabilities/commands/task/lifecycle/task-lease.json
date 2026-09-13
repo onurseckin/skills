@@ -2,7 +2,7 @@
   "name": "task:lease",
   "aliases": [],
   "domain": "task",
-  "summary": "Claim an active lease on a task in the queue.",
+  "summary": "Claim an active lease on a task in the queue or inspect lease details.",
   "flags": [
     {
       "name": "task",
@@ -20,6 +20,48 @@
     },
     {
       "name": "id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "queue-path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "format",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "agent",
       "type": "string",
       "required": false,
       "repeatable": false,
@@ -49,27 +91,6 @@
     {
       "name": "duration",
       "type": "int",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "queue-path",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "path",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "run",
-      "type": "string",
       "required": false,
       "repeatable": false,
       "default": null

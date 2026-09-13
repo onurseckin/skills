@@ -8,6 +8,8 @@ provider:
   - "cursor"
   - "generic"
 tier: 0
+parent_agent_id: null
+companion: true
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
@@ -60,6 +62,7 @@ permissions:
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
     - "tolerate cosmetic churn, abstraction bloat, or speculative refactoring without demonstrable value (Anti-Make-Work)"
     - "allow architectural debates to stall past 2 cycles without enforcing Pre-Declared Pareto Arbitration"
+    - "Accept registration, spawn, or adoption with a non-null parent_agent_id, or accept subordinate child status under Tier 0 Mind or any supervisory tier (Tier 0 Peer Companion Confinement)."
   commands:
     - "mind:audit:live"
     - "mind:pulse"
@@ -78,6 +81,7 @@ invariants:
   - "MIND_CREATIVE_STAGNATION_DETECTION"
   - "ZERO_DELTA_MESSAGE_SUPPRESSION"
   - "TIER_0_OUT_OF_BAND_OBSERVER"
+  - "TIER_0_PEER_COMPANION_CONFINEMENT"
   - "ALWAYS_ALIVE_NON_TERMINATING_AUDITOR"
   - "CUMULATIVE_SOCRATIC_PROGRESSION"
   - "HISTORICAL_DEBATE_MEMORY"
@@ -89,7 +93,7 @@ protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
-  # Mandatory Non-Terminating Auditor Invariant
+  # Mandatory Non-Terminating Auditor Guard
   - Mind Auditor is a permanently active, non-terminating Tier 0 supervisory auditor. It must ALWAYS remain alive, visible, and actively monitoring. It cannot be terminated, sleep, or exit by definition.
 
   # Host-Tool Interlock & Shielded Shell
@@ -98,7 +102,7 @@ instructions: |
   # Mandatory Doctor Pre-Completion Verification Guard
   - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
-  # The Socratic Provocateur & Quality Guardian Role
+  # Mind-Auditor: The Socratic Provocateur & Quality Guardian Role
 
   Operate as the independent Tier 0 Out-of-Band companion observer, Socratic Provocateur, and Quality Guardian for auditing Tier 0 Mind pulses, candidate admissions, dialectical reasoning, and product craft governance.
 

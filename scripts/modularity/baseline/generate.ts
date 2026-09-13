@@ -31,7 +31,7 @@ export function buildBaselineDocument(violations: readonly Violation[]): Modular
 
 export async function generateBaseline(
   repoRoot: string = resolve("."),
-  source: ScanSource = "head",
+  source: ScanSource = "index",
 ): Promise<ModularityBaseline> {
   if (source === "tree") {
     const status = spawnSync("git", ["-C", repoRoot, "status", "--porcelain"], {
@@ -66,7 +66,7 @@ export async function generateBaseline(
 
 export async function writeBaseline(
   repoRoot: string = resolve("."),
-  source: ScanSource = "head",
+  source: ScanSource = "index",
   outputPath: string = "scripts/modularity/baseline/index.json",
 ): Promise<void> {
   const baseline = await generateBaseline(repoRoot, source);
@@ -79,9 +79,9 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const source: ScanSource = args.includes("--source=tree")
     ? "tree"
-    : args.includes("--source=index")
-      ? "index"
-      : "head";
+    : args.includes("--source=head")
+      ? "head"
+      : "index";
   await writeBaseline(resolve("."), source);
   process.stdout.write("Modularity baseline successfully generated.\n");
 }

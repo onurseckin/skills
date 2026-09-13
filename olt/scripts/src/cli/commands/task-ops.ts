@@ -13,6 +13,8 @@ import { loadRun } from "../../engine/store/index.ts";
 import { writeIndex } from "../../engine/store/index.ts";
 import { textFlag, type Flags, type CommandContext } from "../index.ts";
 
+import { taskInspectCommand, capsuleSummaryCommand } from "./task-check.ts";
+
 export {
   taskClaimCommand,
   taskHeartbeatCommand,
@@ -21,6 +23,8 @@ export {
   taskRejectCommand,
   taskReviewCommand,
   taskValidateStartCommand,
+  taskInspectCommand,
+  capsuleSummaryCommand,
 };
 
 export async function taskSubmitCommand(

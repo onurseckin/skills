@@ -47,3 +47,29 @@ export {
   validateAgentSpawn,
   validateAgentToolCall,
 } from "./validation.ts";
+
+export type {
+  ActiveAuditorRecord,
+  AuditorReuseNotice,
+  BatchPreflightResult,
+  CompanionAuditorRole,
+  CompanionScopingOptions,
+  DeploymentExecutionResult,
+  PreflightCheckResult,
+} from "./companion-dedup.ts";
+
+export {
+  AUDITOR_ALREADY_ACTIVE_REUSED,
+  COMPANION_AUDITOR_ROLES,
+  CompanionDeploymentCoordinator,
+  REUSABLE_AUDITOR_STATUSES,
+  checkAuditorPreflight,
+  filterEligibleAuditors,
+  isAuditorHealthy,
+  isAuditorStatusReusable,
+  isCompanionAuditorRole,
+  normalizeAuditorRole,
+  preflightCompanionAuditorDeployment,
+  selectCanonicalAuditor,
+  validateCompanionAuditorSpawn,
+} from "./companion-dedup.ts";

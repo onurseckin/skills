@@ -4,7 +4,8 @@
  * Performs fast TypeScript type checking and AST invariant audits (0 any, 0 compiler suppressions).
  */
 
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
 import { HarnessError, isTestEnvironment } from "../../core/index.ts";
@@ -17,7 +18,7 @@ import {
   type AstLintRule,
   type AstLintViolation,
 } from "../../linter/ast/index.ts";
-import { loadRun } from "../../engine/store/index.ts";
+import { loadRun, loadRunProjection } from "../../engine/store/index.ts";
 import { AutoReceiptLogger } from "../../engine/runner/receipt/index.ts";
 import type { TaskRecord } from "../../workflow/index.ts";
 import { enforceLineLimit, formatTable } from "../formatters/index.ts";
@@ -71,6 +72,52 @@ export interface TaskCheckSummary {
   readonly format: "markdown" | "json";
   readonly markdown: string;
   readonly [key: string]: unknown;
+}
+
+export interface TaskReviewVerdictProjection {
+  readonly validatorId?: string | undefined;
+  readonly domain?: string | undefined;
+  readonly verdict: string;
+  readonly reviewedAt?: string | undefined;
+  readonly summary?: string | undefined;
+}
+
+export interface TaskLeaseProjection {
+  readonly agentId: string;
+  readonly expiresAt?: string | undefined;
+  readonly tokenSnippet?: string | undefined;
+}
+
+export interface TaskInspectionProjection {
+  readonly taskId: string;
+  readonly label?: string | undefined;
+  readonly status: string;
+  readonly gateCommand: readonly string[] | string | null;
+  readonly gateProofHash: string | null;
+  readonly reviewVerdicts: readonly TaskReviewVerdictProjection[];
+  readonly lease: TaskLeaseProjection | null;
+}
+
+export interface WaveTaskSummary {
+  readonly taskId: string;
+  readonly label: string;
+  readonly status: string;
+  readonly dependencies: readonly string[];
+  readonly writeScopeCount: number;
+}
+
+export interface WaveSummary {
+  readonly wave: number;
+  readonly tasks: readonly WaveTaskSummary[];
+  readonly statusCounts: Readonly<Record<string, number>>;
+}
+
+export interface CapsuleWaveSummary {
+  readonly runRoot: string;
+  readonly runId?: string | undefined;
+  readonly totalTasks: number;
+  readonly statusCounts: Readonly<Record<string, number>>;
+  readonly waves: readonly WaveSummary[];
 }
 
 export interface ResolveTargetFilesOptions {
@@ -150,15 +197,42 @@ export function collectSourceFilesRecursively(
  * Reads tasks from a run root.
  */
 export function readRunTasks(runRoot: string): Record<string, TaskRecord> {
+  const normalizedRunRoot = resolve(runRoot.trim());
   try {
-    const loaded = loadRun(runRoot);
+    const loaded = loadRunProjection(normalizedRunRoot);
     if (loaded && loaded.state && typeof loaded.state === "object") {
       const rawTasks = (loaded.state as Record<string, unknown>).tasks;
       if (typeof rawTasks === "object" && rawTasks !== null && !Array.isArray(rawTasks)) {
         return rawTasks as Record<string, TaskRecord>;
       }
     }
-    const wf = workflowPort(runRoot).read();
+  } catch {
+    // Fall through
+  }
+  try {
+    const loaded = loadRun(normalizedRunRoot, false);
+    if (loaded && loaded.state && typeof loaded.state === "object") {
+      const rawTasks = (loaded.state as Record<string, unknown>).tasks;
+      if (typeof rawTasks === "object" && rawTasks !== null && !Array.isArray(rawTasks)) {
+        return rawTasks as Record<string, TaskRecord>;
+      }
+    }
+  } catch {
+    // Fall through
+  }
+  try {
+    const statePath = join(normalizedRunRoot, "state.json");
+    if (existsSync(statePath)) {
+      const raw = JSON.parse(readFileSync(statePath, "utf8"));
+      if (raw && typeof raw === "object" && raw.tasks && typeof raw.tasks === "object") {
+        return raw.tasks as Record<string, TaskRecord>;
+      }
+    }
+  } catch {
+    // Fall through
+  }
+  try {
+    const wf = workflowPort(normalizedRunRoot).read();
     if (wf && wf.tasks) {
       return wf.tasks;
     }
@@ -819,8 +893,35 @@ export async function taskCheckCommand(
   const fileFlags = listFlag(flags, "file", false);
   const requestedTypecheck = boolFlag(flags, "typecheck");
   const requestedLint = boolFlag(flags, "lint");
+  const requestedInspect = boolFlag(flags, "inspect");
   const formatFlag = textFlag(flags, "format", false);
   const formatOption: "markdown" | "json" = formatFlag === "json" ? "json" : "markdown";
+
+  // If inspect flag is set without explicit file checks or typecheck/lint, execute task inspection directly
+  if (requestedInspect && isListEmpty(fileFlags) && !requestedTypecheck && !requestedLint) {
+    if (isStringBlank(runRoot) || isStringBlank(taskId)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "--run and --task are required when --inspect is specified",
+      );
+    }
+    const projection = projectTaskInspection(runRoot as string, taskId as string);
+    const markdown = formatTaskInspectMarkdown(projection);
+    return {
+      markdown,
+      passed: true,
+      format: formatOption,
+      run_root: runRoot,
+      task_id: taskId,
+      inspect: projection,
+      status: projection.status,
+      gate_command: projection.gateCommand,
+      gate_proof_hash: projection.gateProofHash,
+      review_verdicts: projection.reviewVerdicts,
+      lease: projection.lease,
+      duration_ms: Date.now() - startTime,
+    };
+  }
 
   // Validate that at least one target scope indicator is provided
   if (isListEmpty(fileFlags) && isStringBlank(taskId) && isStringBlank(runRoot)) {
@@ -935,13 +1036,25 @@ export async function taskCheckCommand(
     process.exitCode = passed ? 0 : 1;
   }
 
+  let inspectProjection: TaskInspectionProjection | undefined = undefined;
+  let finalMarkdown = markdown;
+  if (requestedInspect && !isStringBlank(runRoot) && !isStringBlank(taskId)) {
+    try {
+      inspectProjection = projectTaskInspection(runRoot as string, taskId as string);
+      finalMarkdown = `${markdown}\n\n${formatTaskInspectMarkdown(inspectProjection)}`;
+    } catch {
+      // Keep markdown as is if inspection fails
+    }
+  }
+
   return {
-    markdown,
+    markdown: finalMarkdown,
     passed,
     run_root: runRoot,
     task_id: taskId,
     files_checked: targetFiles,
     evidence_path: evidencePath,
+    inspect: inspectProjection,
     typecheck:
       typecheckResult !== undefined
         ? {
@@ -963,5 +1076,548 @@ export async function taskCheckCommand(
     },
     duration_ms: durationMs,
     format: formatOption,
+  };
+}
+
+/**
+ * Projects a concise, compact read-model of task execution status, gate commands,
+ * gate proof hashes, review verdicts, and active lease credentials.
+ * Reads solely from the capsule state projection without parsing raw events.jsonl.
+ */
+export function projectTaskInspection(runRoot: string, taskId: string): TaskInspectionProjection {
+  const normalizedRunRoot = resolve(runRoot.trim());
+  let state: Record<string, unknown> | undefined;
+
+  try {
+    const loaded = loadRunProjection(normalizedRunRoot);
+    if (loaded && loaded.state && typeof loaded.state === "object") {
+      state = loaded.state as Record<string, unknown>;
+    }
+  } catch {
+    // Fall back to loadRun without verify or direct state.json
+  }
+
+  if (!state) {
+    try {
+      const loaded = loadRun(normalizedRunRoot, false);
+      if (loaded && loaded.state && typeof loaded.state === "object") {
+        state = loaded.state as Record<string, unknown>;
+      }
+    } catch {
+      // Fall through
+    }
+  }
+
+  if (!state) {
+    const statePath = join(normalizedRunRoot, "state.json");
+    if (existsSync(statePath)) {
+      try {
+        const raw = JSON.parse(readFileSync(statePath, "utf8"));
+        if (raw && typeof raw === "object") {
+          state = raw as Record<string, unknown>;
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (!state) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Capsule run state not found at ${normalizedRunRoot}`,
+    );
+  }
+
+  const rawTasks = state.tasks;
+  let tasks: Record<string, unknown> = {};
+  if (rawTasks && typeof rawTasks === "object" && !Array.isArray(rawTasks)) {
+    tasks = rawTasks as Record<string, unknown>;
+  } else {
+    tasks = readRunTasks(normalizedRunRoot) as unknown as Record<string, unknown>;
+  }
+
+  const cleanTaskId = taskId.trim();
+  const task = tasks[cleanTaskId] as Record<string, unknown> | undefined;
+  if (!task) {
+    throw new HarnessError("INVALID_ARGUMENT", `Task not found in run: ${cleanTaskId}`);
+  }
+
+  const status = typeof task.status === "string" ? task.status : "unknown";
+  const label = typeof task.label === "string" ? task.label : undefined;
+
+  // Gate command resolution
+  let gateCommand: readonly string[] | string | null = null;
+  if (typeof task.gate === "string" && task.gate.trim().length > 0) {
+    gateCommand = task.gate.trim();
+  } else if (Array.isArray(task.gate) && task.gate.length > 0) {
+    gateCommand = task.gate as readonly string[];
+  } else if (typeof task.gate_command === "string" && task.gate_command.trim().length > 0) {
+    gateCommand = task.gate_command.trim();
+  } else if (Array.isArray(task.gate_command) && task.gate_command.length > 0) {
+    gateCommand = task.gate_command as readonly string[];
+  } else {
+    const candidateGates: Array<Record<string, unknown>> = [];
+    if (Array.isArray(state.gates)) {
+      for (const g of state.gates) {
+        if (g && typeof g === "object") candidateGates.push(g as Record<string, unknown>);
+      }
+    }
+    const graph = state.graph as Record<string, unknown> | undefined;
+    if (graph && Array.isArray(graph.gates)) {
+      for (const g of graph.gates) {
+        if (g && typeof g === "object") candidateGates.push(g as Record<string, unknown>);
+      }
+    }
+
+    const taskReqs = Array.isArray(task.requirement_ids) ? (task.requirement_ids as string[]) : [];
+    for (const g of candidateGates) {
+      const gId = typeof g.id === "string" ? g.id : "";
+      const gTaskId = typeof g.task_id === "string" ? g.task_id : "";
+      const gReqs = Array.isArray(g.requirement_ids) ? (g.requirement_ids as string[]) : [];
+
+      if (
+        gTaskId === cleanTaskId ||
+        gId === `gate-${cleanTaskId}` ||
+        gId === cleanTaskId ||
+        (taskReqs.length > 0 && gReqs.some((r) => taskReqs.includes(r)))
+      ) {
+        if (Array.isArray(g.command)) {
+          gateCommand = g.command as readonly string[];
+          break;
+        } else if (typeof g.command === "string") {
+          gateCommand = g.command;
+          break;
+        }
+      }
+    }
+  }
+
+  // Gate proof hash resolution
+  let gateProofHash: string | null = null;
+  if (typeof task.gate_proof_hash === "string" && task.gate_proof_hash.trim().length > 0) {
+    gateProofHash = task.gate_proof_hash.trim();
+  } else if (typeof task.proof_hash === "string" && task.proof_hash.trim().length > 0) {
+    gateProofHash = task.proof_hash.trim();
+  } else {
+    const proofs = Array.isArray(state.gate_proofs)
+      ? (state.gate_proofs as Array<Record<string, unknown>>)
+      : [];
+    for (const p of proofs) {
+      if (p.task_id === cleanTaskId) {
+        if (typeof p.proof_hash === "string" && p.proof_hash.trim().length > 0) {
+          gateProofHash = p.proof_hash.trim();
+          break;
+        } else if (typeof p.hash === "string" && p.hash.trim().length > 0) {
+          gateProofHash = p.hash.trim();
+          break;
+        } else if (typeof p.base === "string" && p.base.trim().length > 0) {
+          const hashInput = `${p.base}:${Array.isArray(p.gate_argv) ? p.gate_argv.join(" ") : ""}`;
+          gateProofHash = createHash("sha256").update(hashInput).digest("hex").slice(0, 16);
+          break;
+        } else {
+          gateProofHash = createHash("sha256").update(JSON.stringify(p)).digest("hex").slice(0, 16);
+          break;
+        }
+      }
+    }
+  }
+
+  // Review verdicts resolution
+  const reviewVerdicts: TaskReviewVerdictProjection[] = [];
+  if (Array.isArray(task.validations)) {
+    for (const v of task.validations as Array<Record<string, unknown>>) {
+      reviewVerdicts.push({
+        validatorId: typeof v.validator_id === "string" ? v.validator_id : undefined,
+        domain: typeof v.domain === "string" ? v.domain : undefined,
+        verdict: typeof v.verdict === "string" ? v.verdict : "unknown",
+        reviewedAt:
+          typeof v.started_at === "string"
+            ? v.started_at
+            : typeof v.reviewed_at === "string"
+              ? v.reviewed_at
+              : undefined,
+        summary: typeof v.summary === "string" ? v.summary : undefined,
+      });
+    }
+  }
+  if (Array.isArray(task.reviews)) {
+    for (const r of task.reviews as Array<Record<string, unknown>>) {
+      reviewVerdicts.push({
+        validatorId:
+          typeof r.actor === "string"
+            ? r.actor
+            : typeof r.validator_id === "string"
+              ? r.validator_id
+              : undefined,
+        verdict:
+          typeof r.verdict === "string"
+            ? r.verdict
+            : typeof r.status === "string"
+              ? r.status
+              : "unknown",
+        summary: typeof r.summary === "string" ? r.summary : undefined,
+      });
+    }
+  }
+  if (reviewVerdicts.length === 0 && typeof task.verdict === "string") {
+    reviewVerdicts.push({
+      verdict: task.verdict,
+    });
+  }
+
+  // Lease resolution
+  let lease: TaskLeaseProjection | null = null;
+  if (task.lease && typeof task.lease === "object") {
+    const l = task.lease as Record<string, unknown>;
+    const agentId =
+      typeof l.agent_id === "string"
+        ? l.agent_id
+        : typeof l.agent === "string"
+          ? l.agent
+          : "unknown";
+    const expiresAt = typeof l.expires_at === "string" ? l.expires_at : undefined;
+    const token =
+      typeof l.token === "string"
+        ? l.token
+        : typeof l.lease_token === "string"
+          ? l.lease_token
+          : typeof l.tokenSnippet === "string"
+            ? l.tokenSnippet
+            : undefined;
+    let tokenSnippet: string | undefined = undefined;
+    if (typeof l.token_snippet === "string") {
+      tokenSnippet = l.token_snippet;
+    } else if (token) {
+      tokenSnippet =
+        token.length > 10 ? `${token.slice(0, 6)}...${token.slice(-4)}` : `${token.slice(0, 4)}...`;
+    }
+    lease = { agentId, expiresAt, tokenSnippet };
+  } else if (
+    typeof task.agent_id === "string" &&
+    (status === "leased" || status === "running" || status === "validating")
+  ) {
+    lease = { agentId: task.agent_id };
+  }
+
+  return {
+    taskId: cleanTaskId,
+    label,
+    status,
+    gateCommand,
+    gateProofHash,
+    reviewVerdicts,
+    lease,
+  };
+}
+
+/**
+ * Formats a task inspection projection into clean Markdown.
+ */
+export function formatTaskInspectMarkdown(projection: TaskInspectionProjection): string {
+  const lines: string[] = [];
+  lines.push(`### 🔍 Task Inspection: \`${projection.taskId}\``);
+  if (projection.label) {
+    lines.push(`- **Label**: ${projection.label}`);
+  }
+  lines.push(`- **Status**: \`${projection.status}\``);
+
+  const gateCmdStr = Array.isArray(projection.gateCommand)
+    ? projection.gateCommand.join(" ")
+    : (projection.gateCommand ?? "none");
+  lines.push(`- **Gate Command**: \`${gateCmdStr}\``);
+  lines.push(
+    `- **Gate Proof Hash**: ${projection.gateProofHash ? `\`${projection.gateProofHash}\`` : "_none_"}`,
+  );
+
+  if (projection.lease) {
+    lines.push(
+      `- **Active Lease**: Agent \`${projection.lease.agentId}\`${projection.lease.expiresAt ? ` (expires ${projection.lease.expiresAt})` : ""}`,
+    );
+  } else {
+    lines.push(`- **Active Lease**: _none_`);
+  }
+
+  lines.push("");
+  lines.push("#### Review Verdicts");
+  if (projection.reviewVerdicts.length === 0) {
+    lines.push("_No review verdicts recorded._");
+  } else {
+    const headers = ["Validator", "Domain", "Verdict", "Summary"];
+    const rows = projection.reviewVerdicts.map((v) => [
+      v.validatorId ? `\`${v.validatorId}\`` : "—",
+      v.domain ? `\`${v.domain}\`` : "—",
+      `**${v.verdict.toUpperCase()}**`,
+      v.summary ?? "—",
+    ]);
+    const tableLines = formatTable(headers, rows);
+    for (const t of tableLines) {
+      lines.push(t);
+    }
+  }
+
+  return enforceLineLimit(lines.join("\n"), 40);
+}
+
+/**
+ * CLI Command: task:inspect
+ * Standalone query command returning a concise projection of task status.
+ */
+export async function taskInspectCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Promise<Record<string, unknown>> {
+  const runRoot = textFlag(flags, "run", true);
+  const taskId = textFlag(flags, "task", true);
+  const formatFlag = textFlag(flags, "format", false);
+  const format: "markdown" | "json" = formatFlag === "json" ? "json" : "markdown";
+
+  if (!runRoot || !taskId) {
+    throw new HarnessError("INVALID_ARGUMENT", "--run and --task are required for task:inspect");
+  }
+
+  const projection = projectTaskInspection(runRoot, taskId);
+  const markdown = formatTaskInspectMarkdown(projection);
+
+  return {
+    markdown,
+    format,
+    task_id: projection.taskId,
+    label: projection.label,
+    status: projection.status,
+    gate_command: projection.gateCommand,
+    gate_proof_hash: projection.gateProofHash,
+    review_verdicts: projection.reviewVerdicts,
+    lease: projection.lease,
+  };
+}
+
+/**
+ * Projects a wave-level summary of the capsule without parsing raw events.jsonl.
+ */
+export function projectCapsuleSummary(runRoot: string): CapsuleWaveSummary {
+  const normalizedRunRoot = resolve(runRoot.trim());
+  let state: Record<string, unknown> | undefined;
+  let runId: string | undefined;
+
+  try {
+    const loaded = loadRunProjection(normalizedRunRoot);
+    if (loaded && loaded.state && typeof loaded.state === "object") {
+      state = loaded.state as Record<string, unknown>;
+      runId = loaded.manifest?.run_id ?? (state.run_id as string | undefined);
+    }
+  } catch {
+    // Fall back to loadRun without verify or direct state.json
+  }
+
+  if (!state) {
+    try {
+      const loaded = loadRun(normalizedRunRoot, false);
+      if (loaded && loaded.state && typeof loaded.state === "object") {
+        state = loaded.state as Record<string, unknown>;
+        runId = loaded.manifest?.run_id ?? (state.run_id as string | undefined);
+      }
+    } catch {
+      // Fall through
+    }
+  }
+
+  if (!state) {
+    const statePath = join(normalizedRunRoot, "state.json");
+    if (existsSync(statePath)) {
+      try {
+        const raw = JSON.parse(readFileSync(statePath, "utf8"));
+        if (raw && typeof raw === "object") {
+          state = raw as Record<string, unknown>;
+          runId = state.run_id as string | undefined;
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (!state) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Capsule run state not found at ${normalizedRunRoot}`,
+    );
+  }
+
+  const rawTasks = state.tasks;
+  let tasks: Record<string, Record<string, unknown>> = {};
+  if (rawTasks && typeof rawTasks === "object" && !Array.isArray(rawTasks)) {
+    tasks = rawTasks as Record<string, Record<string, unknown>>;
+  } else {
+    tasks = readRunTasks(normalizedRunRoot) as unknown as Record<string, Record<string, unknown>>;
+  }
+
+  const totalTasks = Object.keys(tasks).length;
+  const globalStatusCounts: Record<string, number> = {};
+
+  for (const task of Object.values(tasks)) {
+    const s = typeof task.status === "string" ? task.status : "unknown";
+    globalStatusCounts[s] = (globalStatusCounts[s] ?? 0) + 1;
+  }
+
+  const waveMap = new Map<number, WaveTaskSummary[]>();
+  const topology = state.topology as Record<string, unknown> | undefined;
+
+  if (topology && Array.isArray(topology.waves)) {
+    for (const w of topology.waves as Array<Record<string, unknown>>) {
+      const waveNum = typeof w.wave === "number" ? w.wave : 1;
+      const tIds = Array.isArray(w.task_ids) ? (w.task_ids as string[]) : [];
+      const waveTasks: WaveTaskSummary[] = [];
+      for (const id of tIds) {
+        const t = tasks[id];
+        if (t) {
+          const dependencies = Array.isArray(t.dependencies) ? (t.dependencies as string[]) : [];
+          const writeScope = Array.isArray(t.write_scope) ? (t.write_scope as string[]) : [];
+          waveTasks.push({
+            taskId: id,
+            label: typeof t.label === "string" ? t.label : "",
+            status: typeof t.status === "string" ? t.status : "unknown",
+            dependencies,
+            writeScopeCount: writeScope.length,
+          });
+        }
+      }
+      waveMap.set(waveNum, waveTasks);
+    }
+  } else if (topology && Array.isArray(topology.decisions)) {
+    for (const d of topology.decisions as Array<Record<string, unknown>>) {
+      const waveNum = typeof d.wave === "number" ? d.wave : 1;
+      const tId = typeof d.task_id === "string" ? d.task_id : "";
+      const t = tasks[tId];
+      if (t) {
+        const existing = waveMap.get(waveNum) ?? [];
+        const dependencies = Array.isArray(t.dependencies) ? (t.dependencies as string[]) : [];
+        const writeScope = Array.isArray(t.write_scope) ? (t.write_scope as string[]) : [];
+        existing.push({
+          taskId: tId,
+          label: typeof t.label === "string" ? t.label : "",
+          status: typeof t.status === "string" ? t.status : "unknown",
+          dependencies,
+          writeScopeCount: writeScope.length,
+        });
+        waveMap.set(waveNum, existing);
+      }
+    }
+  } else {
+    const wave1: WaveTaskSummary[] = [];
+    const wave2: WaveTaskSummary[] = [];
+    for (const [id, t] of Object.entries(tasks)) {
+      const dependencies = Array.isArray(t.dependencies) ? (t.dependencies as string[]) : [];
+      const writeScope = Array.isArray(t.write_scope) ? (t.write_scope as string[]) : [];
+      const item: WaveTaskSummary = {
+        taskId: id,
+        label: typeof t.label === "string" ? t.label : "",
+        status: typeof t.status === "string" ? t.status : "unknown",
+        dependencies,
+        writeScopeCount: writeScope.length,
+      };
+      if (dependencies.length === 0) {
+        wave1.push(item);
+      } else {
+        wave2.push(item);
+      }
+    }
+    if (wave1.length > 0) waveMap.set(1, wave1);
+    if (wave2.length > 0) waveMap.set(2, wave2);
+    if (waveMap.size === 0) waveMap.set(1, []);
+  }
+
+  const waves: WaveSummary[] = [];
+  const sortedWaveNums = Array.from(waveMap.keys()).sort((a, b) => a - b);
+  for (const num of sortedWaveNums) {
+    const waveTasks = waveMap.get(num) ?? [];
+    const waveCounts: Record<string, number> = {};
+    for (const wt of waveTasks) {
+      waveCounts[wt.status] = (waveCounts[wt.status] ?? 0) + 1;
+    }
+    waves.push({
+      wave: num,
+      tasks: waveTasks,
+      statusCounts: waveCounts,
+    });
+  }
+
+  return {
+    runRoot: normalizedRunRoot,
+    runId,
+    totalTasks,
+    statusCounts: globalStatusCounts,
+    waves,
+  };
+}
+
+/**
+ * Formats a capsule wave summary projection into clean Markdown.
+ */
+export function formatCapsuleSummaryMarkdown(summary: CapsuleWaveSummary): string {
+  const lines: string[] = [];
+  lines.push(`### 📋 Capsule Wave Summary`);
+  if (summary.runId) {
+    lines.push(`- **Run ID**: \`${summary.runId}\``);
+  }
+  lines.push(`- **Total Tasks**: ${summary.totalTasks}`);
+  const statusParts = Object.entries(summary.statusCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([status, count]) => `${status}: ${count}`);
+  lines.push(
+    `- **Status Breakdown**: ${statusParts.length > 0 ? statusParts.join(" · ") : "none"}`,
+  );
+  lines.push("");
+
+  for (const wave of summary.waves) {
+    lines.push(`#### 🌊 Wave ${wave.wave} (${wave.tasks.length} tasks)`);
+    if (wave.tasks.length === 0) {
+      lines.push("_No tasks assigned to this wave._");
+    } else {
+      const headers = ["Task ID", "Label", "Status", "Dependencies"];
+      const rows = wave.tasks.map((t) => [
+        `\`${t.taskId}\``,
+        t.label || "—",
+        `\`${t.status}\``,
+        t.dependencies.length > 0 ? t.dependencies.join(", ") : "none",
+      ]);
+      const tableLines = formatTable(headers, rows);
+      for (const t of tableLines) {
+        lines.push(t);
+      }
+    }
+    lines.push("");
+  }
+
+  return enforceLineLimit(lines.join("\n"), 40);
+}
+
+/**
+ * CLI Command: capsule:summary
+ * Standalone query command returning a wave-level summary of the capsule.
+ */
+export async function capsuleSummaryCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Promise<Record<string, unknown>> {
+  const runRoot = textFlag(flags, "run", true);
+  const formatFlag = textFlag(flags, "format", false);
+  const format: "markdown" | "json" = formatFlag === "json" ? "json" : "markdown";
+
+  if (!runRoot) {
+    throw new HarnessError("INVALID_ARGUMENT", "--run is required for capsule:summary");
+  }
+
+  const summary = projectCapsuleSummary(runRoot);
+  const markdown = formatCapsuleSummaryMarkdown(summary);
+
+  return {
+    markdown,
+    format,
+    run_root: summary.runRoot,
+    run_id: summary.runId,
+    total_tasks: summary.totalTasks,
+    status_counts: summary.statusCounts,
+    waves: summary.waves,
   };
 }

@@ -104,10 +104,8 @@ export class TelemetryNormalizationEngine {
 
   public detectHost(options?: ProbeAllOptions): HostDetectionResult {
     const processEnv = typeof process !== "undefined" ? process.env : {};
-    const defaultEnv =
-      this.defaultOptions.env !== undefined ? this.defaultOptions.env : processEnv;
-    const mergedEnv =
-      options !== undefined && options.env !== undefined ? options.env : defaultEnv;
+    const defaultEnv = this.defaultOptions.env !== undefined ? this.defaultOptions.env : processEnv;
+    const mergedEnv = options !== undefined && options.env !== undefined ? options.env : defaultEnv;
     const detectionOpts: HostDetectionOptions = {
       env: mergedEnv,
       processTree:
@@ -200,19 +198,22 @@ export class TelemetryNormalizationEngine {
     const activeWarnings: string[] = [];
     if (lowestRemainingQuota !== null && lowestRemainingQuota < 20) {
       const provider =
-        lowestMetric !== null && lowestMetric !== undefined && lowestMetric.canonicalProvider !== undefined
+        lowestMetric !== null &&
+        lowestMetric !== undefined &&
+        lowestMetric.canonicalProvider !== undefined
           ? lowestMetric.canonicalProvider
           : activeHost;
       const label =
-        lowestMetric !== null && lowestMetric !== undefined && lowestMetric.rawMetricName !== undefined
+        lowestMetric !== null &&
+        lowestMetric !== undefined &&
+        lowestMetric.rawMetricName !== undefined
           ? lowestMetric.rawMetricName
           : "quota";
       activeWarnings.push(`Low quota warning: ${provider} (${label}) at ${lowestRemainingQuota}%`);
     }
 
     const isolatedWarnings: string[] = [];
-    const isNominalOrUnmeasured =
-      lowestRemainingQuota === null ? true : lowestRemainingQuota >= 20;
+    const isNominalOrUnmeasured = lowestRemainingQuota === null ? true : lowestRemainingQuota >= 20;
     if (isolateActiveHost && isolatedCaches.length > 0 && isNominalOrUnmeasured) {
       for (const ext of isolatedCaches) {
         isolatedWarnings.push(
@@ -281,14 +282,12 @@ export class TelemetryNormalizationEngine {
 
       for (const m of res.metrics) {
         if (m.remainingPercentage === null) continue;
-        const isGlobalLower =
-          globalLowest === null ? true : m.remainingPercentage < globalLowest;
+        const isGlobalLower = globalLowest === null ? true : m.remainingPercentage < globalLowest;
         if (isGlobalLower) {
           globalLowest = m.remainingPercentage;
           globalMetric = m;
         }
-        const isActiveLower =
-          activeLowest === null ? true : m.remainingPercentage < activeLowest;
+        const isActiveLower = activeLowest === null ? true : m.remainingPercentage < activeLowest;
         if (isHost && isActiveLower) {
           activeLowest = m.remainingPercentage;
           activeMetric = m;

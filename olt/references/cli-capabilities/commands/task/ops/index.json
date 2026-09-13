@@ -15,6 +15,10 @@
       "path": "task-reject.json"
     },
     {
+      "id": "task:token",
+      "path": "task-token.json"
+    },
+    {
       "id": "task:check",
       "path": "task-check.json"
     },

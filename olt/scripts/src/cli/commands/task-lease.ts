@@ -49,10 +49,7 @@ function isCapsuleRunDirectory(targetPath: string): boolean {
   }
 }
 
-export function taskLeaseCommand(
-  flags: Flags,
-  _context?: CommandContext,
-): Record<string, unknown> {
+export function taskLeaseCommand(flags: Flags, _context?: CommandContext): Record<string, unknown> {
   const taskId =
     textFlag(flags, "task", false) ??
     textFlag(flags, "task-id", false) ??

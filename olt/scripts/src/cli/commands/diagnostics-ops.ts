@@ -1,10 +1,6 @@
 import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/index.ts";
-import {
-  loadRun,
-  recoverProjection,
-  transactionRecoveryStatus,
-} from "../../engine/store/index.ts";
+import { loadRun, recoverProjection, transactionRecoveryStatus } from "../../engine/store/index.ts";
 import { recoverStale } from "../../workflow/lease/index.ts";
 import { releaseLease } from "../../workflow/lease/index.ts";
 import { systemClock, type WorkflowState } from "../../workflow/index.ts";
@@ -87,7 +83,10 @@ export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
   }
   const actor = textFlag(flags, "actor");
   if (actor === undefined) {
-    throw new HarnessError("INVALID_ARGUMENT", "Missing required --actor flag for repair projection");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Missing required --actor flag for repair projection",
+    );
   }
   const pendingPhase = transactionRecoveryStatus(run);
   const state = recoverProjection(run, actor);

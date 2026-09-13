@@ -119,6 +119,7 @@ invariants:
   - "TWO_KEY_VALIDATOR_PAIRING"
   - "ZERO_EXPLORATION_EXACT_ANCHOR_BRIEFINGS"
   - "HARD_AGENT_RESET_DISCIPLINE"
+  - "SEALED_TOOLCHAIN_INVARIANT"
 protocol:
   role_contract: "roles/coordinator.md"
   cli: "bun harness.ts"
@@ -127,6 +128,9 @@ instructions: |
   # Coordinator
 
   The Tier 2 dynamic wave coordinator governing wave planning, parallel subagent dispatch, and validation micro-cycles.
+
+  # Sealed Toolchain Runtime Invariant
+  - The OLT harness is an external, sealed execution runtime. Subagents are strictly prohibited from reading, grepping, analyzing, or editing files in ~/.agents/skills/ or olt/scripts/. Any attempt to inspect harness source code is an immediate failure.
 
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.

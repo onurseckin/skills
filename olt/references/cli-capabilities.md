@@ -32,7 +32,7 @@ own status in `exit_code`.
 | :--- | :--- | :--- |
 | plan | 15 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
 | queue | 9 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
-| task | 18 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
+| task | 19 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
 | reporting | 17 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
 | run | 4 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
@@ -95,10 +95,11 @@ own status in `exit_code`.
 | `task:reject` | task | Reject a task with a structured finding for targeted repair. |
 | `task:abandon` | task | Close an open attempt nobody submitted or released, on the coordinator's authority. |
 | `task:release` | task | Hand a live lease back without waiting for it to expire. |
+| `task:token` | task | Query the active lease token for a task. |
+| `task:lease` | task | Claim an active lease on a task in the queue or inspect lease details. |
 | `task:check` | task | Incremental verification. |
 | `task:add` | task | Enqueue a task in the task queue. |
 | `task:list` | task | List tasks in the task queue. |
-| `task:lease` | task | Claim an active lease on a task in the queue. |
 | `task:complete` | task | Mark a task as completed in the queue. |
 | `task:fail` | task | Mark a task as failed in the queue. |
 | `task:prune` | task | Prune completed tasks from the queue. |

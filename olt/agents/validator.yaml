@@ -70,6 +70,7 @@ invariants:
   - "INDEPENDENT_VALIDATION_MANDATE"
   - "HEADFUL_VISUAL_SCREENSHOT_REVIEW_MANDATE"
   - "SUPERFICIAL_UI_APPROVAL_BAN"
+  - "SEALED_TOOLCHAIN_INVARIANT"
 protocol:
   role_contract: "roles/validator.md"
   cli: "bun harness.ts"
@@ -78,6 +79,9 @@ min_adversarial_probes: 1
 max_adversarial_pushes: 20
 cognitive_pushes: 5
 instructions: |
+  # Sealed Toolchain Runtime Invariant
+  - The OLT harness is an external, sealed execution runtime. Subagents are strictly prohibited from reading, grepping, analyzing, or editing files in ~/.agents/skills/ or olt/scripts/. Any attempt to inspect harness source code is an immediate failure.
+
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
   - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking validation completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.

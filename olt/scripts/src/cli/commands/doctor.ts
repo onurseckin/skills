@@ -21,8 +21,8 @@ function runPlanVerified(run: string): boolean {
     const tasks = isJsonObject(state.tasks) ? state.tasks : undefined;
     const hasTasks = tasks !== undefined && Object.keys(tasks).length > 0;
     if (hasTasks) return true;
-    if (Boolean(state.graph)) return true;
-    if (Boolean(state.completion_review)) return true;
+    if (state.graph) return true;
+    if (state.completion_review) return true;
     return false;
   } catch {
     return false;

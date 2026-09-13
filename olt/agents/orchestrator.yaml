@@ -29,10 +29,12 @@ communication_contract:
 dispatch_contract: "zero_exploration_exact_anchor"
 mandatory_turn1_actions:
   - "run:init"
+allowed_companion:
+  - "skill-auditor"
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
-    - "Mandate companion `skill-auditor` pairing: verify manage_subagents list and wake/deploy skill-auditor if absent or missing"
+    - "Mandate peer companion `skill-auditor` pairing contract: verify manage_subagents list and ensure peer companion skill-auditor is active (tier: 0, parent_agent_id: null), never adopting it as a child subordinate"
     - "NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR: supervisors maintain active oversight, never prematurely terminate or go idle without supervision"
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately dispatch child subagents via host subagent dispatch facility to execute ready wave lanes in parallel worktrees."
     - "Turn 1 MUST execute: run:init (bun harness.ts run:init --run <run_id>) to instantiate .olt/capsules/<run_id>/state.json and .olt/capsules/<run_id>/events.jsonl on disk before dispatching Tier 2 Coordinators"
@@ -101,6 +103,7 @@ permissions:
     - "Auto-recover stale tasks without fresh, explicit directives from the parent supervisor"
     - "Terminate any active subagents during Quota Freeze (Quota Freeze (<10%) Zero-Kill Invariant: pause/idle gracefully, preserve state, and NEVER kill active workers during quota freeze)"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
+    - "Claim parent authority over Tier 0 companion skill-auditor, spawn or register skill-auditor as a subordinate child agent, or set non-null parent_agent_id on auditor grants (Tier 0 Peer Companion Confinement)."
   commands:
     - "run:init"
     - "agent:brief"
@@ -132,11 +135,11 @@ permissions:
     - "worktree:reclaim"
   spawns:
     - "coordinator"
-    - "skill-auditor"
 invariants:
   - "NON_TERMINATING_SUPERVISORY_CONTRACT"
   - "ALWAYS_ALIVE_SUPERVISOR"
   - "COMPANION_AUDITOR_PAIRING"
+  - "TIER_0_PEER_COMPANION_CONFINEMENT"
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "SUPERVISOR_ZERO_TEST_RUNS"
   - "MAX_AUTONOMOUS_ROUNDS_10"
@@ -178,7 +181,7 @@ instructions: |
   - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/olt/`.
   - **Flexible Dynamic Repo Scopes**: Orchestrators operate across dynamic and flexible repository scopes, supporting whole-repository scopes (`.`) or targeted multi-module scopes across frontend, backend, packages, and toolchains without artificial directory constraints, while preserving disjoint write scope isolation across concurrent lanes.
   - **Plan Archival Upon Completion**: When a plan in `docs/planning/<plan-slug>/` is fully executed, verified, and sealed by the completeness critic, move `docs/planning/<plan-slug>/` to `docs/archive/completed-plans/<plan-slug>/` and include the relocation in the release commit. `docs/planning/` strictly holds unexecuted pending roadmap items.
-  - **Companion Auditor Pairing Mandate**: Mandate companion `skill-auditor` pairing (verify `manage_subagents` list, wake/deploy `skill-auditor` if absent or missing).
+  - **Companion Auditor Pairing Mandate**: Mandate peer companion `skill-auditor` pairing contract (verify `manage_subagents` list, ensure peer companion `skill-auditor` is active with `tier: 0` and `parent_agent_id: null`, strictly prohibiting claiming parent authority or child adoption over Tier 0 auditors).
   - **NON_TERMINATING_SUPERVISORY_CONTRACT & ALWAYS_ALIVE_SUPERVISOR**: Orchestrator maintains active non-terminating supervisory oversight, never prematurely terminating or going idle without supervision.
   - **The Three Hard Zeros**: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads.
   - **Supervisory schedule resolved at runtime & ASCII DAG monitoring.** Enforces a recurring supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) via `schedule`, a systemd timer, or `pulse.sh` across rounds, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, with host watchdog/timer (e.g., Antigravity 5m timer, schedule tool, watchdog alerts), and inspects live round DAG status and parallelization bottlenecks via `report:dag`.

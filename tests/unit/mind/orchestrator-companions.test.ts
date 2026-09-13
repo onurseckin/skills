@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { releaseAuditorLeaseLock } from "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
 import {
   MANDATORY_ORCHESTRATOR_COMPANION_ROLE,
   assertOrchestratorCompanionPairing,
@@ -13,6 +14,11 @@ import { orchestratorProfile } from "../../../olt/scripts/src/sentinel/profiles/
 describe("Orchestrator Companion Skill-Auditor Pairing & Anti-Duplication Suite", () => {
   const sampleNow = "2026-09-09T12:00:00.000Z";
   const testOrchId = "orch-alpha";
+
+  afterEach(() => {
+    releaseAuditorLeaseLock({ auditor_id: `${testOrchId}-skill-auditor` });
+    releaseAuditorLeaseLock({ auditor_id: "orch-overload-skill-auditor" });
+  });
 
   const activeCoordinatorGrant: AgentGrantRecord = {
     id: `${testOrchId}-coordinator`,

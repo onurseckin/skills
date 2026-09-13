@@ -5,38 +5,44 @@ import type { TelemetryNormalizationEngine } from "./engine.ts";
 import type { UnifiedTelemetryReport } from "./types.ts";
 import { formatCircuitBreakerMarkdown } from "./circuit-breaker-markdown.ts";
 import {
-  AUTO_WAKE_PROMPT,
   CRITICAL_WRAP_UP_MESSAGE,
   DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
   DEFAULT_COOLDOWN_SECONDS,
   DEFAULT_QUOTA_THRESHOLD,
   DEFAULT_RECOVERY_THRESHOLD,
   DEFAULT_SAFE_WINDOW_SECONDS,
-  UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
-  detectActiveHost,
   evaluateCircuitBreaker,
-  extractResetTime,
-  isPlatformMatchingHost,
-  normalizeCanonicalHost,
-  type AutoWakeSchedulePayload,
   type CircuitBreakerEvaluation,
-  type CircuitBreakerStatus,
-  type ConstrainedModelInfo,
   type QuotaCircuitBreakerOptions,
-  type WrapUpDirective,
 } from "./circuit-breaker-evaluator.ts";
 
 export type {
-  AutoWakeSchedulePayload, CircuitBreakerEvaluation, CircuitBreakerStatus,
-  ConstrainedModelInfo, QuotaCircuitBreakerOptions, WrapUpDirective,
-};
+  AutoWakeSchedulePayload,
+  CircuitBreakerStatus,
+  ConstrainedModelInfo,
+  WrapUpDirective,
+} from "./circuit-breaker-evaluator.ts";
 
 export {
-  AUTO_WAKE_PROMPT, CRITICAL_WRAP_UP_MESSAGE, DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
-  DEFAULT_COOLDOWN_SECONDS, DEFAULT_QUOTA_THRESHOLD, DEFAULT_RECOVERY_THRESHOLD,
-  DEFAULT_SAFE_WINDOW_SECONDS, UNMEASURED_QUOTA_WRAP_UP_MESSAGE, detectActiveHost,
-  evaluateCircuitBreaker, extractResetTime, formatCircuitBreakerMarkdown,
-  isPlatformMatchingHost, normalizeCanonicalHost,
+  AUTO_WAKE_PROMPT,
+  UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
+  detectActiveHost,
+  extractResetTime,
+  isPlatformMatchingHost,
+  normalizeCanonicalHost,
+} from "./circuit-breaker-evaluator.ts";
+
+export type { CircuitBreakerEvaluation, QuotaCircuitBreakerOptions };
+
+export {
+  CRITICAL_WRAP_UP_MESSAGE,
+  DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_COOLDOWN_SECONDS,
+  DEFAULT_QUOTA_THRESHOLD,
+  DEFAULT_RECOVERY_THRESHOLD,
+  DEFAULT_SAFE_WINDOW_SECONDS,
+  evaluateCircuitBreaker,
+  formatCircuitBreakerMarkdown,
 };
 
 export interface QuotaState {
@@ -69,25 +75,38 @@ export function checkQuotaCircuitBreaker(
   let remaining: number;
   let resetTime: string | undefined;
 
-  if (typeof quota === "number") {
+  if (typeof quota === "number" && Number.isFinite(quota)) {
     remaining = quota <= 1.0 && quota > 0 ? quota * 100 : quota;
   } else if (typeof quota === "object" && quota !== null) {
     const record = quota as Record<string, unknown>;
-    if (typeof record["remainingPercentage"] === "number") {
+    if (
+      typeof record["remainingPercentage"] === "number" &&
+      Number.isFinite(record["remainingPercentage"])
+    ) {
       remaining = record["remainingPercentage"] as number;
-    } else if (typeof record["remainingPercent"] === "number") {
+    } else if (
+      typeof record["remainingPercent"] === "number" &&
+      Number.isFinite(record["remainingPercent"])
+    ) {
       remaining = record["remainingPercent"] as number;
-    } else if (typeof record["remainingFraction"] === "number") {
+    } else if (
+      typeof record["remainingFraction"] === "number" &&
+      Number.isFinite(record["remainingFraction"])
+    ) {
       remaining = (record["remainingFraction"] as number) * 100;
     } else if (
       typeof record["remaining"] === "number" &&
+      Number.isFinite(record["remaining"]) &&
       typeof record["total"] === "number" &&
+      Number.isFinite(record["total"]) &&
       (record["total"] as number) > 0
     ) {
       remaining = ((record["remaining"] as number) / (record["total"] as number)) * 100;
     } else if (
       typeof record["used"] === "number" &&
+      Number.isFinite(record["used"]) &&
       typeof record["total"] === "number" &&
+      Number.isFinite(record["total"]) &&
       (record["total"] as number) > 0
     ) {
       remaining = Math.max(
@@ -218,12 +237,12 @@ export function resolveMeasuredQuotaPercentage(input?: unknown): number | undefi
     if (typeof record["remainingFraction"] === "number") {
       return Math.max(0, Math.min(100, (record["remainingFraction"] as number) * 100));
     }
-    if (typeof record["remaining"] === "number" && typeof record["total"] === "number" && (record["total"] as number) > 0) {
-      return Math.max(0, Math.min(100, ((record["remaining"] as number) / (record["total"] as number)) * 100));
+    const tot = typeof record["total"] === "number" && record["total"] > 0 ? record["total"] : 0;
+    if (tot > 0 && typeof record["remaining"] === "number") {
+      return Math.max(0, Math.min(100, (record["remaining"] / tot) * 100));
     }
-    if (typeof record["used"] === "number" && typeof record["total"] === "number" && (record["total"] as number) > 0) {
-      const tot = record["total"] as number;
-      return Math.max(0, Math.min(100, ((tot - (record["used"] as number)) / tot) * 100));
+    if (tot > 0 && typeof record["used"] === "number") {
+      return Math.max(0, Math.min(100, ((tot - record["used"]) / tot) * 100));
     }
   }
   return undefined;
@@ -249,26 +268,12 @@ export class QuotaCircuitBreaker {
       activeHost?: string;
     } = {},
   ) {
-    this.defaultThreshold =
-      options.thresholdPercentage !== undefined
-        ? options.thresholdPercentage
-        : DEFAULT_QUOTA_THRESHOLD;
+    this.defaultThreshold = options.thresholdPercentage ?? DEFAULT_QUOTA_THRESHOLD;
     this.defaultRecoveryThreshold =
-      options.recoveryThresholdPercentage !== undefined
-        ? options.recoveryThresholdPercentage
-        : DEFAULT_RECOVERY_THRESHOLD;
-    this.defaultSafeWindowSeconds =
-      options.defaultSafeWindowSeconds !== undefined
-        ? options.defaultSafeWindowSeconds
-        : DEFAULT_SAFE_WINDOW_SECONDS;
-    this.defaultBufferSeconds =
-      options.bufferSeconds !== undefined
-        ? options.bufferSeconds
-        : DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
-    this.defaultCooldownSeconds =
-      options.cooldownSeconds !== undefined
-        ? options.cooldownSeconds
-        : DEFAULT_COOLDOWN_SECONDS;
+      options.recoveryThresholdPercentage ?? DEFAULT_RECOVERY_THRESHOLD;
+    this.defaultSafeWindowSeconds = options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
+    this.defaultBufferSeconds = options.bufferSeconds ?? DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
+    this.defaultCooldownSeconds = options.cooldownSeconds ?? DEFAULT_COOLDOWN_SECONDS;
     this.defaultActiveHost = options.activeHost;
   }
 
@@ -276,23 +281,12 @@ export class QuotaCircuitBreaker {
     report: UnifiedTelemetryReport,
     options?: QuotaCircuitBreakerOptions,
   ): CircuitBreakerEvaluation {
-    const activeHost =
-      options !== undefined && options.activeHost !== undefined
-        ? options.activeHost
-        : this.defaultActiveHost;
+    const activeHost = options?.activeHost ?? this.defaultActiveHost;
     const previousStatus = options?.previousStatus;
-    const lastTrippedAt =
-      options !== undefined && options.lastTrippedAt !== undefined
-        ? options.lastTrippedAt
-        : this.lastTrippedAt;
+    const lastTrippedAt = options?.lastTrippedAt ?? this.lastTrippedAt;
     const recoveryThresholdPercentage =
-      options !== undefined && options.recoveryThresholdPercentage !== undefined
-        ? options.recoveryThresholdPercentage
-        : this.defaultRecoveryThreshold;
-    const cooldownSeconds =
-      options !== undefined && options.cooldownSeconds !== undefined
-        ? options.cooldownSeconds
-        : this.defaultCooldownSeconds;
+      options?.recoveryThresholdPercentage ?? this.defaultRecoveryThreshold;
+    const cooldownSeconds = options?.cooldownSeconds ?? this.defaultCooldownSeconds;
 
     const mergedOptions: QuotaCircuitBreakerOptions = {
       ...options,
@@ -312,8 +306,8 @@ export class QuotaCircuitBreaker {
     this.lastEvaluation = evaluation;
     if (evaluation.isTriggered) {
       if (this.lastTrippedAt === undefined) {
-        this.lastTrippedAt =
-          options?.now !== undefined ? new Date(options.now).getTime() : Date.now();
+        const parsedNow = options?.now !== undefined ? new Date(options.now).getTime() : Date.now();
+        this.lastTrippedAt = Number.isFinite(parsedNow) ? parsedNow : Date.now();
       }
     } else {
       this.lastTrippedAt = undefined;

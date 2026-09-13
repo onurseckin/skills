@@ -64,9 +64,7 @@ export class SkillAuditorEngine {
     options?: SkillAuditOptions,
   ): SkillAuditLiveResult {
     const nowIso =
-      options !== undefined && options.now !== undefined
-        ? options.now
-        : new Date().toISOString();
+      options !== undefined && options.now !== undefined ? options.now : new Date().toISOString();
     const explicitRunRoot = options?.capsuleRunRoot;
     const capsuleRoots = explicitRunRoot
       ? [resolve(explicitRunRoot)]
@@ -141,10 +139,7 @@ export class SkillAuditorEngine {
           inc.category === "FALSE_SERIALIZATION"
             ? true
             : inc.category === "ROLE_BOUNDARY_DEVIATION";
-        if (
-          isInterjectionCategory &&
-          dispatchInterjection(repoRoot, inc, capsuleRoots)
-        ) {
+        if (isInterjectionCategory && dispatchInterjection(repoRoot, inc, capsuleRoots)) {
           interjectionsSent++;
         }
       }

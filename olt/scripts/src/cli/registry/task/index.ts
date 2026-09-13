@@ -123,6 +123,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
   taskAbandonSpec,
   taskReleaseSpec,
   taskTokenSpec,
+  taskLeaseSpec,
   taskCheckSpec,
   taskAddSpec,
   taskListSpec,
