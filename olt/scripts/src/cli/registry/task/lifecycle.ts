@@ -8,6 +8,7 @@ import {
   taskSubmitCommand,
   taskValidateStartCommand,
 } from "../../commands/task-ops.ts";
+import { taskLeaseCommand } from "../../commands/task-lease.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -200,6 +201,36 @@ export const taskReleaseSpec: CommandSpec = taskCmd(
   ["bun harness.ts task:release --run <run> --task t1 --agent w1"],
 );
 
+export const taskTokenSpec: CommandSpec = {
+  ...taskCmd(
+    "task:token",
+    "Query the active lease token for a task.",
+    "Inspects active lease metadata and returns the bearer token, time remaining, and status.",
+    [
+      opt("task", "string", "Task ID to query."),
+      opt("task-id", "string", "Alias for --task."),
+      opt("id", "string", "Alias for --task."),
+      opt("run", "string", "Capsule run root directory."),
+      opt("queue-path", "string", "Path to task queue JSON file."),
+      opt("path", "string", "Alias for --queue-path."),
+      opt("json", "bool", "Output results in JSON format."),
+      opt("agent-id", "string", "Agent ID (when claiming queue lease)."),
+      opt("lease-duration", "int", "Lease duration in seconds (when claiming queue lease)."),
+      opt("duration-seconds", "int", "Alias for --lease-duration."),
+      opt("duration", "int", "Alias for --lease-duration."),
+    ],
+    taskLeaseCommand,
+    [
+      "bun harness.ts task:token --run <run> --task <task-id>",
+      "bun harness.ts task:token --run <run> --task <task-id> --json",
+      "bun harness.ts task:lease --task <task-id>",
+    ],
+  ),
+  aliases: ["task:lease"],
+};
+
+export const taskLeaseSpec: CommandSpec = taskTokenSpec;
+
 export const TASK_LIFECYCLE_COMMANDS: readonly CommandSpec[] = [
   taskClaimSpec,
   taskHeartbeatSpec,
@@ -209,12 +240,14 @@ export const TASK_LIFECYCLE_COMMANDS: readonly CommandSpec[] = [
   taskRejectSpec,
   taskAbandonSpec,
   taskReleaseSpec,
+  taskTokenSpec,
 ];
 
 export {
   taskAbandonCommand,
   taskClaimCommand,
   taskHeartbeatCommand,
+  taskLeaseCommand,
   taskRejectCommand,
   taskReleaseCommand,
   taskReviewCommand,

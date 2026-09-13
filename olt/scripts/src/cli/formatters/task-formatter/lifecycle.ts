@@ -7,9 +7,20 @@ import {
 } from "../next-actions/index.ts";
 import type { TaskClaimParams, TaskHeartbeatParams, TaskSubmitParams } from "./types.ts";
 
-export function formatTaskClaimBrief(params: TaskClaimParams): string {
+export function formatTaskClaimBrief(
+  params: TaskClaimParams & { expiresAt?: string; run?: string },
+): string {
   const scopeStr = params.writeScope.map((s) => `\`${s}\``).join(", ") || "`none`";
+  const runArg = params.run ?? "<RUN_ID>";
+  const expiresAt = params.expiresAt ?? `${params.durationMinutes}m`;
+  const delimiter = "=".repeat(80);
   const md = [
+    delimiter,
+    `LEASE ACQUIRED: ${params.token}`,
+    `EXPIRES AT: ${expiresAt}`,
+    `SUBMIT WITH: bun harness.ts task:submit --run ${runArg} --task ${params.taskId} --token ${params.token}`,
+    delimiter,
+    "",
     `### Task Leased: ${params.taskId}`,
     `- **Agent**: \`${params.agent}\``,
     `- **Lease Token**: \`${params.token}\``,
@@ -32,7 +43,7 @@ export function formatTaskClaimBrief(params: TaskClaimParams): string {
     `- **Note**: Pass \`--token ${params.token}\` to \`task:submit\`.`,
     ...nextActionsBlock(taskClaimNextActions(undefined, params.taskId, params.agent, params.token)),
   ].join("\n");
-  return enforceLineLimit(md, 30);
+  return enforceLineLimit(md, 40);
 }
 
 export function formatTaskHeartbeatBrief(params: TaskHeartbeatParams): string {

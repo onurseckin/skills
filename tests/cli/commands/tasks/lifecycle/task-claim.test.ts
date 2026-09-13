@@ -97,6 +97,72 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
     expect(typeof claim.token).toBe("string");
     expect((claim.task as { status: string }).status).toBe("leased");
     expect(String(claim.markdown)).toContain(TASK_ID);
+
+    const lines = String(claim.markdown).split("\n");
+    expect(lines[0]).toBe("=".repeat(80));
+    expect(lines[1]).toContain(`LEASE ACQUIRED: ${claim.token}`);
+    expect(lines[2]).toContain("EXPIRES AT:");
+    expect(lines[3]).toContain(`SUBMIT WITH: bun harness.ts task:submit --run ${run} --task ${TASK_ID} --token ${claim.token}`);
+    expect(lines[4]).toBe("=".repeat(80));
+    expect(lines[5]).toBe("");
+    expect(lines[6]).toContain(`### Task Leased: ${TASK_ID}`);
+  });
+
+  test("task:token and task:lease query active lease token in key=value and JSON modes", async () => {
+    const { run } = await setupRun("token-query", roots);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+    ]);
+    const activeToken = String(claim.token);
+
+    // Test task:token text mode (default)
+    const tokenRes = await execute([
+      "task:token",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+    ]);
+    expect(tokenRes.token).toBe(activeToken);
+    expect(tokenRes.status).toBe("leased");
+    expect(typeof tokenRes.expires_in_seconds).toBe("number");
+    expect(String(tokenRes.markdown)).toContain(`TOKEN=${activeToken}`);
+    expect(String(tokenRes.markdown)).toContain("EXPIRES_IN_SECONDS=");
+    expect(String(tokenRes.markdown)).toContain("STATUS=leased");
+
+    // Test task:token json mode
+    const tokenJson = await execute([
+      "task:token",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--json",
+    ]);
+    expect(tokenJson.token).toBe(activeToken);
+    const parsedJson = JSON.parse(String(tokenJson.markdown));
+    expect(parsedJson.token).toBe(activeToken);
+    expect(parsedJson.status).toBe("leased");
+    expect(parsedJson.task_id).toBe(TASK_ID);
+
+    // Test task:lease alias
+    const leaseRes = await execute([
+      "task:lease",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+    ]);
+    expect(leaseRes.token).toBe(activeToken);
+    expect(leaseRes.status).toBe("leased");
   });
 
   test("refuses claiming an already-leased task by a different worker", async () => {

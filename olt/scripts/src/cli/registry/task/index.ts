@@ -20,6 +20,9 @@ import {
   taskReviewSpec,
   taskSubmitCommand,
   taskSubmitSpec,
+  taskTokenSpec,
+  taskLeaseSpec,
+  taskLeaseCommand,
   taskValidateStartCommand,
   taskValidateStartSpec,
 } from "./lifecycle.ts";
@@ -49,8 +52,6 @@ import {
   taskCompleteSpec,
   taskFailCommand,
   taskFailSpec,
-  taskLeaseCommand,
-  taskLeaseSpec,
   taskPruneCommand,
   taskPruneSpec,
 } from "./queue.ts";
@@ -105,6 +106,7 @@ export {
   taskReviewSpec,
   taskSubmitCommand,
   taskSubmitSpec,
+  taskTokenSpec,
   taskValidateStartCommand,
   taskValidateStartSpec,
 };
@@ -120,10 +122,10 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
   taskRejectSpec,
   taskAbandonSpec,
   taskReleaseSpec,
+  taskTokenSpec,
   taskCheckSpec,
   taskAddSpec,
   taskListSpec,
-  taskLeaseSpec,
   taskCompleteSpec,
   taskFailSpec,
   taskPruneSpec,

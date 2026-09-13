@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AGENT_ROLES, isAgentRole } from "../../core/contracts/index.ts";
 import { evidenced, type Evidenced } from "../../core/contracts/index.ts";
@@ -237,11 +238,22 @@ export async function taskClaimCommand(
 
   const worktree = assignedWorktreeForClaim(run, taskId);
 
+  try {
+    writeFileSync(join(run, `.lease-token-${taskId}`), result.token, "utf-8");
+    if (worktree?.worktreePath) {
+      writeFileSync(join(worktree.worktreePath, ".lease-token"), result.token, "utf-8");
+    }
+  } catch {
+    // Best-effort persistence of lease token file
+  }
+
   let markdown = formatTaskClaimBrief({
     taskId,
     agent,
     token: result.token,
     durationMinutes: Math.round(lease.duration_seconds / 60),
+    expiresAt: lease.expires_at,
+    run,
     writeScope: task.write_scope,
     worktreePath: worktree?.worktreePath,
   });

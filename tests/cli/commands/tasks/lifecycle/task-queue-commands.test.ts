@@ -246,4 +246,64 @@ describe("Task queue CLI commands & Cowan Pagination", () => {
     expect(pruneRes.prunedCount).toBe(1);
     expect(pruneRes.remainingCount).toBe(0);
   });
+
+  test("task:token queries active lease token from queue in key=value and JSON modes", async () => {
+    const dir = scratchRoot(import.meta.path, "task-token-test");
+    const queuePath = join(dir, "tasks-token-test.json");
+    await execute([
+      "task:add",
+      "--task-id",
+      "task-q-token",
+      "--title",
+      "Task with lease to query",
+      "--queue-path",
+      queuePath,
+    ]);
+
+    const leaseRes = (await execute([
+      "task:lease",
+      "--task",
+      "task-q-token",
+      "--agent-id",
+      "worker-q",
+      "--lease-duration",
+      "300",
+      "--queue-path",
+      queuePath,
+    ])) as Record<string, unknown>;
+
+    const activeToken = String(leaseRes.leaseToken);
+    expect(activeToken).toBeTruthy();
+
+    // Test task:token text mode
+    const tokenRes = (await execute([
+      "task:token",
+      "--task",
+      "task-q-token",
+      "--queue-path",
+      queuePath,
+    ])) as Record<string, unknown>;
+
+    expect(tokenRes.token).toBe(activeToken);
+    expect(tokenRes.status).toBe("leased");
+    expect(typeof tokenRes.expires_in_seconds).toBe("number");
+    expect(String(tokenRes.markdown)).toContain(`TOKEN=${activeToken}`);
+    expect(String(tokenRes.markdown)).toContain("STATUS=leased");
+
+    // Test task:token json mode
+    const tokenJson = (await execute([
+      "task:token",
+      "--task",
+      "task-q-token",
+      "--queue-path",
+      queuePath,
+      "--json",
+    ])) as Record<string, unknown>;
+
+    expect(tokenJson.token).toBe(activeToken);
+    const parsed = JSON.parse(String(tokenJson.markdown));
+    expect(parsed.token).toBe(activeToken);
+    expect(parsed.status).toBe("leased");
+    expect(parsed.task_id).toBe("task-q-token");
+  });
 });
