@@ -34,19 +34,16 @@ export {
   FLEET_CONTRACT_REGISTRY,
   getAllAgentArchetypes,
   getAgentContract,
+  isHeadfulReviewer,
+  isHeadlessDebugger,
+  isSourceCodeBlind,
   listAgentsByCategory,
   listAgentsByTier,
   normalizeAgentRole,
   requireAgentContract,
-} from "./matrix.ts";
-
-export {
-  isHeadfulReviewer,
-  isHeadlessDebugger,
-  isSourceCodeBlind,
   validateAgentSpawn,
   validateAgentToolCall,
-} from "./validation.ts";
+} from "./matrix.ts";
 
 export type {
   ActiveAuditorRecord,

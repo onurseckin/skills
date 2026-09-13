@@ -1,5 +1,11 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { isSupervisoryTierRole, verifySupervisoryRoleBoundary } from "./role-boundary-verifier.ts";
+import {
+  isSupervisoryTierRole,
+  isTier0Auditor,
+  isTier0AuditorAgentId,
+  isTier0AuditorRole,
+  verifySupervisoryRoleBoundary,
+} from "./role-boundary-verifier.ts";
 import type {
   AdoptionConfinementParams,
   ConfinementValidationResult,
@@ -19,27 +25,6 @@ export function safeFormatValue(val: unknown): string {
   } catch {
     return "[Unstringifiable Object]";
   }
-}
-
-export function isTier0AuditorRole(role: string): boolean {
-  if (typeof role !== "string") return false;
-  const normalized = role.trim().toLowerCase().replace(/_/g, "-");
-  return normalized === "skill-auditor" || normalized === "mind-auditor";
-}
-
-export function isTier0AuditorAgentId(agentId: string): boolean {
-  if (typeof agentId !== "string") return false;
-  const normalized = agentId.trim().toLowerCase().replace(/_/g, "-");
-  return (
-    normalized.startsWith("skill-auditor") ||
-    normalized.startsWith("mind-auditor") ||
-    normalized.includes("-skill-auditor") ||
-    normalized.includes("-mind-auditor")
-  );
-}
-
-export function isTier0Auditor(roleOrId: string): boolean {
-  return isTier0AuditorRole(roleOrId) || isTier0AuditorAgentId(roleOrId);
 }
 
 export function isSubordinateRole(role: string): boolean {

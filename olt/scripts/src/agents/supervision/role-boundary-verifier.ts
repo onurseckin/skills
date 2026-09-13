@@ -1,6 +1,26 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { isTier0Auditor } from "./tier0-confinement.ts";
 import type { AgentSupervisionTier, SupervisoryBoundaryCheckParams } from "./types.ts";
+
+export function isTier0AuditorRole(role: string): boolean {
+  if (typeof role !== "string") return false;
+  const normalized = role.trim().toLowerCase().replace(/_/g, "-");
+  return normalized === "skill-auditor" || normalized === "mind-auditor";
+}
+
+export function isTier0AuditorAgentId(agentId: string): boolean {
+  if (typeof agentId !== "string") return false;
+  const normalized = agentId.trim().toLowerCase().replace(/_/g, "-");
+  return (
+    normalized.startsWith("skill-auditor") ||
+    normalized.startsWith("mind-auditor") ||
+    normalized.includes("-skill-auditor") ||
+    normalized.includes("-mind-auditor")
+  );
+}
+
+export function isTier0Auditor(roleOrId: string): boolean {
+  return isTier0AuditorRole(roleOrId) || isTier0AuditorAgentId(roleOrId);
+}
 
 export function resolveAgentTier(roleOrId: string): AgentSupervisionTier {
   if (typeof roleOrId !== "string") return 3;
