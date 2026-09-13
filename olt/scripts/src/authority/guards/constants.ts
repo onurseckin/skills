@@ -68,4 +68,5 @@ export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
   ".next",
   "agy-switch-helper",
   "chatroom",
+  "bin",
 ]);

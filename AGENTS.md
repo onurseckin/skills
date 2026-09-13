@@ -217,6 +217,9 @@ Every agent executing within this repository must adhere to the following non-ne
       - **Tier 1 Orchestrator Recovery & Supervision**: Automated dead-agent lease reclamation, dead-end task classification, and supervisor recovery (`orchestrator:supervise`). If run-level deadlocks or unresolvable gate conflicts occur, escalates to Tier 0 Mind (`mind:escalate`, recording in `escalation.md`).
       - **Tier 0 Mind Pareto Arbitration**: Evaluates macro strategic trade-offs, initiates strategic replanning or self-evolution adaptation. If external human authority is required, escalates cleanly to the user with full evidence chains and handoff receipts.
       - **Strict Parent-Child Invariant**: Bypassing tiers (e.g. Tier 3 reaching Tier 0, or Tier 0 directly intervening in Tier 3) is mechanically barred; all escalations must flow hierarchically through the immediate parent supervisor.
+52. **Ban on Defensive AI Slop & Tautological Checks (Authentic Hardening Invariant):**
+    - Absolute ban on tautological nullish coalescing, redundant undefined guards, and performative `typeof` checks (e.g. `if (x !== undefined) return x ?? undefined;`, paranoid `typeof` guards where TypeScript types already guarantee the shape, or meaningless `if/else` ladders with type-check flows).
+    - Code hardening means improving product logic, handling authentic domain edge cases, enforcing business invariants, and elevating skill quality—never cluttering code with performative, defensive AI slop.
 
 ---
 

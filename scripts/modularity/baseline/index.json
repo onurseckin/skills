@@ -146,7 +146,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/cli",
-      "observed": 14,
+      "observed": 17,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -1180,18 +1180,6 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/cli/commands/unified-reporting.ts",
       "observed": "olt/scripts/src/reporting/doctor.ts",
-      "detail": "Cross-directory import must target the destination index.ts facade."
-    },
-    {
-      "rule": "facade_bypass",
-      "path": "olt/scripts/src/cli/execute.ts",
-      "observed": "olt/scripts/src/packets/command-authority.ts",
-      "detail": "Cross-directory import must target the destination index.ts facade."
-    },
-    {
-      "rule": "facade_bypass",
-      "path": "olt/scripts/src/cli/execute.ts",
-      "observed": "olt/scripts/src/workflow/agents/ledger.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -9043,13 +9031,6 @@
       "rule": "line_limit",
       "path": "olt/scripts/src/cli/commands/task-check.ts",
       "observed": 1623,
-      "limit": 400,
-      "detail": "File exceeds the 400 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "olt/scripts/src/cli/execute.ts",
-      "observed": 480,
       "limit": 400,
       "detail": "File exceeds the 400 physical-line limit."
     },

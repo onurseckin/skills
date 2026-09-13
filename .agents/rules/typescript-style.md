@@ -62,3 +62,8 @@ alwaysApply: true
 
 - Every `.ts` and `.tsx` file must not exceed 400 physical lines of code.
 - Files approaching this limit must be decomposed into focused, single-responsibility modules within dedicated subdirectories or companion files.
+
+### 6. Ban on Defensive AI Slop & Tautological Checks (Authentic Hardening Invariant)
+
+- Absolute ban on tautological nullish coalescing, redundant undefined guards, and performative `typeof` checks (e.g. `if (x !== undefined) return x ?? undefined;`, paranoid `typeof` guards where TypeScript types already guarantee the shape, or meaningless `if/else` ladders with type-check flows).
+- Code hardening means improving product logic, handling authentic domain edge cases, enforcing business invariants, and elevating skill quality—never cluttering code with performative, defensive AI slop.
