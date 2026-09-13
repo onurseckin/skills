@@ -220,6 +220,10 @@ Every agent executing within this repository must adhere to the following non-ne
 52. **Ban on Defensive AI Slop & Tautological Checks (Authentic Hardening Invariant):**
     - Absolute ban on tautological nullish coalescing, redundant undefined guards, and performative `typeof` checks (e.g. `if (x !== undefined) return x ?? undefined;`, paranoid `typeof` guards where TypeScript types already guarantee the shape, or meaningless `if/else` ladders with type-check flows).
     - Code hardening means improving product logic, handling authentic domain edge cases, enforcing business invariants, and elevating skill quality—never cluttering code with performative, defensive AI slop.
+53. **Native Internal Tools First Invariant (Antigravity IDE & CLI):**
+    - In Antigravity IDE and Antigravity CLI, agents MUST strictly prefer all native internal tools first (`view_file`, `replace_file_content`, `write_to_file`, `grep_search`, `find_by_name`, `list_dir`) for file inspection, search, and modification.
+    - Only when an operation cannot be achieved with native internal tools (such as running test suites, typechecks, git commands, builds, or specific CLI binaries) may shell commands (`run_command`) be executed.
+    - Shell-based inline file modification or inspection scripts (such as `bun -e`, `node -e`, `python -c`, `sed`, `awk`, or shell redirection to overwrite files) are strictly prohibited (`MUTATING_SHELL_INLINE_VIOLATION`).
 
 ---
 
