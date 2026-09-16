@@ -11,7 +11,8 @@ import {
   type DoctorCriticalFinding,
 } from "../formatters/index.ts";
 import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
-import { detectHostApp } from "../../authority/thread/index.ts";
+import { detectActiveHost } from "../../telemetry/collectors/index.ts";
+import { findRepoRoot } from "../../core/shared/index.ts";
 import { textFlag, type Flags } from "../index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
@@ -80,9 +81,25 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
         }
       : {};
 
+  let repoRoot: string | undefined;
+  try {
+    repoRoot = findRepoRoot(run);
+  } catch {
+    // Non-fatal if repository root cannot be determined
+  }
+  let activeHost = "antigravity";
+  try {
+    activeHost = detectActiveHost({ env: process.env }).activeHost;
+  } catch {
+    // Fallback to default canonical host
+  }
+  const quotaTelemetry = await probeLiveQuotaTelemetry({
+    host: activeHost,
+    repoRoot,
+    runRoot: run,
+  });
   const report = await runDoctor(run, installation);
   const planVerified = runPlanVerified(run);
-  const quotaTelemetry = await probeLiveQuotaTelemetry({ host: detectHostApp(process.env) });
   let failedGatesCount = 0;
   if (Array.isArray(report.workflow_issues)) {
     failedGatesCount = report.workflow_issues.length;

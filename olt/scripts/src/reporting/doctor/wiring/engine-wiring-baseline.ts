@@ -3,7 +3,6 @@ export const ACCEPTED_ENGINE_WIRING_DEFECTS: readonly string[] = [
   "checkCommandLockIntegrity|exported-but-never-invoked",
   "checkEpistemicConfidence|exported-but-never-invoked",
   "checkMailboxDiskActivity|exported-but-never-invoked",
-  "checkQuotaHealth|exported-but-never-invoked",
 ];
 
 export const ENGINE_WIRING_KNOWN_LIMITS: readonly string[] = [

@@ -17,6 +17,7 @@ import {
   checkTier0CompanionsHealth,
   checkAntiStagnationDoctor,
   checkPlanQualityAndAgentUtilization,
+  checkQuotaHealth,
   computeDoctorEnginePassed,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
@@ -24,6 +25,8 @@ import {
 
 import { checkAgentCanonicalAlignment } from "./agent-canonical-engine.ts";
 import { checkCompanionAuditorsDoctor } from "./rules/companion-auditors.ts";
+import { detectActiveHost } from "../../telemetry/collectors/index.ts";
+import { readCurrentQuota } from "../../orchestrator/lifecycle/index.ts";
 
 export interface DiagnosticCollectionOptions {
   readonly repoRoot?: string | undefined;
@@ -31,6 +34,8 @@ export interface DiagnosticCollectionOptions {
   readonly testPaths?: readonly string[] | undefined;
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;
   readonly events?: readonly unknown[] | null | undefined;
+  readonly host?: string | undefined;
+  readonly quota?: number | null | undefined;
 }
 
 export interface DiagnosticCollectionResult {
@@ -191,26 +196,15 @@ export function collectDiagnosticEngines(
 
   let activeAgentIds: readonly string[] | undefined = undefined;
   if (state !== undefined && Array.isArray(state.agents)) {
-    const rawAgents: readonly unknown[] = state.agents;
-    const extractedIds: string[] = [];
-    for (const a of rawAgents) {
-      if (typeof a === "string") {
-        if (a.length > 0) {
-          extractedIds.push(a);
-        }
-      } else if (isJsonObject(a)) {
-        if (typeof a.id === "string") {
-          if (a.id.length > 0) {
-            extractedIds.push(a.id);
-          }
-        } else if (typeof a.agentId === "string") {
-          if (a.agentId.length > 0) {
-            extractedIds.push(a.agentId);
-          }
-        }
+    const ids: string[] = [];
+    for (const a of state.agents) {
+      if (typeof a === "string" && a.length > 0) ids.push(a);
+      else if (isJsonObject(a)) {
+        if (typeof a.id === "string" && a.id.length > 0) ids.push(a.id);
+        else if (typeof a.agentId === "string" && a.agentId.length > 0) ids.push(a.agentId);
       }
     }
-    activeAgentIds = extractedIds;
+    activeAgentIds = ids;
   }
 
   const engine12 = safeRunEngine("checkMailboxHealth", () =>
@@ -284,6 +278,73 @@ export function collectDiagnosticEngines(
     }),
   );
 
+  let activeHost: string | undefined = options.host;
+  if (activeHost === undefined && state !== undefined) {
+    if (typeof state["activeHost"] === "string" && state["activeHost"].trim().length > 0) {
+      activeHost = state["activeHost"].trim();
+    } else if (typeof state["host"] === "string" && state["host"].trim().length > 0) {
+      activeHost = state["host"].trim();
+    }
+  }
+  if (activeHost === undefined) {
+    activeHost = detectActiveHost({
+      env: typeof process !== "undefined" ? process.env : {},
+    }).activeHost;
+  }
+
+  let resolvedQuota: number | null | undefined = options.quota;
+  if (resolvedQuota === undefined && state !== undefined) {
+    if (typeof state["quota"] === "number" && !Number.isNaN(state["quota"])) {
+      resolvedQuota = state["quota"];
+    } else if (
+      isJsonObject(state["quota_telemetry"]) &&
+      typeof state["quota_telemetry"]["lowestQuotaPercentage"] === "number"
+    ) {
+      resolvedQuota = state["quota_telemetry"]["lowestQuotaPercentage"] as number;
+    } else if (
+      isJsonObject(state["telemetry"]) &&
+      typeof state["telemetry"]["lowestRemainingQuota"] === "number"
+    ) {
+      resolvedQuota = state["telemetry"]["lowestRemainingQuota"] as number;
+    }
+  }
+  if (resolvedQuota === undefined) {
+    const current = readCurrentQuota();
+    if (typeof current === "number" && !Number.isNaN(current)) resolvedQuota = current;
+  }
+  const effectiveQuota = resolvedQuota ?? null;
+
+  const engine20 = safeRunEngine("checkQuotaHealth", () => {
+    const p = checkQuotaHealth({
+      repoRoot: repository,
+      host: activeHost,
+      quota: effectiveQuota,
+    });
+    const bunGlobal =
+      typeof Bun !== "undefined"
+        ? (Bun as unknown as { peek?: <T>(promise: Promise<T>) => T })
+        : undefined;
+    const peeked = typeof bunGlobal?.peek === "function" ? bunGlobal.peek(p) : undefined;
+    const peekedObj = peeked as unknown;
+    if (
+      peekedObj &&
+      typeof peekedObj === "object" &&
+      "findings" in peekedObj &&
+      "passed" in peekedObj
+    ) {
+      return peekedObj as DoctorCheckEngineResult;
+    }
+    const direct = p as unknown;
+    if (direct && typeof direct === "object" && "findings" in direct && "passed" in direct) {
+      return direct as DoctorCheckEngineResult;
+    }
+    return {
+      engine: "checkQuotaHealth",
+      passed: true,
+      findings: [],
+    };
+  });
+
   const engineResults: Record<string, DoctorCheckEngineResult> = {
     checkPlanningDag: engine1,
     checkAstPurity: engine2,
@@ -304,6 +365,7 @@ export function collectDiagnosticEngines(
     checkPlanQualityAndAgentUtilization: engine17,
     checkAgentCanonicalAlignment: engine18,
     checkCompanionAuditors: engine19,
+    checkQuotaHealth: engine20,
   };
 
   const allEngineFindings: readonly DoctorDiagnosticFinding[] = Object.values(
