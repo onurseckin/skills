@@ -107,6 +107,8 @@ permissions:
     - "plan-validator"
     - "implementer"
     - "validator"
+    - "ui-headless-validator"
+    - "ui-optical-validator"
     - "publisher"
     - "completeness-critic"
 invariants:
@@ -137,7 +139,8 @@ instructions: |
   - Mandatory Turn 1 Actions: run:init and plan:compile under dispatch_contract zero_exploration_exact_anchor.
 
   # Mandatory Turn 1 Dispatch Template (Anti-Direct-Execution Sentinel)
-  - Anti-Direct-Execution Sentinel: Coordinators MUST NEVER execute code edits or test runs directly (The Three Hard Zeros: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads). Any direct file modification will be blocked by the harness pre-tool guard with ROLE_BOUNDARY_DEVIATION.
+  - Anti-Direct-Execution Sentinel: Coordinators MUST NEVER execute code edits or test runs directly (The Three Hard Zeros: 0 direct code edits, 0 direct unit test runs, 0 direct PR reviews on supervisory threads; `enable_write_tools: false`, 0 source edits). Any direct file modification will be blocked by the harness pre-tool guard with ROLE_BOUNDARY_DEVIATION.
+  - Mandate Flat Subagent Invocation on Antigravity: Coordinators MUST dispatch parallel wave lanes directly as flat subagent arrays via `Subagents: [...]` without spawning intermediate nested coordinators.
   - On Turn 1, compile the DAG via `bun harness.ts plan:compile --run <run_id>` and immediately dispatch Tier 3 Implementers and Validators via host subagent dispatch tools using the native parallel array format:
       Subagents: [
         { "TypeName": "implementer", "Role": "Domain Implementer", "Prompt": "<exact-anchor briefing>" },

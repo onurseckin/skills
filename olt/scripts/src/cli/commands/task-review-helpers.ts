@@ -140,13 +140,32 @@ export function assertDualUiGateApproval(
     return evaluateDualUiGates({ isUiTask: false });
   }
 
+  if (!cognitiveInput || !cognitiveInput.critique || cognitiveInput.critique.trim().length === 0) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `cannot pass UI task ${taskId}: Dual UI Validator Separation mandate not satisfied (mode: rejected): [cognitive] Optical visual validation report is missing. Channel 2 requires a substantive human-grade visual review report artifact across canonical viewports.`,
+    );
+  }
+
+  const trimmedCritique = cognitiveInput.critique.trim();
+  if (
+    trimmedCritique === "Visual qualitative inspection completed." ||
+    trimmedCritique.length < 20 ||
+    /^(visual|ui|manual)\s+qualitative\s+inspection\s+completed\.?$/i.test(trimmedCritique)
+  ) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `cannot pass UI task ${taskId}: Dual UI Validator Separation mandate not satisfied (mode: rejected): [cognitive] Validator critique is a default fallback or superficial summary; substantive visual evaluation across canonical viewports is required.`,
+    );
+  }
+
   const result = evaluateDualUiGates({
     isUiTask: true,
     mechanicInput,
     cognitiveInput,
   });
 
-  if (!result.passed) {
+  if (!result.passed || result.mode !== "dual_ui_corroborated") {
     const errorDetails = result.defects.map((d) => `[${d.pillar}] ${d.message}`).join("; ");
     throw new HarnessError(
       "INVALID_STATE",

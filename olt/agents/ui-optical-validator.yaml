@@ -109,4 +109,4 @@ instructions: |
   - NEVER approve a UI without opening all 4 viewport images via `view_file`.
   - NEVER invoke `view_file` on non-image files (.ts, .tsx, .css, .json, git diffs); `view_file` is strictly reserved for rendered screenshot image artifacts (.png, .webp, .jpg).
   - NEVER read source code, TSX templates, or parse ASTs (COGNITIVE_CODE_BLINDNESS_INVARIANT).
-  - NEVER execute terminal, bash, or test commands (0 command execution privileges, `can_execute_shell: false`).
+  - NEVER execute terminal, bash, test, or Playwright commands (0 command execution privileges, `can_execute_shell: false`, `enable_write_tools: false`, OPTICAL_ZERO_COMMAND_HARDLOCK). Optical validators are quarantined exclusively to visual inspection via view_file on rendered screenshot artifacts.

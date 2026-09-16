@@ -42,6 +42,7 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
     escalate_on_exhausted_adversarial: true,
   };
   const valRbac = { can_execute_shell: true, can_edit_code: false };
+  const valOpticalRbac = { can_execute_shell: false, can_edit_code: false };
 
   return {
     mind: {
@@ -103,6 +104,8 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
           "implementer",
           "validator_code_quality",
           "validator_ui_design",
+          "ui_optical_validator",
+          "ui_headless_validator",
           "completeness_critic",
         ],
       },
@@ -126,6 +129,8 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
           "implementer",
           "validator_code_quality",
           "validator_ui_design",
+          "ui_optical_validator",
+          "ui_headless_validator",
           "completeness_critic",
         ],
       },
@@ -161,6 +166,20 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
       hosts: makeHosts("medium"),
     },
     validator_ui_design: {
+      tier: 3,
+      domain: "ui_design",
+      quotas: valQuotas,
+      rbac: valRbac,
+      hosts: makeHosts("medium"),
+    },
+    ui_optical_validator: {
+      tier: 3,
+      domain: "ui_design",
+      quotas: valQuotas,
+      rbac: valOpticalRbac,
+      hosts: makeHosts("medium"),
+    },
+    ui_headless_validator: {
       tier: 3,
       domain: "ui_design",
       quotas: valQuotas,
