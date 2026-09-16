@@ -224,6 +224,19 @@ Every agent executing within this repository must adhere to the following non-ne
     - In Antigravity IDE and Antigravity CLI, agents MUST strictly prefer all native internal tools first (`view_file`, `replace_file_content`, `write_to_file`, `grep_search`, `find_by_name`, `list_dir`) for file inspection, search, and modification.
     - Only when an operation cannot be achieved with native internal tools (such as running test suites, typechecks, git commands, builds, or specific CLI binaries) may shell commands (`run_command`) be executed.
     - Shell-based inline file modification or inspection scripts (such as `bun -e`, `node -e`, `python -c`, `sed`, `awk`, or shell redirection to overwrite files) are strictly prohibited (`MUTATING_SHELL_INLINE_VIOLATION`).
+54. **Flat Host Agent Invocation Model on Antigravity (`FLAT_HOST_INVOCATION_INVARIANT`):**
+    - All host-level subagents (`invoke_subagent`, `Agent`, `spawn_agent`, `Task`) MUST execute flat as sibling agents directly dispatched at the root session level.
+    - Subagents are strictly prohibited from recursively spawning subagents on host platforms (e.g. Subagent A calling `invoke_subagent` to spawn Subagent B). Recursive host spawning causes recursion depth ceiling errors, subagent lifetime tracking failures, context fragmentation, and orchestrator deadlocks.
+    - The logical 4-tier supervisory hierarchy (Tier 0 Mind -> Tier 1 Orchestrator -> Tier 2 Coordinator -> Tier 3 Implementer/Validator) is maintained and governed by the OLT CLI harness via session grants, role boundary enforcement (`role-boundary.ts`), capability matrices, and capsule metadata, while physical execution topology remains strictly flat at depth 1.
+55. **Anti-Mock / Anti-Forgery Visual Report Invariant (`ANTI_MOCK_INJECTION_INVARIANT`):**
+    - Under no circumstances may mock visual reports (`visual-report.json`, `visual-report.md`) or synthetic visual artifacts be injected into scratch buffers (`scratch/`, `.olt/scratch/`, `.tmp/`, `tmp/`) to simulate passing visual gates.
+    - The screenshot scanner (`screenshot-scanner.ts`) strictly quarantines and excludes scratch directories from visual report candidate scanning, ensuring that mock payloads can never bypass cryptographic evidence gates or be ingested into run capsules.
+56. **Coordinator Zero-Code-Edit & Zero-Write-Lease Invariant (`COORDINATOR_ZERO_CODE_EDITS`):**
+    - Tier 2 Coordinators (`coordinator`) are strictly forbidden from acquiring file write leases (`canClaimLeases: false`) and modifying repository source files (`canWriteCode: false`).
+    - Attempted code modifications or lease claims by coordinators trigger watchdog role-boundary violations (`watchdog:role-boundary:zero-code-edits`, `watchdog:role-boundary:lease-prohibited`). All source code mutations are strictly confined to leased Tier 3 Implementers.
+57. **Anti-Stagnation & Anti-Fantasy Feature Mandates:**
+    - **Anti-Stagnation Mandate**: Agents and supervisory tiers must never remain idle, loop on empty status checks, or emit redundant no-op pulses. When backlogs are clear, agents actively verify baseline hygiene, run targeted file-scoped regression tests, or engage the 3-step self-evolution cadence.
+    - **Anti-Fantasy Feature Mandate**: Agents are strictly forbidden from hallucinating or constructing speculative fantasy frameworks, hypothetical APIs, or ungrounded architectural abstractions without empirical user requirements or verified failing test cases. All code must solve authentic, verified problems.
 
 ---
 

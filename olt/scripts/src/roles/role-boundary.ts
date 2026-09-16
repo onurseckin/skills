@@ -18,7 +18,18 @@ import type {
 
 export function getRoleCapabilities(role: string): RoleCapabilityEntry {
   const exact = CANONICAL_ROLE_CAPABILITIES[role];
-  if (exact !== undefined) return exact;
+  if (exact !== undefined) {
+    if (
+      (isCoordinatorRole(role) || role === "coordinator") &&
+      !exact.invariants.includes("COORDINATOR_ZERO_CODE_EDITS")
+    ) {
+      return {
+        ...exact,
+        invariants: [...exact.invariants, "COORDINATOR_ZERO_CODE_EDITS"],
+      };
+    }
+    return exact;
+  }
 
   const profile = resolveRoleArchetype(role);
   const inferred = normalizeRoleName(role) ?? inferRoleFromAgentId(role);
@@ -66,11 +77,15 @@ export function getRoleCapabilities(role: string): RoleCapabilityEntry {
     allowedSpawns: [],
     invariants: isVal
       ? ["ANTI_BOUNDARY_LEAK", "COGNITIVE_HARD_LOCK"]
-      : isSup
-        ? ["SUPERVISOR_ZERO_CODE_EDITS"]
-        : [],
+      : isCoordinatorRole(role) || role === "coordinator"
+        ? ["SUPERVISOR_ZERO_CODE_EDITS", "COORDINATOR_ZERO_CODE_EDITS"]
+        : isSup
+          ? ["SUPERVISOR_ZERO_CODE_EDITS"]
+          : [],
   };
 }
+
+export const COORDINATOR_ZERO_CODE_EDITS = "COORDINATOR_ZERO_CODE_EDITS";
 
 export function isCodeWritePermitted(role: string): boolean {
   return getRoleCapabilities(role).canWriteCode;

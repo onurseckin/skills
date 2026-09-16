@@ -18,12 +18,28 @@ function isImageFile(filePath: string): boolean {
   return IMAGE_EXTENSIONS.has(ext);
 }
 
+export const ANTI_MOCK_INJECTION_INVARIANT = "ANTI_MOCK_INJECTION_INVARIANT";
+
+const SCRATCH_SEGMENT_REGEX = /(?:^|[/\\])(?:scratch|\.olt[/\\]scratch|\.tmp|tmp)(?:[/\\]|$)/i;
+
+export function isScratchOrExcludedPath(filePath: string): boolean {
+  let normalized = filePath.replace(/\\/g, "/");
+  const virtualPrefixMatch = normalized.match(/^\/virtual\/scratch\/runs\/[^/]+\/?/i);
+  if (virtualPrefixMatch) {
+    normalized = normalized.slice(virtualPrefixMatch[0].length);
+  }
+  return SCRATCH_SEGMENT_REGEX.test(normalized);
+}
+
 function isVisualReportFile(filePath: string): boolean {
   const base = basename(filePath).toLowerCase();
   return (
     base === "visual-report.json" ||
     base.endsWith("-visual-report.json") ||
-    base === "visual_report.json"
+    base === "visual_report.json" ||
+    base === "visual-report.md" ||
+    base.endsWith("-visual-report.md") ||
+    base === "visual_report.md"
   );
 }
 
@@ -61,7 +77,8 @@ export function scanDirectoryForVisualReports(
   maxDepth = 8,
   currentDepth = 0,
 ): string[] {
-  if (!existsSync(dirPath) || currentDepth > maxDepth) return [];
+  if (!existsSync(dirPath) || currentDepth > maxDepth || isScratchOrExcludedPath(dirPath))
+    return [];
   const found: string[] = [];
 
   try {
@@ -72,12 +89,17 @@ export function scanDirectoryForVisualReports(
         entryName.startsWith(".") ||
         entryName === "node_modules" ||
         entryName === ".git" ||
-        entryName === ".capsules"
+        entryName === ".capsules" ||
+        entryName === "scratch" ||
+        entryName === "tmp" ||
+        entryName === ".tmp"
       ) {
         continue;
       }
 
       const fullPath = join(dirPath, entryName);
+      if (isScratchOrExcludedPath(fullPath)) continue;
+
       if (entry.isFile() && isVisualReportFile(entryName)) {
         found.push(fullPath);
       } else if (entry.isDirectory()) {
@@ -104,6 +126,8 @@ export function extractImagesFromText(text: string, baseDir?: string): string[] 
         ? resolve(baseDir, candidate)
         : resolve(candidate);
 
+    if (isScratchOrExcludedPath(resolved)) continue;
+
     if (existsSync(resolved)) {
       try {
         if (statSync(resolved).isFile()) {
@@ -118,7 +142,8 @@ export function extractImagesFromText(text: string, baseDir?: string): string[] 
 
 export function extractVisualReportsFromText(text: string, baseDir?: string): string[] {
   if (!text) return [];
-  const pattern = /(?:[a-zA-Z0-9_\-./\\~]*(?:visual-report|visual_report)[a-zA-Z0-9_\-.]*\.json)/gi;
+  const pattern =
+    /(?:[a-zA-Z0-9_\-./\\~]*(?:visual-report|visual_report)[a-zA-Z0-9_\-.]*\.(?:json|md))/gi;
   const matches = text.match(pattern) ?? [];
   const validPaths: string[] = [];
 
@@ -130,6 +155,8 @@ export function extractVisualReportsFromText(text: string, baseDir?: string): st
       : baseDir
         ? resolve(baseDir, candidate)
         : resolve(candidate);
+
+    if (isScratchOrExcludedPath(resolved)) continue;
 
     if (existsSync(resolved)) {
       try {
@@ -217,6 +244,7 @@ export function findVisualReportCandidates(
     for (const p of explicitPaths) {
       if (!p) continue;
       const resolved = resolve(p);
+      if (isScratchOrExcludedPath(resolved)) continue;
       if (existsSync(resolved)) {
         try {
           if (statSync(resolved).isFile() && isVisualReportFile(resolved)) {
@@ -228,13 +256,15 @@ export function findVisualReportCandidates(
   }
 
   for (const dir of searchDirs) {
-    if (!existsSync(dir)) continue;
+    if (!existsSync(dir) || isScratchOrExcludedPath(dir)) continue;
 
     for (const subName of SCREENSHOT_DIR_NAMES) {
       const subPath = join(dir, subName);
-      if (existsSync(subPath)) {
+      if (existsSync(subPath) && !isScratchOrExcludedPath(subPath)) {
         for (const rep of scanDirectoryForVisualReports(subPath)) {
-          candidates.add(resolve(rep));
+          if (!isScratchOrExcludedPath(rep)) {
+            candidates.add(resolve(rep));
+          }
         }
       }
     }
@@ -244,6 +274,8 @@ export function findVisualReportCandidates(
       if (stat.isDirectory()) {
         const topEntries = readdirSync(dir, { withFileTypes: true });
         for (const ent of topEntries) {
+          const full = join(dir, ent.name);
+          if (isScratchOrExcludedPath(full)) continue;
           if (ent.isFile() && isVisualReportFile(ent.name)) {
             candidates.add(resolve(dir, ent.name));
           }
@@ -255,12 +287,16 @@ export function findVisualReportCandidates(
   const baseDir = searchDirs[0];
   if (stdout) {
     for (const rep of extractVisualReportsFromText(stdout, baseDir)) {
-      candidates.add(resolve(rep));
+      if (!isScratchOrExcludedPath(rep)) {
+        candidates.add(resolve(rep));
+      }
     }
   }
   if (stderr) {
     for (const rep of extractVisualReportsFromText(stderr, baseDir)) {
-      candidates.add(resolve(rep));
+      if (!isScratchOrExcludedPath(rep)) {
+        candidates.add(resolve(rep));
+      }
     }
   }
 

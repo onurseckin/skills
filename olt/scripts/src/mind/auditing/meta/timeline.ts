@@ -33,6 +33,96 @@ export function parseManifestFile(filePath: string): Manifest | null {
   }
 }
 
+function normalizeToolName(raw: string): string {
+  return raw
+    .replace(/^default_api:/, "")
+    .replace(/^mcp_[^_]+_/, "")
+    .trim();
+}
+
+function parseCallRecord(
+  rawCall: Record<string, unknown>,
+  fallbackEntry?: Record<string, unknown>,
+): ExtractedToolCall {
+  const rawName =
+    typeof rawCall["name"] === "string"
+      ? rawCall["name"]
+      : typeof rawCall["tool"] === "string"
+        ? rawCall["tool"]
+        : "unknown";
+  const name = normalizeToolName(rawName);
+  const rawArgs = rawCall["arguments"] ?? rawCall["parameters"] ?? rawCall["args"];
+  let args: Record<string, unknown> | undefined = isJsonObject(rawArgs)
+    ? (rawArgs as Record<string, unknown>)
+    : undefined;
+  if (!args && typeof rawArgs === "string") {
+    const parsed = safeParseJson(rawArgs);
+    if (isJsonObject(parsed)) {
+      args = parsed as Record<string, unknown>;
+    }
+  }
+  const agentId =
+    typeof rawCall["agent_id"] === "string"
+      ? rawCall["agent_id"]
+      : typeof rawCall["agentId"] === "string"
+        ? rawCall["agentId"]
+        : typeof fallbackEntry?.["agent_id"] === "string"
+          ? (fallbackEntry["agent_id"] as string)
+          : typeof fallbackEntry?.["agentId"] === "string"
+            ? (fallbackEntry["agentId"] as string)
+            : undefined;
+  const taskId =
+    typeof rawCall["task_id"] === "string"
+      ? rawCall["task_id"]
+      : typeof rawCall["taskId"] === "string"
+        ? rawCall["taskId"]
+        : typeof fallbackEntry?.["task_id"] === "string"
+          ? (fallbackEntry["task_id"] as string)
+          : typeof fallbackEntry?.["taskId"] === "string"
+            ? (fallbackEntry["taskId"] as string)
+            : undefined;
+  const timestamp =
+    typeof rawCall["timestamp"] === "string"
+      ? rawCall["timestamp"]
+      : typeof fallbackEntry?.["timestamp"] === "string"
+        ? (fallbackEntry["timestamp"] as string)
+        : typeof fallbackEntry?.["created_at"] === "string"
+          ? (fallbackEntry["created_at"] as string)
+          : undefined;
+  const waitMs =
+    typeof args?.["WaitMsBeforeAsync"] === "number"
+      ? (args["WaitMsBeforeAsync"] as number)
+      : undefined;
+  const targetPath =
+    typeof args?.["AbsolutePath"] === "string"
+      ? (args["AbsolutePath"] as string)
+      : typeof args?.["TargetFile"] === "string"
+        ? (args["TargetFile"] as string)
+        : typeof args?.["DirectoryPath"] === "string"
+          ? (args["DirectoryPath"] as string)
+          : typeof args?.["path"] === "string"
+            ? (args["path"] as string)
+            : typeof args?.["target_path"] === "string"
+              ? (args["target_path"] as string)
+              : undefined;
+
+  const isWrite = name === "replace_file_content" || name === "write_to_file" || isWriteTool(name);
+
+  return {
+    agentId,
+    taskId,
+    name,
+    toolName: name,
+    timestamp,
+    isRead: isReadTool(name),
+    isWrite,
+    isPoll: isPollTool(name, args),
+    targetPath,
+    waitMsBeforeAsync: waitMs,
+    rawArguments: args,
+  };
+}
+
 export function extractToolCallsFromTranscripts(
   transcripts: readonly string[],
 ): ExtractedToolCall[] {
@@ -48,79 +138,83 @@ export function extractToolCallsFromTranscripts(
       }
     }
 
-    const parsed = safeParseJson(text);
-    if (Array.isArray(parsed)) {
-      for (const entry of parsed) {
-        if (isJsonObject(entry)) {
-          const name =
-            typeof entry["name"] === "string"
-              ? (entry["name"] as string)
-              : typeof entry["tool"] === "string"
-                ? (entry["tool"] as string)
-                : "unknown";
-          const args = isJsonObject(entry["arguments"])
-            ? (entry["arguments"] as Record<string, unknown>)
-            : isJsonObject(entry["parameters"])
-              ? (entry["parameters"] as Record<string, unknown>)
-              : undefined;
-          const agentId =
-            typeof entry["agent_id"] === "string"
-              ? (entry["agent_id"] as string)
-              : typeof entry["agentId"] === "string"
-                ? (entry["agentId"] as string)
-                : undefined;
-          const taskId =
-            typeof entry["task_id"] === "string"
-              ? (entry["task_id"] as string)
-              : typeof entry["taskId"] === "string"
-                ? (entry["taskId"] as string)
-                : undefined;
-          const timestamp =
-            typeof entry["timestamp"] === "string" ? (entry["timestamp"] as string) : undefined;
-          const waitMs =
-            typeof args?.["WaitMsBeforeAsync"] === "number"
-              ? (args["WaitMsBeforeAsync"] as number)
-              : undefined;
-          const targetPath =
-            typeof args?.["AbsolutePath"] === "string"
-              ? (args["AbsolutePath"] as string)
-              : typeof args?.["TargetFile"] === "string"
-                ? (args["TargetFile"] as string)
-                : typeof args?.["DirectoryPath"] === "string"
-                  ? (args["DirectoryPath"] as string)
-                  : undefined;
+    const lines = text.split("\n");
+    let foundJsonCall = false;
 
-          calls.push({
-            agentId,
-            taskId,
-            name,
-            timestamp,
-            isRead: isReadTool(name),
-            isWrite: isWriteTool(name),
-            isPoll: isPollTool(name, args),
-            targetPath,
-            waitMsBeforeAsync: waitMs,
-            rawArguments: args,
-          });
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const parsed = safeParseJson(trimmed);
+      if (!parsed) continue;
+
+      const entries: Record<string, unknown>[] = [];
+      if (Array.isArray(parsed)) {
+        for (const element of parsed) {
+          if (isJsonObject(element)) entries.push(element);
+        }
+      } else if (isJsonObject(parsed)) {
+        entries.push(parsed);
+      }
+
+      for (const entry of entries) {
+        const rawToolCalls = entry["tool_calls"] ?? entry["toolCalls"];
+        if (Array.isArray(rawToolCalls)) {
+          for (const rawCall of rawToolCalls) {
+            if (isJsonObject(rawCall)) {
+              calls.push(parseCallRecord(rawCall, entry));
+              foundJsonCall = true;
+            }
+          }
+        } else if (typeof entry["name"] === "string" || typeof entry["tool"] === "string") {
+          calls.push(parseCallRecord(entry));
+          foundJsonCall = true;
         }
       }
-      continue;
     }
 
-    const toolRegex =
-      /(?:call:\s*(?:default_api:)?([a-zA-Z0-9_-]+)|Tool Use:\s*([a-zA-Z0-9_-]+)|"toolAction":\s*"([^"]+)")/g;
-    let match: RegExpExecArray | null = toolRegex.exec(text);
-    while (match !== null) {
-      const toolName = match[1] ?? match[2] ?? match[3] ?? "unknown";
-      calls.push({
-        name: toolName,
-        toolName,
+    if (!foundJsonCall) {
+      const fullParsed = safeParseJson(text);
+      if (Array.isArray(fullParsed)) {
+        for (const element of fullParsed) {
+          if (isJsonObject(element)) {
+            const rawToolCalls = element["tool_calls"] ?? element["toolCalls"];
+            if (Array.isArray(rawToolCalls)) {
+              for (const rawCall of rawToolCalls) {
+                if (isJsonObject(rawCall)) {
+                  calls.push(parseCallRecord(rawCall, element));
+                  foundJsonCall = true;
+                }
+              }
+            } else if (typeof element["name"] === "string" || typeof element["tool"] === "string") {
+              calls.push(parseCallRecord(element));
+              foundJsonCall = true;
+            }
+          }
+        }
+      }
+    }
 
-        isRead: isReadTool(toolName),
-        isWrite: isWriteTool(toolName),
-        isPoll: isPollTool(toolName),
-      });
-      match = toolRegex.exec(text);
+    if (!foundJsonCall) {
+      const toolRegex =
+        /(?:call:\s*(?:default_api:)?([a-zA-Z0-9_-]+)|Tool Use:\s*([a-zA-Z0-9_-]+)|"toolAction":\s*"([^"]+)")/g;
+      let match: RegExpExecArray | null = toolRegex.exec(text);
+      while (match !== null) {
+        const rawTool = match[1] ?? match[2] ?? match[3] ?? "unknown";
+        const toolName = normalizeToolName(rawTool);
+        const isWrite =
+          toolName === "replace_file_content" ||
+          toolName === "write_to_file" ||
+          isWriteTool(toolName);
+        calls.push({
+          name: toolName,
+          toolName,
+          isRead: isReadTool(toolName),
+          isWrite,
+          isPoll: isPollTool(toolName),
+        });
+        match = toolRegex.exec(text);
+      }
     }
   }
 
@@ -250,18 +344,31 @@ export function calculateEfficiencyScore(
 
 export function discoverActiveTranscripts(repoRoot?: string): string[] {
   const results = new Set<string>();
-  const brainDir = join(homedir() || process.env.HOME || "", ".gemini", "antigravity-cli", "brain");
-  if (existsSync(brainDir)) {
-    try {
-      for (const e of readdirSync(brainDir, { withFileTypes: true })) {
-        const p = join(brainDir, e.name, ".system_generated", "logs", "transcript.jsonl");
-        if (e.isDirectory() && existsSync(p)) results.add(resolve(p));
-      }
-    } catch {}
+  const baseHome = homedir() || process.env.HOME || "";
+  const brainDirs = [
+    join(baseHome, ".gemini", "antigravity", "brain"),
+    join(baseHome, ".gemini", "antigravity-cli", "brain"),
+  ];
+
+  for (const brainDir of brainDirs) {
+    if (existsSync(brainDir)) {
+      try {
+        for (const e of readdirSync(brainDir, { withFileTypes: true })) {
+          if (!e.isDirectory()) continue;
+          const p = join(brainDir, e.name, ".system_generated", "logs", "transcript.jsonl");
+          if (existsSync(p)) results.add(resolve(p));
+          const direct = join(brainDir, e.name, "transcript.jsonl");
+          if (existsSync(direct)) results.add(resolve(direct));
+        }
+      } catch {}
+    }
   }
+
   if (repoRoot) {
     const local = join(resolve(repoRoot), ".system_generated", "logs", "transcript.jsonl");
     if (existsSync(local)) results.add(resolve(local));
+    const directLocal = join(resolve(repoRoot), "transcript.jsonl");
+    if (existsSync(directLocal)) results.add(resolve(directLocal));
   }
   return [...results];
 }
