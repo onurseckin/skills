@@ -102,8 +102,9 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     isUiScope(taskBefore.write_scope),
   );
 
+  const screenshotsDir = textFlag(flags, "screenshots", false);
   const taskScreenshots = isUiCandidate
-    ? collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds)
+    ? collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds, screenshotsDir)
     : [];
   const companionManifests = isUiCandidate ? collectCompanionManifests(loaded.runRoot, taskId) : [];
   const dualChannel = isUiCandidate
@@ -183,12 +184,34 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   };
 
   const policy = reviewPolicyFor(loaded.runRoot, validator);
-  if (isPass)
-    assertReviewProtocolSatisfied(
-      taskBefore,
-      policy.reviewProtocol,
-      resolutions.map((r) => r.finding_id),
-    );
+  if (isPass) {
+    try {
+      assertReviewProtocolSatisfied(
+        taskBefore,
+        policy.reviewProtocol,
+        resolutions.map((r) => r.finding_id),
+      );
+    } catch (error) {
+      if (
+        error instanceof HarnessError &&
+        error.message.includes("Cognitive deepening protocol not satisfied")
+      ) {
+        const demand = `Cognitive review demand for task ${taskId}`;
+        const cmd = `task:probe --task ${taskId} --kind cognitive --validator ${validator} --demand "${demand}"`;
+        const updatedMessage = error.message.replace(
+          /Run `[^`]+` to satisfy cognitive deepening\./,
+          `Run \`${cmd}\` to satisfy cognitive deepening.`,
+        );
+        throw new HarnessError(
+          error.code,
+          updatedMessage.includes(cmd)
+            ? updatedMessage
+            : `${error.message} Run \`${cmd}\` to satisfy cognitive deepening.`,
+        );
+      }
+      throw error;
+    }
+  }
 
   let state = recordReview(
     workflowPort(run),

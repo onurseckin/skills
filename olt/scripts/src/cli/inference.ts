@@ -61,6 +61,13 @@ export function inferActiveRun(repoRoot?: string): string | undefined {
     }
   }
 
+  let cwd: string;
+  try {
+    cwd = realpathSync(process.cwd());
+  } catch {
+    cwd = resolve(process.cwd());
+  }
+
   const resolveRunCandidate = (candidate: string): string => {
     if (resolvedRepoRoot) {
       try {
@@ -69,8 +76,17 @@ export function inferActiveRun(repoRoot?: string): string | undefined {
         if (existsSync(inCapsules)) {
           return inCapsules;
         }
+        const inPlain = join(resolvedRepoRoot, "capsules", candidate);
+        if (existsSync(inPlain)) {
+          return inPlain;
+        }
       } catch {
         // ignore
+      }
+    } else {
+      const inCwdPlain = join(cwd, "capsules", candidate);
+      if (existsSync(inCwdPlain)) {
+        return inCwdPlain;
       }
     }
     return candidate;
@@ -82,12 +98,6 @@ export function inferActiveRun(repoRoot?: string): string | undefined {
   }
 
   // b. Active session: check .session.json in cwd walking up to repoRoot, or in repoRoot
-  let cwd: string;
-  try {
-    cwd = realpathSync(process.cwd());
-  } catch {
-    cwd = resolve(process.cwd());
-  }
   const cwdInsideRepo = resolvedRepoRoot !== undefined && !isOutside(resolvedRepoRoot, cwd);
   let currentDir = cwdInsideRepo ? cwd : (resolvedRepoRoot ?? cwd);
   const visited = new Set<string>();
@@ -126,24 +136,49 @@ export function inferActiveRun(repoRoot?: string): string | undefined {
     }
   }
 
-  // c. Newest unarchived capsule directory in resolveCapsulesDir(repoRoot):
+  // c. Newest unarchived capsule directory in .olt/capsules/ or capsules/:
   // Filter out hidden directories (starting with .) like .locks and filter out "archive".
-  // Sort by mtimeMs descending (most recent first). Return resolved path or run name.
+  // Sort by mtimeMs descending (most recent first). Return resolved path.
   if (!canCheckRepoSession) {
     return undefined;
   }
 
-  try {
-    const capsulesDir = resolveCapsulesDir(resolvedRepoRoot);
-    if (existsSync(capsulesDir)) {
-      const entries = readdirSync(capsulesDir, { withFileTypes: true });
-      const candidates: { fullPath: string; mtimeMs: number }[] = [];
+  const candidateDirs: string[] = [];
+  if (resolvedRepoRoot) {
+    try {
+      candidateDirs.push(resolveCapsulesDir(resolvedRepoRoot));
+    } catch {
+      // ignore
+    }
+    candidateDirs.push(join(resolvedRepoRoot, ".olt", "capsules"));
+    candidateDirs.push(join(resolvedRepoRoot, "capsules"));
+  } else {
+    candidateDirs.push(join(cwd, ".olt", "capsules"));
+    candidateDirs.push(join(cwd, "capsules"));
+  }
 
+  const seenDirs = new Set<string>();
+  const candidates: { fullPath: string; mtimeMs: number }[] = [];
+
+  for (const dir of candidateDirs) {
+    let resolvedDir: string;
+    try {
+      resolvedDir = realpathSync(dir);
+    } catch {
+      resolvedDir = resolve(dir);
+    }
+    if (seenDirs.has(resolvedDir) || !existsSync(resolvedDir)) {
+      continue;
+    }
+    seenDirs.add(resolvedDir);
+
+    try {
+      const entries = readdirSync(resolvedDir, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.name.startsWith(".") || entry.name === "archive") {
           continue;
         }
-        const fullPath = join(capsulesDir, entry.name);
+        const fullPath = join(resolvedDir, entry.name);
         try {
           const st = statSync(fullPath);
           if (st.isDirectory()) {
@@ -153,14 +188,14 @@ export function inferActiveRun(repoRoot?: string): string | undefined {
           // Ignore unreadable entries
         }
       }
-
-      if (candidates.length > 0) {
-        candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
-        return candidates[0]!.fullPath;
-      }
+    } catch {
+      // Ignore unreadable directory
     }
-  } catch {
-    // Ignore errors in directory resolution or reading
+  }
+
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.mtimeMs - a.mtimeMs || a.fullPath.localeCompare(b.fullPath));
+    return candidates[0]!.fullPath;
   }
 
   return undefined;

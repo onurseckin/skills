@@ -78,11 +78,30 @@ export function beginValidation(
     const open = openValidations(task);
     if (
       task.original_implementer === validatorId ||
-      task.attempts.some((attempt) => attempt.agent_id === validatorId) ||
-      open.some((entry) => entry.validator_id === validatorId) ||
-      (task.validation_history ?? []).some((entry) => entry.validator_id === validatorId)
+      task.attempts.some((attempt) => attempt.agent_id === validatorId)
     ) {
       throw new HarnessError("INVALID_STATE", "validator must be independent from implementers");
+    }
+    if (open.some((entry) => entry.validator_id === validatorId)) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `validator '${validatorId}' already has an active validation for ${taskId}`,
+      );
+    }
+    const isResubmission =
+      task.repair_round > 0 ||
+      (Array.isArray(task.micro_cycles) && task.micro_cycles.length > 0) ||
+      (task.validation_history ?? []).some(
+        (entry) => entry.verdict === "reject" || entry.verdict === "probe",
+      );
+    if (
+      !isResubmission &&
+      (task.validation_history ?? []).some((entry) => entry.validator_id === validatorId)
+    ) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `validator '${validatorId}' has already reviewed this task; a distinct validator is required for rotation`,
+      );
     }
     const openDomains = new Set(open.map((entry) => entry.domain));
     const domain = resolveDomain(

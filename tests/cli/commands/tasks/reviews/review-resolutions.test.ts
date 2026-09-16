@@ -67,10 +67,122 @@ describe("resolutionProofs", () => {
     );
   });
 
-  test("throws on a malformed --resolve entry missing '='", () => {
+  test("throws when bare --resolve has no checks or evidence", () => {
     expect(() => resolutionProofs({ resolve: "finding-1" }, "task-1", [])).toThrow(
-      /--resolve must be given as <finding-id>=<value>/,
+      /--resolve finding-1 cites no command id; pass <finding-id>=<command-id> or specify --checks\/--evidence/,
     );
+  });
+
+  test("applies global --resolution-method across resolved findings without explicit method", () => {
+    const open = [
+      finding({ id: "finding-1", class: "defect" }),
+      finding({ id: "finding-2", class: "probe_demand" }),
+    ];
+    const proofs = resolutionProofs(
+      { resolve: ["finding-1=cmd-1", "finding-2=cmd-2"], "resolution-method": "manual_review" },
+      "task-1",
+      open,
+    );
+    expect(proofs).toHaveLength(2);
+    expect(proofs.find((p) => p.finding_id === "finding-1")?.method).toBe("manual_review");
+    expect(proofs.find((p) => p.finding_id === "finding-2")?.method).toBe("manual_review");
+  });
+
+  test("allows finding-specific --resolution-method to override global method", () => {
+    const open = [
+      finding({ id: "finding-1", class: "defect" }),
+      finding({ id: "finding-2", class: "probe_demand" }),
+    ];
+    const proofs = resolutionProofs(
+      {
+        resolve: ["finding-1=cmd-1", "finding-2=cmd-2"],
+        "resolution-method": ["manual_review", "finding-1=custom_verification"],
+      },
+      "task-1",
+      open,
+    );
+    expect(proofs.find((p) => p.finding_id === "finding-1")?.method).toBe("custom_verification");
+    expect(proofs.find((p) => p.finding_id === "finding-2")?.method).toBe("manual_review");
+  });
+
+  test("defaults evidence command from --checks for bare --resolve <finding-id>", () => {
+    const open = [finding({ id: "finding-1", class: "defect" })];
+    const proofs = resolutionProofs(
+      { resolve: "finding-1", checks: "cmd-check-1,cmd-check-2" },
+      "task-1",
+      open,
+    );
+    expect(proofs).toEqual([
+      {
+        finding_id: "finding-1",
+        method: "verification_passed",
+        evidence: [{ command_id: "cmd-check-1" }, { command_id: "cmd-check-2" }],
+      },
+    ]);
+  });
+
+  test("defaults evidence command from --evidence for bare --resolve <finding-id>", () => {
+    const open = [finding({ id: "finding-1", class: "probe_demand" })];
+    const proofs = resolutionProofs({ resolve: "finding-1", evidence: "cmd-ev-1" }, "task-1", open);
+    expect(proofs).toEqual([
+      {
+        finding_id: "finding-1",
+        method: "probe_demand_answered",
+        evidence: [{ command_id: "cmd-ev-1" }],
+      },
+    ]);
+  });
+
+  test("supports --resolve all to resolve all open findings", () => {
+    const open = [
+      finding({ id: "finding-1", class: "defect" }),
+      finding({ id: "finding-2", class: "probe_demand" }),
+    ];
+    const proofs = resolutionProofs({ resolve: "all", checks: "cmd-all" }, "task-1", open);
+    expect(proofs).toHaveLength(2);
+    expect(proofs.find((p) => p.finding_id === "finding-1")?.method).toBe("verification_passed");
+    expect(proofs.find((p) => p.finding_id === "finding-2")?.method).toBe("probe_demand_answered");
+    expect(proofs[0]?.evidence).toEqual([{ command_id: "cmd-all" }]);
+    expect(proofs[1]?.evidence).toEqual([{ command_id: "cmd-all" }]);
+  });
+
+  test("supports --resolve-all flag to resolve all open findings", () => {
+    const open = [finding({ id: "finding-1", class: "defect" })];
+    const proofs = resolutionProofs({ "resolve-all": true, checks: "cmd-all" }, "task-1", open);
+    expect(proofs).toHaveLength(1);
+    expect(proofs[0]?.finding_id).toBe("finding-1");
+  });
+
+  test("handles --resolve all with mixed explicit overrides and global method", () => {
+    const open = [
+      finding({ id: "f-defect-1", class: "defect" }),
+      finding({ id: "f-defect-2", class: "defect" }),
+      finding({ id: "f-probe-1", class: "probe_demand" }),
+    ];
+    const flags = {
+      checks: "cmd-1,cmd-2",
+      resolve: ["all", "f-defect-1=cmd-3"],
+      "resolution-method": ["manual_verified", "f-probe-1=probe_demand_answered"],
+    };
+    const proofs = resolutionProofs(flags, "t1", open);
+    expect(proofs).toHaveLength(3);
+
+    const d1 = proofs.find((p) => p.finding_id === "f-defect-1");
+    expect(d1?.evidence).toEqual([{ command_id: "cmd-3" }]);
+    expect(d1?.method).toBe("manual_verified");
+
+    const d2 = proofs.find((p) => p.finding_id === "f-defect-2");
+    expect(d2?.evidence).toEqual([{ command_id: "cmd-1" }, { command_id: "cmd-2" }]);
+    expect(d2?.method).toBe("manual_verified");
+
+    const p1 = proofs.find((p) => p.finding_id === "f-probe-1");
+    expect(p1?.evidence).toEqual([{ command_id: "cmd-1" }, { command_id: "cmd-2" }]);
+    expect(p1?.method).toBe("probe_demand_answered");
+  });
+
+  test("handles --resolve all with zero open findings succeeds without checks", () => {
+    const proofs = resolutionProofs({ resolve: "all" }, "t1", []);
+    expect(proofs).toEqual([]);
   });
 
   test("throws when --resolve cites zero command ids", () => {

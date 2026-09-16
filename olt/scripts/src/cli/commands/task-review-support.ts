@@ -67,11 +67,27 @@ export function collectTaskScreenshots(
   taskId: string,
   validator: string,
   checkIds: string[],
+  customScreenshotsDir?: string,
 ): ScreenshotRecord[] {
   const repoRoot = repoRootOf(runRoot);
-  const searchDirs = ["test-results", "screenshots", "playwright-report", "captures"]
+  const searchDirs = [
+    "test-results",
+    "screenshots",
+    "playwright-report",
+    "captures",
+    ".tmp/e2e/screens",
+    ".tmp/screens",
+    ".tmp/e2e",
+    "e2e/screenshots",
+    "tests/e2e/screenshots",
+    "tests/e2e/screens",
+  ]
     .map((d) => join(repoRoot, d))
     .concat([join(runRoot, "evidence"), join(runRoot, "captures")]);
+
+  if (customScreenshotsDir && customScreenshotsDir.trim()) {
+    searchDirs.unshift(resolve(customScreenshotsDir.trim()));
+  }
 
   ingestScreenshots({ runRoot, taskId, actor: validator, searchDirs });
   ingestVisualReport({ runRoot, taskId, actor: validator, searchDirs });
