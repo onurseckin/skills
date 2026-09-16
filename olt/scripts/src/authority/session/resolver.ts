@@ -1,5 +1,6 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve, isAbsolute } from "node:path";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import {
   findRepoRoot,
@@ -17,7 +18,12 @@ import {
   type ExecutionTier,
 } from "../thread/index.ts";
 import { resolveGlobalSessionsDir, resolveSessionRepositoryRoot } from "./paths.ts";
-import { isInMemorySessionStoreEnabled, readPersistedSession, secureReadSession } from "./io.ts";
+import {
+  getInMemorySessionStore,
+  isInMemorySessionStoreEnabled,
+  readPersistedSession,
+  secureReadSession,
+} from "./io.ts";
 import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
 
 export function resolveActiveSession(options: ResolveSessionOptions = {}): SessionIdentity | null {
@@ -204,18 +210,122 @@ export function isSessionLedgerBacked(
   const trimmed = runRoot?.trim();
   if (!trimmed) return false;
   try {
-    const repoRoot = findRepoRoot(trimmed);
-    const resolved =
-      isAbsolute(trimmed) || isInsideCapsule(trimmed)
-        ? resolve(trimmed)
-        : join(resolveCapsulesDir(repoRoot), trimmed);
+    let resolved = trimmed;
+    try {
+      const repoRoot = findRepoRoot(trimmed);
+      resolved =
+        isAbsolute(trimmed) || isInsideCapsule(trimmed)
+          ? resolve(trimmed)
+          : join(resolveCapsulesDir(repoRoot), trimmed);
+    } catch {
+      resolved = resolve(trimmed);
+    }
     if (!existsSync(join(resolved, "state.json"))) return false;
-    const ledger = readAgentLedger(loadRun(resolved, false).state);
+    let state: JsonObject;
+    try {
+      state = loadRun(resolved, false).state;
+    } catch {
+      state = JSON.parse(readFileSync(join(resolved, "state.json"), "utf8")) as JsonObject;
+    }
+    const ledger = readAgentLedger(state);
     return ledger.some(
       (entry) => entry.id === agentId && entry.status === "active" && entry.role === role,
     );
   } catch {
     return false;
+  }
+}
+
+function matchSessionGrant(
+  parsed: Record<string, unknown> | null,
+  token: string,
+  agentId: string,
+  role: string,
+  activeGrants: readonly { id: string; role: string }[],
+): { valid: boolean; agentId?: string; role?: string } | null {
+  if (!parsed || parsed["token"] !== token) return null;
+  const sessionAgentId = typeof parsed["agent_id"] === "string" ? parsed["agent_id"] : undefined;
+  if (!sessionAgentId) return null;
+  const grant = activeGrants.find((g) => g.id === sessionAgentId);
+  if (!grant) return null;
+  const isGenericClaim = agentId === `agent-${role}` || agentId === role;
+  if (!isGenericClaim && agentId !== grant.id) return null;
+  const sessionRole = typeof parsed["role"] === "string" ? parsed["role"] : undefined;
+  return { valid: true, agentId: grant.id, role: sessionRole ?? grant.role };
+}
+
+export function isEnvironmentTokenValid(
+  runRoot: string | undefined,
+  agentId: string,
+  role: string,
+  token: string,
+  readSessionFile: (p: string, enc: "utf8") => string = (p) => secureReadSession(p),
+): { valid: boolean; agentId?: string; role?: string } {
+  const trimmed = runRoot?.trim();
+  if (!trimmed || !token || token === "unauthenticated") return { valid: false };
+  try {
+    let resolved = trimmed;
+    try {
+      const repoRoot = findRepoRoot(trimmed);
+      resolved =
+        isAbsolute(trimmed) || isInsideCapsule(trimmed)
+          ? resolve(trimmed)
+          : join(resolveCapsulesDir(repoRoot), trimmed);
+    } catch {
+      resolved = resolve(trimmed);
+    }
+    if (!existsSync(join(resolved, "state.json"))) return { valid: false };
+    let state: JsonObject;
+    try {
+      state = loadRun(resolved, false).state;
+    } catch {
+      state = JSON.parse(readFileSync(join(resolved, "state.json"), "utf8")) as JsonObject;
+    }
+    const ledger = readAgentLedger(state);
+    const activeGrants = ledger.filter((entry) => entry.status === "active");
+    if (activeGrants.length === 0) return { valid: false };
+
+    const candidates = [
+      join(resolved, "runtime", "sessions", `${agentId}.json`),
+      ...activeGrants.map((g) => join(resolved, "runtime", "sessions", `${g.id}.json`)),
+    ];
+    for (const c of candidates) {
+      const parsed = readPersistedSession(c, "capsule_runtime_session", readSessionFile);
+      const m = matchSessionGrant(parsed, token, agentId, role, activeGrants);
+      if (m) return m;
+    }
+
+    if (isInMemorySessionStoreEnabled()) {
+      const store = getInMemorySessionStore();
+      if (store) {
+        const prefix = join(resolved, "runtime", "sessions");
+        for (const [k, v] of store.entries()) {
+          if (k.startsWith(prefix) && k.endsWith(".json")) {
+            try {
+              const m = matchSessionGrant(JSON.parse(v), token, agentId, role, activeGrants);
+              if (m) return m;
+            } catch (_err) {}
+          }
+        }
+      }
+    }
+
+    const sessionsDir = join(resolved, "runtime", "sessions");
+    if (existsSync(sessionsDir)) {
+      for (const file of readdirSync(sessionsDir)) {
+        if (!file.endsWith(".json")) continue;
+        const parsed = readPersistedSession(
+          join(sessionsDir, file),
+          "capsule_runtime_session",
+          readSessionFile,
+        );
+        const m = matchSessionGrant(parsed, token, agentId, role, activeGrants);
+        if (m) return m;
+      }
+    }
+    return { valid: false };
+  } catch (_err) {
+    return { valid: false };
   }
 }
 
@@ -239,15 +349,35 @@ export function autoDeriveCallerIdentity(
         m === "capsule_runtime_session",
     );
     const envBased = session.mechanisms_detected.includes("environment_variables");
-    const verified = fileBased
-      ? isSessionLedgerBacked(options.runRoot, session.agent_id, session.role)
-      : !envBased;
+    let verified = false;
+    let finalActor = session.agent_id;
+    let finalRole = session.role;
+    let finalMechanisms = session.mechanisms_detected;
+    if (envBased) {
+      const envCheck = isEnvironmentTokenValid(
+        options.runRoot,
+        session.agent_id,
+        session.role,
+        session.token,
+        options.readPersistedSessionFile,
+      );
+      if (envCheck.valid) {
+        verified = true;
+        if (envCheck.agentId) finalActor = envCheck.agentId;
+        if (envCheck.role) finalRole = envCheck.role;
+        finalMechanisms = [...session.mechanisms_detected, "capsule_runtime_session"];
+      }
+    } else if (fileBased) {
+      verified = isSessionLedgerBacked(options.runRoot, session.agent_id, session.role);
+    } else {
+      verified = true;
+    }
     return {
-      actor: session.agent_id,
-      role: session.role,
+      actor: finalActor,
+      role: finalRole,
       tier: session.tier,
       token: session.token,
-      mechanisms: session.mechanisms_detected,
+      mechanisms: finalMechanisms,
       verified,
     };
   }

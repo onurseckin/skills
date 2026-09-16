@@ -62,6 +62,11 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
       ),
       optionalFlag("tool-category", "string", CATEGORY_FLAG_HELP),
       optionalFlag("tool", "string", "The tool this command invoked, named as you name it."),
+      optionalFlag(
+        "command",
+        "string",
+        "Command line string to execute, alternative to -- <argv>.",
+      ),
       {
         name: "tool-extra",
         type: "string",

@@ -1,6 +1,8 @@
-import { dirname } from "node:path";
-import type { CommandRecord } from "../core/contracts/index.ts";
+import { existsSync } from "node:fs";
+import { dirname, posix } from "node:path";
+import type { CommandAttemptStartedRecord, CommandRecord } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
+import { atomicWriteJson } from "../core/index.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
@@ -107,10 +109,56 @@ export function reconcileCommandResult(
   );
 }
 
+function isPidLive(pid: number): "live" | "absent" {
+  try {
+    process.kill(pid, 0);
+    return "live";
+  } catch {
+    return "absent";
+  }
+}
+
+function hasActiveAttemptProcess(
+  runRoot: string,
+  intent: CommandRecord,
+  probeProcess?: AttemptReconciliationDependencies["probeProcess"],
+): boolean {
+  const commandDirectory = posix.dirname(intent.record_path);
+  const maximum = (intent.policy?.max_retries ?? 0) + 1;
+  for (let index = 0; index < maximum; index += 1) {
+    const base = `${commandDirectory}/attempt-${index + 1}`;
+    const directory = resolveArtifactPath(runRoot, base);
+    const startedPath = `${directory}/attempt-started.json`;
+    const recordPath = `${directory}/record.json`;
+    if (existsSync(recordPath)) continue;
+    if (existsSync(startedPath)) {
+      try {
+        const started = readCanonicalObject(startedPath, `command ${intent.id} attempt started`, {
+          maxBytes: 16 * 1024,
+          maxDepth: 8,
+        }) as unknown as CommandAttemptStartedRecord;
+        if (started.root_pid_identity) {
+          const proof = probeProcess
+            ? probeProcess(
+                started.root_pid_identity as Parameters<
+                  AttemptReconciliationDependencies["probeProcess"]
+                >[0],
+              )
+            : isPidLive(started.root_pid_identity.pid);
+          if (proof === "live") return true;
+        }
+      } catch {
+        // unreadable started marker
+      }
+    }
+  }
+  return false;
+}
+
 export function reconcileStrandedCommands(
   runRoot: string,
   actor: string,
-  injected: Partial<AttemptReconciliationDependencies> = {},
+  injected: Partial<AttemptReconciliationDependencies & { gracePeriodMs?: number }> = {},
 ): { reconciled: string[]; stranded: string[] } {
   assertCommandActor(actor);
   const commands = (loadRun(runRoot).state.commands ?? {}) as Record<string, CommandRecord>;
@@ -123,8 +171,44 @@ export function reconcileStrandedCommands(
       { maxBytes: MAX_COMMAND_RECORD_BYTES, maxDepth: 64 },
     ) as unknown as CommandRecord;
     if (stored.status === "running" || stored.retry_pending) {
-      const recovered = recoverAggregateFromAttempts(runRoot, intent, injected);
+      let recovered: CommandRecord | undefined;
+      try {
+        recovered = recoverAggregateFromAttempts(runRoot, intent, injected);
+      } catch {
+        recovered = undefined;
+      }
       if (!recovered) {
+        const probe = injected.probeProcess;
+        const nowFn = injected.now ?? (() => new Date());
+        const gracePeriodMs = injected.gracePeriodMs ?? 5_000;
+        const startedAt = Date.parse(intent.started_at);
+        const isExpired =
+          Number.isFinite(startedAt) && nowFn().getTime() - startedAt >= gracePeriodMs;
+        const isActive = hasActiveAttemptProcess(runRoot, intent, probe);
+
+        if (!isActive && isExpired) {
+          const finishedAt = nowFn().toISOString();
+          const failedRecord: CommandRecord = {
+            ...intent,
+            status: "failed",
+            finished_at: finishedAt,
+            exit_code: 1,
+            signal: null,
+            timeout_kind: null,
+            signals_sent: [],
+            failure_class: "interrupted_or_lost",
+            evidence_error: "interrupted_or_lost",
+            ...(intent.gate_id !== null
+              ? { preflight_failure: "interrupted_or_lost", repository_after: null }
+              : {}),
+            attempts: [],
+          };
+          atomicWriteJson(resolveArtifactPath(runRoot, intent.record_path), failedRecord, 0o600);
+          reconcileCommandResult(runRoot, actor, failedRecord);
+          reconciled.push(intent.id);
+          continue;
+        }
+
         stranded.push(intent.id);
         continue;
       }

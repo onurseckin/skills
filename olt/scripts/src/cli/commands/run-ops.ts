@@ -158,7 +158,6 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
 
   const tasks = Object.values(state.tasks);
   const gates = gateTally(state);
-
   // Automatically drain processed/completed backlog items into completed archive ledger
   try {
     const repoRoot = findRepoRoot(run);
@@ -168,9 +167,7 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
       completedTasks: completedTaskIds,
       repoRoot,
     });
-  } catch {
-    // Non-blocking
-  }
+  } catch {}
 
   // Execute automatic local skill sync, git commit, and git push on run completion
   const repoRoot = findRepoRoot(run);
@@ -186,23 +183,14 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
     });
 
     try {
-      await dispatchLifecycleHook("phase:complete", {
-        phase: "run:complete",
-        runId,
-        synced: result.synced,
-        committed: result.committed,
-        pushed: result.pushed,
-        commitSha: result.commitSha,
-      });
-    } catch {
-      // Non-blocking
-    }
+      await dispatchLifecycleHook("phase:complete", { phase: "run:complete", runId, ...result });
+    } catch {}
 
     const releaseFailureLogs = result.logs.filter(
-      (log) =>
-        (!result.committed && log.startsWith("[commit]")) ||
-        (!result.pushed && log.startsWith("[push]")) ||
-        (!result.synced && log.startsWith("[sync]")),
+      (l) =>
+        (!result.committed && l.startsWith("[commit]")) ||
+        (!result.pushed && l.startsWith("[push]")) ||
+        (!result.synced && l.startsWith("[sync]")),
     );
 
     return {
@@ -418,22 +406,29 @@ interface RunExecGatePreflight {
   readonly alreadyFinished: boolean;
 }
 
-function preflightRunExecGate(
+export function tokenizeCommandArgs(command: string): { exe: string; args: string[] } {
+  const matches = command.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ?? [];
+  const clean = matches.map((t) =>
+    (t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))
+      ? t.slice(1, -1)
+      : t,
+  );
+  return { exe: clean[0] ?? "", args: clean.slice(1) };
+}
+
+export function preflightRunExecGate(
   state: WorkflowState,
   taskId: string,
   gateId: string,
 ): RunExecGatePreflight {
   const task = state.tasks[taskId];
   if (!task) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${taskId}`);
-
   const gate = applicableGates(state, task).find((candidate) => candidate.id === gateId);
-  if (!gate) {
+  if (!gate)
     throw new HarnessError(
       "INVALID_ARGUMENT",
       `gate is not mandatory and applicable to task ${taskId}: ${gateId}`,
     );
-  }
-
   if (task.status === "done") {
     if (taskHasPassedGate(task, gateId)) return { alreadyFinished: true };
     throw new HarnessError(
@@ -441,10 +436,18 @@ function preflightRunExecGate(
       `finished task ${taskId} only permits its exact already-passed gate: ${gateId}`,
     );
   }
-  if (task.status !== "validated" && task.status !== "gating" && task.status !== "validating") {
+  const allowed = new Set([
+    "claimed",
+    "in_progress",
+    "submitted",
+    "validating",
+    "validated",
+    "gating",
+  ]);
+  if (!allowed.has(task.status)) {
     throw new HarnessError(
       "INVALID_STATE",
-      `task ${taskId} must be validated, validating, or gating before a gate command runs`,
+      `task ${taskId} must be claimed, in_progress, submitted, validating, validated, or gating before a gate command runs`,
     );
   }
   return { alreadyFinished: false };
@@ -455,6 +458,27 @@ export async function runExecCommand(
   _context: CommandContext,
   argv: readonly string[],
 ): Promise<Record<string, unknown>> {
+  let effectiveArgv = argv;
+  const commandFlag = textFlag(flags, "command", false);
+  if (argv.length > 0 && commandFlag) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "ambiguous command execution: specify either --command or trailing argv after --, not both",
+    );
+  }
+  if (argv.length === 0 && commandFlag) {
+    const { exe, args } = tokenizeCommandArgs(commandFlag);
+    if (exe) effectiveArgv = [exe, ...args];
+  }
+  if (effectiveArgv.length === 0) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      commandFlag !== undefined
+        ? "--command cannot be empty"
+        : "command argv cannot be empty; specify either --command or trailing argv after --",
+    );
+  }
+
   const run = textFlag(flags, "run")!;
   const task = textFlag(flags, "task", false);
   const gate = textFlag(flags, "gate", false);
@@ -479,7 +503,7 @@ export async function runExecCommand(
     );
   }
 
-  const auth = verifyCommandAuthorization(metadata, argv, loadRepoPolicy(repoRoot));
+  const auth = verifyCommandAuthorization(metadata, effectiveArgv, loadRepoPolicy(repoRoot));
   if (!auth.authorized) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -510,7 +534,7 @@ export async function runExecCommand(
     commandDir,
     cwd,
     actor,
-    argv: [...argv],
+    argv: [...effectiveArgv],
     ...(task ? { taskId: task } : {}),
     ...(gate ? { gateId: gate } : {}),
     ...declared,
@@ -518,7 +542,7 @@ export async function runExecCommand(
   const result = await runAndRecordCommand(loaded.runRoot, cmdOpts);
 
   const record = result.record;
-  const commandStr = argv.join(" ");
+  const commandStr = effectiveArgv.join(" ");
   const exitCode = record.exit_code;
   const durationMs =
     record.started_at && record.finished_at
@@ -543,36 +567,27 @@ export async function runExecCommand(
       if (!currentTask) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${task}`);
       if (
         currentTask.status === "gating" &&
-        applicableGates(state, currentTask).every((candidate) =>
-          taskHasPassedGate(currentTask, candidate.id),
-        )
+        applicableGates(state, currentTask).every((c) => taskHasPassedGate(currentTask, c.id))
       ) {
         finishTask(port, task, actor);
       }
     }
   }
 
-  let stdoutStr = "";
-  let stderrStr = "";
-  const lastAttempt = result.attempts?.at(-1);
-  if (lastAttempt) {
+  function readSafe(path?: string): string {
+    if (!path) return "";
     try {
-      if (lastAttempt.stdoutPath) {
-        stdoutStr = readFileSync(lastAttempt.stdoutPath, "utf-8");
-      }
+      return readFileSync(path, "utf-8");
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
-    try {
-      if (lastAttempt.stderrPath) {
-        stderrStr = readFileSync(lastAttempt.stderrPath, "utf-8");
-      }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      return "";
     }
   }
+  const lastAttempt = result.attempts?.at(-1);
+  const stdoutStr = readSafe(lastAttempt?.stdoutPath);
+  const stderrStr = readSafe(lastAttempt?.stderrPath);
 
-  ingestScreenshots({
+  const ingestOpts = {
     runRoot: loaded.runRoot,
     commandId: record.id,
     taskId: task ?? record.task_id ?? undefined,
@@ -581,28 +596,11 @@ export async function runExecCommand(
     stdout: stdoutStr,
     stderr: stderrStr,
     startedAt: record.started_at,
-  });
-
-  const visualReport = ingestVisualReport({
-    runRoot: loaded.runRoot,
-    commandId: record.id,
-    taskId: task ?? record.task_id ?? undefined,
-    actor,
-    searchDirs: [cwd, repoRoot],
-    stdout: stdoutStr,
-    stderr: stderrStr,
-    startedAt: record.started_at,
-  });
-
+  };
+  ingestScreenshots(ingestOpts);
+  const visualReport = ingestVisualReport(ingestOpts);
   const browserRun = ingestBrowserRun({
-    runRoot: loaded.runRoot,
-    commandId: record.id,
-    taskId: task ?? record.task_id ?? undefined,
-    actor,
-    searchDirs: [cwd, repoRoot],
-    stdout: stdoutStr,
-    stderr: stderrStr,
-    startedAt: record.started_at,
+    ...ingestOpts,
     finishedAt: record.finished_at,
     exitCode,
   });
