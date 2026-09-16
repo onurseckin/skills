@@ -377,7 +377,7 @@
     {
       "rule": "directory_fanout",
       "path": "tests/reporting/doctor",
-      "observed": 21,
+      "observed": 22,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
