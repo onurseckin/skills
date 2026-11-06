@@ -37,6 +37,13 @@ export const SKILL_REGISTRY = [
     hasGlobalBinary: false,
     ensureBinaries: {},
   },
+  {
+    name: "product-mindset-critic",
+    kind: "documentation",
+    sourceSubdir: "product-mindset-critic",
+    hasGlobalBinary: false,
+    ensureBinaries: {},
+  },
 ] as const satisfies readonly SkillDefinition[];
 
 export type SkillName = (typeof SKILL_REGISTRY)[number]["name"];

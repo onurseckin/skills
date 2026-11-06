@@ -21,13 +21,22 @@ afterEach(() => {
 });
 
 describe("SKILL_REGISTRY", () => {
-  test("declares exactly the three deployed skills with the correct kinds", () => {
-    expect(SKILL_NAMES).toEqual(["olt", "chatroom", "agy-switch-helper"]);
+  test("declares exactly the four deployed skills with the correct kinds", () => {
+    expect(SKILL_NAMES).toEqual(["olt", "chatroom", "agy-switch-helper", "product-mindset-critic"]);
     expect(SKILL_REGISTRY.map((entry) => entry.kind)).toEqual([
       "tooling",
       "tooling",
       "documentation",
+      "documentation",
     ]);
+  });
+
+  test("product-mindset-critic is documentation-kind with no global binary", () => {
+    const definition = getSkillDefinition("product-mindset-critic");
+    expect(definition?.kind).toBe("documentation");
+    expect(definition?.hasGlobalBinary).toBe(false);
+    expect(Object.keys(definition?.ensureBinaries ?? {})).toHaveLength(0);
+    expect(definition?.sourceSubdir).toBe("product-mindset-critic");
   });
 
   test("every entry's hasGlobalBinary flag agrees with its ensureBinaries map", () => {
