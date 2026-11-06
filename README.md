@@ -25,6 +25,16 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 
 📚 **[Read the skill specification →](./olt/SKILL.md)** · 🧭 **[Generated CLI manifest →](./olt/references/cli-capabilities.md)** · 📖 **[Protocol reference →](./olt/references/protocol.md)**
 
+### 2. [`product-mindset-critic`](./product-mindset-critic/SKILL.md)
+
+Reviews and improves any product surface (page, table, chart, dialog, CLI command and output, API or config file) as a product manager, UX designer and product-minded engineer would together. It starts from who uses the surface and for what job, inspects every element on the running product and in the code, reads what was already decided before judging, learns from the best products in the field, and proposes concrete, justified changes. Use it whenever you plan, build or ship something people see. It is project-neutral: install it globally and use it in any repository.
+
+```bash
+npx skills add onurseckin/skills --skill product-mindset-critic
+```
+
+📚 **[Read the method →](./product-mindset-critic/SKILL.md)** · ❓ **[Question prompts →](./product-mindset-critic/references/questions.md)** · 🧩 **[Proposal format →](./product-mindset-critic/references/proposals.md)** · 🔁 **[Learning from feedback →](./product-mindset-critic/references/learning-from-feedback.md)**
+
 ---
 
 ## 🏗️ Multi-Agent Orchestration Architecture
